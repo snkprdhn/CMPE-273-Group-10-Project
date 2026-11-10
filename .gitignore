@@ -1,0 +1,39 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Java/Flink
+target/
+.gradle/
+*.class
+
+# Local data and generated artifacts
+data/
+*.log
+*.sqlite*
+*.db
+*.parquet
+*.csv
+checkpoints/
+
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
