@@ -20,10 +20,6 @@ The architecture plans a three-broker Kafka review profile, while Kubernetes con
 
 Stop one Kafka broker in the replicated profile and record topic availability, in-sync replicas, consumer behavior, and recovery. Demonstrate optimistic version rejection for one concurrent policy update and explain why a single durable database primary was selected for the project timeline.
 
-## Stretch experiment
-
-If all required scope is stable, add a PostgreSQL read replica, pause replay, compare primary and replica versions, label the stale historical view, resume replay, and measure convergence. Automatic failover remains excluded.
-
 ## CAP and PACELC statement
 
 During a partition, critical control writes choose consistency over availability. Historical reads may remain available with explicit staleness. During normal operation, remote acknowledgement and replication improve durability/consistency at a latency cost. The final report will record actual acknowledgement points and measured latency rather than assign a product-wide label.

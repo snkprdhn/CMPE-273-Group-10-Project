@@ -8,8 +8,8 @@ Control authority, transformer policy, action/saga state, command integrity, ser
 
 | Threat | Control and verification |
 |---|---|
-| Forged telemetry | Cluster-internal broker access, producer identity/configuration, schema/device validation; Kafka ACLs are stretch hardening |
-| Unauthorized command publisher | NetworkPolicy, dedicated service identity/configuration, and schema validation; topic ACLs are stretch hardening |
+| Forged telemetry | Cluster-internal broker access, producer identity/configuration, schema/device validation; broker ACLs are documented non-required hardening |
+| Unauthorized command publisher | NetworkPolicy, dedicated service identity/configuration, and schema validation; topic ACLs are documented non-required hardening |
 | Stale leader command | Fencing epoch and device-side rejection |
 | Replay/duplicate | Event IDs, inbox, command idempotency ledger |
 | UI privilege escalation | OIDC roles, server authorization, negative tests |

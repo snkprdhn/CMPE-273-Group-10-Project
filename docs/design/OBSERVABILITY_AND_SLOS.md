@@ -6,7 +6,7 @@ The platform must explain a user-visible grid outcome across HTTP/gRPC, Kafka, F
 
 ## Planned pipeline
 
-OpenTelemetry SDKs emit traces, metrics, and correlated log context to an OpenTelemetry Collector managed by the OpenTelemetry Operator. The Prometheus Operator manages metric discovery and storage, Tempo stores traces, and services write structured JSON to Kubernetes logs. Loki aggregation is a stretch goal; Grafana provides required metric and trace views. The team configures and instruments these projects instead of writing a collector, monitoring store, or trace backend.
+OpenTelemetry SDKs emit traces, metrics, and correlated log context to an OpenTelemetry Collector managed by the OpenTelemetry Operator. The Prometheus Operator manages metric discovery and storage, Tempo stores traces, and services write structured JSON to Kubernetes logs. Grafana provides required metric and trace views. A separate log backend is excluded; `kubectl logs` plus correlation fields provide bounded class-demo log evidence. The team configures and instruments these projects instead of writing a collector, monitoring store, or trace backend.
 
 W3C trace context propagates over HTTP/gRPC. Kafka records carry `traceparent`, `correlation_id`, and `causation_id` headers. Consumers create processing spans and use span links when asynchronous fan-out makes a strict parent relationship misleading.
 
@@ -53,6 +53,6 @@ Measure a stable baseline, inject bounded dependency latency or pod failure, res
 
 The Grid Incident Investigator may assemble this evidence for the operator, but its answer is another observed artifact rather than proof of root cause. The human diagnostic exercise must verify the linked evidence and record whether the agent omitted, contradicted, or overstated any signal.
 
-## Stretch: anomaly detection
+## Component ownership
 
-After required observability is stable, the UI may flag departures from a rolling baseline for load, lag, error ratio, or acknowledgement latency. A simple transparent statistical rule is preferred before AI-assisted detection. Every anomaly retains the window, baseline, threshold, and contributing signals; correlation is not labeled as root cause.
+Each member defines bounded-cardinality metrics, spans, structured fields, a dashboard panel, alert evidence, and one fault experiment for their own workloads. Member_1 operates the shared collection/visualization stack. Member_4 combines submitted evidence into product SLO/error-budget views but does not add instrumentation inside another member's component.

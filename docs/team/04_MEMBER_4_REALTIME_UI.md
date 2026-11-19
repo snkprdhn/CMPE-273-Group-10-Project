@@ -2,7 +2,7 @@
 
 ## Distributed-systems ownership
 
-Member_4 owns the Kubernetes platform and distributed read/operations side, not only the UI. This includes cluster discovery and health behavior, consuming domain events into query projections, distributing live updates, OpenTelemetry correlation, the read-only Tool Gateway and Copilot Service, SLOs, security integration, and coordinated fault injection.
+Member_4 owns the distributed read/operations product slice, not every component's platform work. This includes consuming domain events into owned query projections, REST/SSE delivery, the operator UI, Gateway/Keycloak, product SLO/health views, the read-only Tool Gateway and Copilot Service, and coordination of the final overlay. Member_1 installs the shared observability stack; every member owns their manifests, instrumentation, dashboard panel, and fault experiment.
 
 ## Planned responsibilities
 
@@ -13,18 +13,23 @@ Member_4 owns the Kubernetes platform and distributed read/operations side, not 
 5. Build the React dashboard against the same snapshot and event contracts.
 6. Implement loading, partial, stale, reconnecting, and unavailable states in the UI.
 7. Define Prometheus metrics, Grafana dashboards, service health checks, and cross-service correlation IDs.
-8. Own local orchestration, network-fault scenarios, integration fixtures, CI planning, and the final end-to-end demonstration.
-9. Define Kubernetes workloads, Services, probes, resources, scaling, leases, RBAC, and NetworkPolicies with the relevant component owner.
-10. Correlate metrics, traces, and logs and maintain the SLO/error-budget evidence package.
+8. Consume recorded domain-event fixtures for independent projection, API, UI, and agent testing.
+9. Own only shared Gateway/identity/observability resources and Member_4 workload manifests; combine, but do not author, other members' component overlays.
+10. Correlate component-owned metrics, traces, logs, and dashboard panels from the Member_1-operated stack into the product SLO/error-budget evidence package.
 11. Integrate Keycloak, the OpenTelemetry Operator, and Prometheus Operator; keep authentication and telemetry collection in mature platform components while owning application policy and instrumentation.
 12. Define the seven typed tool schemas, evidence/output schema, authorization, bounds, deadlines, and agent audit lifecycle with the contributing component owners.
 13. Build the provider-neutral adapter and deterministic mock-provider path without placing model logic in the control plane.
 14. Implement the investigation drawer states, evidence deep links, AI-generated label, and provider/tool failure behavior.
 15. Run the fixed agent evaluation suite for grounding, write-tool denial, prompt injection, stale evidence, latency, and provider outage.
+16. Own the `projection` and `copilot_audit` logical stores and credentials without reading Member_3's `control` tables.
 
 ## Boundaries
 
-Member_4 does not calculate grid load or make control decisions. Projections preserve server-published domain state, and the browser does not directly access Kafka or the database. The Copilot Service may explain evidence but cannot publish commands, update policies, start scenarios, or issue arbitrary infrastructure/data queries.
+Member_4 does not calculate grid load, make control decisions, implement other members' Kubernetes resources, or read their owned database schemas. Projections preserve server-published events, and the browser does not directly access Kafka or the database. The Copilot Service may explain projected evidence but cannot call Members 1–3 services, publish commands, update policies, start scenarios, or issue arbitrary infrastructure/data queries.
+
+## Independent development profile
+
+Replay recorded load, alert, action, result, and health fixtures into local projection storage. Use mock identities and deterministic model/tool responses. Member_4 can validate projections, REST/SSE, UI, authorization, agent grounding, and provider failure without live simulators, Flink, Action, or shared Kubernetes.
 
 ## Independent distributed demonstration
 

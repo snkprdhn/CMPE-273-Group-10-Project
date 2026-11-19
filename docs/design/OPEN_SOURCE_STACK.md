@@ -26,9 +26,9 @@ These components contain the project's domain value and must remain team-owned:
 | Kafka lifecycle | Strimzi Operator | Kafka clusters, topics, users, storage, rolling updates, and the three-broker review profile | Custom Kafka StatefulSets or lifecycle scripts |
 | Stream-job lifecycle | Apache Flink Kubernetes Operator | Flink deployment, checkpoints/savepoints, upgrades, rollback, recovery, and job observability | A custom Flink controller |
 | Event backbone | Apache Kafka | Partitioned telemetry, derived state, commands, replay, and consumer groups | A message broker or delivery protocol |
-| Schema governance | Apicurio Registry | Store/version Kafka JSON Schemas and check compatibility; Protobuf remains the gRPC contract format | A schema registry or compatibility service |
+| Contract governance | JSON Schema validators, Protobuf tooling, OpenAPI validation, and Git/CI | Version contracts, validate examples, and block incompatible changes without another runtime service | A schema registry or compatibility service |
 | Reliable outbox publication | Kafka Connect with Debezium Outbox Event Router | Capture committed outbox rows and publish them to Kafka using stable event IDs | A polling outbox relay |
-| Operational data | PostgreSQL managed by CloudNativePG | One required persistent primary with time-indexed history tables; backups/exports and health managed through Kubernetes resources | A database, replication protocol, or hand-written database StatefulSet |
+| Operational data | PostgreSQL installed from a pinned Helm chart | One persistent primary with separate logical stores/roles for registry, control, projections, and agent audit | A database, replication protocol, or cross-service shared-table model |
 | Identity | Keycloak | Local OIDC login, tokens, and operator/viewer roles | An identity provider or password system |
 | Telemetry collection | OpenTelemetry SDKs, Operator, and Collector | Instrumentation, context propagation, collection, batching, and export | A telemetry agent or collector |
 | Metrics and dashboards | Prometheus Operator, Prometheus, and Grafana | Service discovery, metric storage, alerts, and engineering dashboards | A monitoring database or dashboard framework |
@@ -49,13 +49,13 @@ The team still owns the configuration and correctness at every boundary:
 - Strimzi manages Kafka, but Member_2 owns topic keys, partition counts, replication settings, retention, and failure evidence.
 - The Flink Operator manages job lifecycle, but Member_2 owns event-time semantics, state, checkpoint policy, and recovery correctness.
 - Debezium publishes outbox rows, but Member_3 owns the database transaction, stable IDs, event routing fields, and idempotent inbox consumers. Duplicate delivery remains possible and must be safe.
-- CloudNativePG manages database lifecycle, but Member_3 owns schemas, constraints, concurrency rules, retention, and recovery verification.
+- Member_3 owns the PostgreSQL deployment and `control` store, while Members 1 and 4 own migrations and credentials only for their logical stores. No member reads another member's tables.
 - Keycloak issues identities, but Member_4 owns application authorization, role mapping, token validation, and negative tests.
 - OpenTelemetry and Prometheus collect signals, but every component owner must define bounded-cardinality metrics and useful spans/logs.
 
 ## Deliberately avoided reinvention
 
-The project will not implement custom consensus, Kafka controllers, database replication, schema governance, authentication, tracing storage, service discovery, deployment reconciliation, or generic retry/circuit-breaker frameworks. It will also avoid adding overlapping tools: no Consul beside Kubernetes DNS, no service mesh for the MVP, no second event broker, and no full chaos platform when Toxiproxy and Kubernetes faults cover the acceptance cases.
+The project will not implement custom consensus, Kafka controllers, database replication, authentication, tracing storage, service discovery, deployment reconciliation, or generic retry/circuit-breaker frameworks. It will also avoid adding overlapping tools: no runtime schema registry for repository-owned contracts, no PostgreSQL operator for one primary, no Consul beside Kubernetes DNS, no service mesh, no second event broker, and no full chaos platform when Toxiproxy and Kubernetes faults cover the acceptance cases.
 
 ## Resource-aware deployment profiles
 
@@ -63,11 +63,11 @@ The local environment must remain demonstrable on student hardware.
 
 | Profile | Purpose | Expected shape |
 |---|---|---|
-| Developer | Fast component work | One Kafka broker, reduced Flink workers, one database, optional observability backends |
+| Developer | Fast component work | Only the owner's service, contract fixtures/mocks, and its minimum local dependencies |
 | Integration | End-to-end verification | Full application path, Keycloak, metrics, tracing, and bounded simulator scale |
 | Architecture review | Distributed failure evidence | Three Kafka brokers, two stateless replicas where relevant, two Action pods, checkpoints, and observability |
 
-The project will not run every optional tool continuously. Loki, KEDA, a database replica, and second-model-provider comparison remain stretch items. The required agent thin slice can use its deterministic mock when external access is unavailable. If the review profile exceeds the agreed machine budget, the team will reduce simulated device count or run test phases separately before weakening correctness guarantees.
+Loki, KEDA, database replicas, runtime schema registry, PostgreSQL operator, anomaly detection, and second-model-provider comparison are excluded. The required agent thin slice can use its deterministic mock when external access is unavailable. If the review profile exceeds the agreed machine budget, the team will reduce simulated device count or run test phases separately before weakening correctness guarantees.
 
 Plain PostgreSQL is sufficient for the proposed retention and class-scale query load. A time-series extension is intentionally excluded from the required stack; it can be reconsidered only if measurements show a real storage or query problem that indexed/partitioned PostgreSQL tables cannot address.
 
@@ -80,8 +80,6 @@ Primary project documentation:
 - [Strimzi Operator](https://strimzi.io/docs/operators/latest/overview/)
 - [Apache Flink Kubernetes Operator](https://nightlies.apache.org/flink/flink-kubernetes-operator-docs-main/)
 - [Debezium Outbox Event Router](https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html)
-- [Apicurio Registry](https://www.apicur.io/registry/docs/apicurio-registry/3.0.x/index.html)
-- [CloudNativePG](https://cloudnative-pg.io/documentation/current/)
 - [OpenTelemetry Operator](https://opentelemetry.io/docs/platforms/kubernetes/operator/)
 - [Prometheus Operator](https://prometheus-operator.dev/docs/getting-started/introduction/)
 - [Keycloak](https://www.keycloak.org/documentation)

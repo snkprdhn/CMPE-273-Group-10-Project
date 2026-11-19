@@ -18,6 +18,9 @@ Read the root README, documentation index, team overview, event contract, and AP
 - Do not describe planned behavior as implemented.
 - Keep shared event/API names consistent with `docs/contracts/`.
 - Treat agent tool, evidence, and output schemas as shared contracts; model prompts cannot bypass their authorization or bounds.
+- Build and test against versioned contracts/fixtures; do not require another member's unpublished branch or manually running service.
+- Do not import another service's internal package or read/write another service's owned database schema.
+- Each component owner maintains their Kubernetes resources, security policy, instrumentation, dashboard panel, and failure test.
 - Record architecture changes in `docs/decisions/`.
 - Reuse the approved projects in `docs/design/OPEN_SOURCE_STACK.md`; adding overlapping infrastructure or custom platform plumbing requires an ADR.
 - Pin container images, charts, operators, and application dependencies. Do not use `latest` tags.

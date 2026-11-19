@@ -29,7 +29,7 @@ The project supports grid reliability, cleaner transportation, and better use of
 | Stream processing | Flink event-time windows, watermarks, checkpoints, and late-event handling |
 | Grid state | Net transformer load, utilization percentage, health state, and recent trend |
 | Automated response | Throttle and restore commands for eligible EV chargers |
-| Persistence | CloudNativePG-managed PostgreSQL with persistent Kubernetes storage |
+| Persistence | Helm-managed PostgreSQL with persistent Kubernetes storage and service-owned schemas |
 | Operator experience | React dashboard with live updates, charts, alerts, action history, and scenario controls |
 | Kubernetes runtime | Multi-service deployment, discovery, health probes, reconciliation, scaling, and failure containment |
 | Observability | OpenTelemetry logs/traces, Prometheus metrics, Grafana dashboards, SLIs, SLOs, and error budgets |
@@ -57,6 +57,7 @@ flowchart TB
             TELEMETRY[(grid.telemetry.v1)]
             LOADS[(grid.transformer-load.v1)]
             ALERTS[(grid.alert.v1)]
+            ACTIONS[(grid.action.v1)]
             COMMANDS[(grid.charger-command.v1)]
             RESULTS[(grid.command-result.v1)]
         end
@@ -68,15 +69,14 @@ flowchart TB
             API[Projection and Query API<br/>CQRS views, REST, SSE]
             TOOLS[Read-Only Agent Tool Gateway<br/>typed and bounded evidence]
             CONNECT[Kafka Connect + Debezium<br/>outbox change capture]
-            SCHEMAS[Apicurio Registry<br/>event schemas]
         end
 
         subgraph DATA[Durable State and Observability]
-            DB[(PostgreSQL)]
+            DB[(PostgreSQL<br/>service-owned logical stores)]
             OTEL[OpenTelemetry Collector]
             PROM[Prometheus]
             TEMPO[Tempo]
-            LOGS[Structured Kubernetes Logs<br/>optional Loki]
+            LOGS[Structured Kubernetes Logs]
             GRAFANA[Grafana]
         end
 
@@ -93,24 +93,28 @@ flowchart TB
     METER -->|demand telemetry| TELEMETRY
     SOLAR -->|generation telemetry| TELEMETRY
     EV -->|register and heartbeat| REGISTRY
+    REGISTRY -->|registry role| DB
     TELEMETRY --> FLINK
     FLINK --> LOADS
     LOADS --> ACTION
-    ACTION -->|commit state + outbox| DB
+    ACTION -->|control role: state + outbox| DB
     DB -->|outbox change data| CONNECT
     CONNECT --> ALERTS
+    CONNECT --> ACTIONS
     CONNECT --> COMMANDS
     ACTION -->|capability lookup| REGISTRY
     COMMANDS --> EV
     EV --> RESULTS
-    FLINK --> DB
-    RESULTS --> DB
-    API --> DB
+    RESULTS --> ACTION
+    API -->|projection role| DB
     ALERTS --> API
+    ACTIONS --> API
     LOADS --> API
+    RESULTS --> API
     UI <-->|REST and Server-Sent Events| API
     UI -->|investigation request| COPILOT
     COPILOT -->|allowlisted calls| TOOLS
+    COPILOT -->|audit role| DB
     TOOLS --> API
     TOOLS --> PROM
     TOOLS --> TEMPO
@@ -127,9 +131,6 @@ flowchart TB
     PROM --> GRAFANA
     TEMPO --> GRAFANA
     LOGS -.optional aggregation.-> GRAFANA
-    TELEMETRY -.validated by.-> SCHEMAS
-    LOADS -.validated by.-> SCHEMAS
-    COMMANDS -.validated by.-> SCHEMAS
 ```
 
 Telemetry is partitioned by `transformer_id`, keeping a transformer’s readings ordered within one Kafka partition while allowing different transformers to be processed in parallel. Solar generation is represented as negative demand. The aggregation job calculates net load over event-time windows and publishes a transformer-load event. The action service uses separate warning, critical, and recovery thresholds to avoid repeatedly throttling and restoring chargers when the load is close to a boundary.
@@ -142,7 +143,7 @@ Detailed diagrams and rationale are available in the [system design](docs/design
 
 ## Build Versus Reuse
 
-The team will build the parts that express the grid use case: device behavior, transformer aggregation, overload policy, fenced control workflow, projections, operator experience, and the bounded incident-investigation workflow. Mature open-source projects will provide the surrounding platform. Strimzi will operate Kafka, the Flink Kubernetes Operator will manage stream jobs, Debezium/Kafka Connect will publish transactional outbox records, Apicurio will govern event schemas, and CloudNativePG will manage the single required PostgreSQL instance. Keycloak, OpenTelemetry, Prometheus, Grafana, Tempo, k6, Toxiproxy, Testcontainers, official model SDKs, and schema-validation libraries cover identity, operations, testing, and model connectivity.
+The team will build the parts that express the grid use case: device behavior, transformer aggregation, overload policy, fenced control workflow, projections, operator experience, and the bounded incident-investigation workflow. Mature open-source projects will provide the surrounding platform. Strimzi will operate Kafka, the Flink Kubernetes Operator will manage stream jobs, and Debezium/Kafka Connect will publish transactional outbox records. Versioned JSON Schemas and fixtures in Git will be checked in CI instead of operating a separate schema-registry service. PostgreSQL will use a pinned Helm deployment with persistent storage and service-owned schemas. Keycloak, OpenTelemetry, Prometheus, Grafana, Tempo, k6, Toxiproxy, Testcontainers, official model SDKs, and schema-validation libraries cover identity, operations, testing, and model connectivity.
 
 This still requires real distributed-systems work. The team owns partition and replication choices, event-time correctness, idempotency, fencing, failure recovery, security policy, SLOs, and measured failure experiments. It will not spend project time creating a broker, operator, schema registry, identity provider, telemetry collector, consensus algorithm, or generic test framework. The complete boundary and dependency criteria are in the [open-source reuse plan](docs/design/OPEN_SOURCE_STACK.md).
 
@@ -156,6 +157,7 @@ sequenceDiagram
     participant Action as Action Service
     participant DB as PostgreSQL Outbox
     participant CDC as Debezium / Kafka Connect
+    participant API as Projection API
     participant UI as Operator Dashboard
 
     Device->>Kafka: Publish power telemetry
@@ -167,10 +169,13 @@ sequenceDiagram
     Action->>DB: Commit action and outbox row
     DB->>CDC: Capture committed outbox row
     CDC->>Kafka: Publish throttle command
+    CDC->>Kafka: Publish alert and action events
+    Kafka->>API: Update read projections
+    API-->>UI: Stream alert and action update
     Kafka->>Device: Deliver command
     Device->>Device: Apply reduced charging rate
     Device->>Kafka: Publish command result and new telemetry
-    Action-->>UI: Stream alert and action update
+    Kafka->>API: Project command result and new load
 ```
 
 Additional workflow diagrams cover late telemetry, command deduplication, recovery, and UI updates in the linked design documents.
@@ -209,12 +214,12 @@ The model has no write-capable tool and the Copilot Service has no access to dom
 | Simulators and services | Python 3.12 | Device behavior, scenarios, action logic, and supporting services |
 | Messaging | Apache Kafka operated by Strimzi | Durable partitioned telemetry, derived events, commands, and Kubernetes-native lifecycle |
 | Stream processing | Apache Flink/PyFlink with the Flink Kubernetes Operator | Event-time aggregation, watermarks, state, checkpoints, upgrades, and recovery |
-| Schemas and CDC | Apicurio Registry, Kafka Connect, and Debezium | Schema compatibility and transactional outbox publication without custom infrastructure |
+| Contracts and CDC | Versioned JSON Schema fixtures in CI, Kafka Connect, and Debezium | Producer/consumer compatibility and transactional outbox publication without a runtime schema-registry service |
 | Internal RPC | gRPC and Protocol Buffers | Typed device registration/capability contract with deadlines |
 | Control API | FastAPI | CQRS projections, configuration, query APIs, health, and Server-Sent Events |
-| Operational database | PostgreSQL managed by CloudNativePG | Durable control state, inbox/outbox, configuration, actions, and history |
+| Operational database | PostgreSQL installed from a pinned Helm chart | Durable service-owned schemas for registry, control, projections, and agent audit data |
 | Web UI | React, TypeScript, Material UI, and Recharts | Simple, responsive, professional, and dynamic operator dashboard |
-| Observability | OpenTelemetry Operator/Collector, Prometheus Operator, Grafana, Tempo, and structured Kubernetes logs | Correlated metrics, traces, logs, SLIs, SLOs, and incident evidence; Loki is optional |
+| Observability | OpenTelemetry Operator/Collector, Prometheus Operator, Grafana, Tempo, and structured Kubernetes logs | Correlated metrics, traces, logs, SLIs, SLOs, and incident evidence |
 | Target runtime | Kubernetes using kind or minikube, packaged with Helm and Kustomize | Service discovery, replica management, probes, scaling, and failure testing |
 | Developer runtime | Docker Compose | Optional lightweight local profile; not the final deployment target |
 | Identity and policy | OIDC/Keycloak, Kubernetes RBAC, NetworkPolicies, and Secrets | User and workload authorization with least privilege |
@@ -259,10 +264,10 @@ All component directories currently contain design notes only. Their READMEs mus
 
 | Team member | Distributed-systems workstream | Additional responsibility |
 |---|---|---|
-| Member_1 | Distributed device simulation, telemetry ingestion, and gRPC registry | Reliable producers/consumers, RPC deadlines, partition routing, and failure injection |
-| Member_2 | Kafka platform and stateful Flink aggregation | Event-time correctness, checkpoints, replay, and transformer-load publication |
-| Member_3 | Distributed action processing, coordination, and persistence | Leader leases, fencing, saga/outbox/inbox, durable state, and recovery |
-| Member_4 | Kubernetes platform, real-time projections, and agent-assisted operations | Discovery, scaling, SSE recovery, Copilot/tool orchestration, OpenTelemetry, security integration, UI, and fault testing |
+| Member_1 | Distributed device simulation, telemetry ingestion, gRPC registry, and reliability tooling | Reliable producers/consumers, CI scenario runner, load/fault harness, contract fixtures, and shared observability installation |
+| Member_2 | Kafka platform and stateful Flink aggregation | Event-time correctness, schemas, checkpoints, replay, and transformer-load publication |
+| Member_3 | Distributed action processing, coordination, PostgreSQL, and CDC | Leader leases, fencing, saga/outbox/inbox, service-owned persistence, and recovery |
+| Member_4 | Real-time projections, operator UI, identity/Gateway, and incident agent | SSE recovery, read-only tools, agent orchestration, evidence validation, product SLOs, and UI integration |
 
 Ownership boundaries, milestones, and collaborative tests are defined in the [team overview](docs/team/TEAM_OVERVIEW.md).
 
@@ -285,10 +290,12 @@ The final demonstration will run in Kubernetes and show normal operation, overlo
 - [Coordination and fencing](docs/design/COORDINATION_AND_FENCING.md)
 - [Replication and consistency](docs/design/REPLICATION_AND_CONSISTENCY.md)
 - [Observability and SLOs](docs/design/OBSERVABILITY_AND_SLOS.md)
-- [Project scope and delivery tiers](docs/design/PROJECT_SCOPE.md)
+- [Project scope and delivery boundaries](docs/design/PROJECT_SCOPE.md)
 - [Open-source reuse and build boundary](docs/design/OPEN_SOURCE_STACK.md)
+- [Dependency minimization and independent workstreams](docs/design/DEPENDENCY_MINIMIZATION.md)
 - [Evidence-grounded Grid Incident Investigator](docs/design/AGENTIC_COPILOT.md)
 - [Event contracts](docs/contracts/EVENT_CONTRACTS.md)
+- [Stream semantics v1](docs/contracts/STREAM_SEMANTICS_V1.md)
 - [HTTP API contracts](docs/contracts/API_CONTRACTS.md)
 - [Agent tool and evidence contracts](docs/contracts/AGENT_TOOL_CONTRACTS.md)
 - [gRPC registry contract](docs/contracts/GRPC_CONTRACTS.md)
@@ -300,6 +307,7 @@ The final demonstration will run in Kubernetes and show normal operation, overlo
 - [Failure-injection matrix](docs/testing/FAILURE_INJECTION_MATRIX.md)
 - [Load-test plan](docs/testing/LOAD_TEST_PLAN.md)
 - [Agent evaluation plan](docs/testing/AGENT_EVALUATION_PLAN.md)
+- [Independent component testing plan](docs/testing/INDEPENDENT_COMPONENT_TESTING.md)
 - [Incident runbook](docs/runbooks/INCIDENT_DIAGNOSIS.md)
 
 ## Security and Project Hygiene

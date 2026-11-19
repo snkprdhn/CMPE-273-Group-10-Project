@@ -66,8 +66,8 @@ These are design targets to validate on the team's agreed demo machine; they are
 | Flink Kubernetes Operator | Reconcile Flink deployments, upgrades, savepoints, and recovery | Aggregation semantics or state correctness |
 | Action service | Lead a fenced control partition, run the control saga, and publish commands through an outbox | Recalculating raw transformer load |
 | Debezium/Kafka Connect | Capture committed outbox rows and route them to Kafka | Domain transactions or consumer idempotency |
-| Apicurio Registry | Store event schemas and enforce compatible evolution | Business validation rules |
-| PostgreSQL | Durable control state, inbox/outbox, configuration, and time-indexed history | Event transport or leader election |
+| Contract bundle and CI | Version JSON Schema, Protobuf, OpenAPI, examples, and compatibility tests | Runtime message routing or business logic |
+| PostgreSQL | Host isolated registry, control, projection, and agent-audit logical stores/roles | Cross-service shared tables, event transport, or leader election |
 | Projection/API service | Idempotent CQRS views, stable REST/configuration API, and cursor-based SSE | Stream-processing or control-policy ownership |
 | Read-only Tool Gateway | Execute allowlisted entity, health, metric, and trace-summary queries with authorization and bounds | Arbitrary SQL, PromQL, Kafka, shell, or Kubernetes access |
 | Copilot service | Orchestrate model turns and tools, validate evidence-backed output, and audit investigations | Authoritative grid state or control actions |
@@ -93,9 +93,9 @@ flowchart LR
     end
     subgraph Platform
         KAFKA[(Kafka)]
-        DB[(PostgreSQL)]
+        CONTROL_DB[(PostgreSQL<br/>control store)]
+        READ_DB[(PostgreSQL<br/>projection and audit stores)]
         CDC[Debezium / Kafka Connect]
-        SCHEMA[Apicurio Registry]
         PROM[(Prometheus)]
     end
     MODEL[LLM Provider or Mock]
@@ -104,11 +104,10 @@ flowchart LR
     KAFKA --> FLINK
     FLINK --> KAFKA
     KAFKA --> ACTION
-    ACTION --> DB
-    DB --> CDC
+    ACTION --> CONTROL_DB
+    CONTROL_DB --> CDC
     CDC --> KAFKA
-    FLINK --> DB
-    API <--> DB
+    API <--> READ_DB
     KAFKA --> API
     UI <--> API
     UI --> AGENT
@@ -121,7 +120,6 @@ flowchart LR
     ACTION -.-> PROM
     API -.-> PROM
     AGENT -.-> PROM
-    KAFKA -.schema lookup.-> SCHEMA
 ```
 
 For final deployment, every major component runs as a Kubernetes workload with a stable service boundary. The browser accesses only Gateway-routed API and Copilot endpoints; it does not connect directly to Kafka, Flink, or the database. Docker Compose is an optional developer convenience and is not the architecture-review target.
@@ -160,8 +158,7 @@ flowchart TB
         FLINK[Flink JobManager and TaskManagers]
         KAFKA[Three-Broker Kafka Profile]
         CONNECT[Kafka Connect + Debezium]
-        SCHEMA[Apicurio Registry]
-        DB[(PostgreSQL)]
+        DB[(PostgreSQL<br/>owned logical stores)]
         IDP[Keycloak]
         AGENT[Copilot Service]
         TOOLS[Read-Only Tool Gateway]
@@ -179,6 +176,7 @@ flowchart TB
     ACT1 <--> LEASE
     ACT2 <--> LEASE
     SIM <--> REG
+    REG -->|registry role| DB
     SIM <--> KAFKA
     KAFKA <--> FLINK
     KAFKA --> ACT1
@@ -187,9 +185,9 @@ flowchart TB
     ACT2 --> DB
     DB --> CONNECT
     CONNECT --> KAFKA
-    KAFKA -.schemas.-> SCHEMA
-    API1 --> DB
-    API2 --> DB
+    API1 -->|projection role| DB
+    API2 -->|projection role| DB
+    AGENT -->|audit role| DB
     API1 -.telemetry.-> OTEL
     API2 -.telemetry.-> OTEL
     ACT1 -.telemetry.-> OTEL
@@ -201,7 +199,7 @@ flowchart TB
 
 The configured external model provider sits outside the cluster and is reachable only from the Copilot Service through restricted egress. The deterministic mock provider can run in-process for tests and offline demonstrations.
 
-The final environment uses `kind` or `minikube`. A lightweight developer profile may run one Kafka broker, but the architecture-review profile targets three brokers with replicated critical topics. Kubernetes Services provide stable discovery; readiness controls normal routing; Deployments reconcile stateless replicas. Strimzi, the Flink Kubernetes Operator, and CloudNativePG manage the stateful platform lifecycles. The detailed resource, scaling, and failure-domain plan is in [KUBERNETES_DEPLOYMENT.md](KUBERNETES_DEPLOYMENT.md).
+The final environment uses `kind` or `minikube`. A lightweight developer profile may run one Kafka broker, but the architecture-review profile targets three brokers with replicated critical topics. Kubernetes Services provide stable discovery; readiness controls normal routing; Deployments reconcile stateless replicas. Strimzi and the Flink Kubernetes Operator manage the distributed streaming lifecycles; a pinned PostgreSQL Helm deployment is sufficient for the single persistent primary. The detailed resource, ownership, scaling, and failure-domain plan is in [KUBERNETES_DEPLOYMENT.md](KUBERNETES_DEPLOYMENT.md).
 
 ## 10. Design limitations
 

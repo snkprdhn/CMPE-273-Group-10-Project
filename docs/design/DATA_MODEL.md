@@ -37,7 +37,20 @@ erDiagram
 | Tool call | ID, investigation ID, tool name, arguments hash, status, latency, result hash | Auditable read-only agent execution without storing unrestricted payloads |
 | Evidence reference | ID, investigation ID, source type, entity/correlation reference, observed time, freshness, deep link | Verifiable support for an agent claim |
 
-## 3. State machines
+## 3. Logical store ownership
+
+One PostgreSQL primary is shared only to fit student hardware; services do not share tables or credentials.
+
+| Logical store | Owner | Records | Rebuildability |
+|---|---|---|---|
+| `registry` | Member_1 / Device Registry | Device registration, assignment, capabilities, heartbeat summary | Restored from registry backup/re-registration |
+| `control` | Member_3 / Action Service | Policies, action plans, commands, inbox/outbox, fencing and audit state | Authoritative; requires backup and recovery |
+| `projection` | Member_4 / Projection API | Load history, alerts, action/result views, UI cursors | Rebuildable from Kafka topics within retention |
+| `copilot_audit` | Member_4 / Copilot Service | Investigations, tool calls, evidence references | Non-authoritative, retention bounded |
+
+Member_2 writes no PostgreSQL data. Flink publishes transformer-load events, and the projection consumer persists load history. Configuration changes cross a typed internal service API rather than allowing the Projection API to write `control` tables.
+
+## 4. State machines
 
 ### Transformer
 
@@ -85,7 +98,7 @@ stateDiagram-v2
     CANCELLED --> [*]
 ```
 
-## 4. Time and units
+## 5. Time and units
 
 - IDs are UUIDs unless a deterministic command ID is required.
 - Timestamps use UTC ISO 8601 in JSON and timezone-aware database types.
@@ -93,11 +106,11 @@ stateDiagram-v2
 - Solar generation is negative power; consumption is positive.
 - Percentages are stored as numeric values from 0 through values above 100, not fractions.
 
-## 5. Retention proposal
+## 6. Retention proposal
 
 Raw telemetry is retained for the short duration needed for replay and the final demonstration. Aggregated load, alerts, actions, command results, configuration, and authoritative audit records are retained for the life of the project. Agent investigations have a shorter configurable retention and may be deleted without changing grid history. Retention must be configurable so load tests do not fill local disks.
 
-## 6. Integrity rules
+## 7. Integrity rules
 
 - Device IDs reference an existing transformer.
 - A command targets one controllable EV charger.
@@ -107,3 +120,4 @@ Raw telemetry is retained for the short duration needed for replay and the final
 - Historical actions are never deleted when corrected telemetry arrives.
 - Every displayed agent evidence ID belongs to the same investigation and resolves to a recorded tool result/deep link.
 - Investigation/tool records cannot create or mutate policies, action plans, commands, or scenario runs.
+- Database roles cannot read or write another service's logical store; shared facts cross boundaries through events or typed service APIs.

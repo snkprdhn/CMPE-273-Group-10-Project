@@ -16,12 +16,17 @@ Member_3 owns the distributed action processor, Kubernetes leader lease and fenc
 8. Publish alerts and control events with enough context for real-time projections and auditing.
 9. Demonstrate leader failover and stale-epoch rejection across two Action Service pods.
 10. Enforce optimistic versions for concurrent policy/state changes and maintain a documented backup/export procedure.
-11. Configure the required single-instance CloudNativePG resource and verify persistence/recovery without implementing a database controller.
-12. Provide bounded action-timeline and command-result evidence, plus investigation audit persistence and retention, without granting the agent control or write access.
+11. Own the pinned PostgreSQL Helm deployment, `control` schema/role, backup/export procedure, and recovery verification without implementing a database controller.
+12. Publish bounded action-timeline and command-result evidence fixtures without granting the agent control or write access; Member_4 owns investigation audit persistence.
+13. Configure Kafka Connect/Debezium and package/instrument Member_3 workloads with their own Kubernetes resources, RBAC/NetworkPolicy, metrics/traces/logs, dashboard panel, and leader/database fault experiment.
 
 ## Boundaries
 
-Member_3 consumes calculated transformer loads rather than independently aggregating raw telemetry. Read-oriented UI projections and SSE delivery belong to Member_4.
+Member_3 consumes calculated transformer loads rather than independently aggregating raw telemetry. It owns only the `control` logical store and never requires Member_4 to read its tables; alerts, actions, and results cross the boundary as events. Read-oriented projections, agent audit storage, and SSE delivery belong to Member_4.
+
+## Independent development profile
+
+Use transformer-load and command-result fixtures, a fake Device Registry, local Kafka, PostgreSQL, and Debezium. Member_3 can validate policies, saga/outbox/inbox behavior, fencing, timeouts, compensation, and recovery without live simulators, Flink, UI, or the agent.
 
 ## Independent distributed demonstration
 

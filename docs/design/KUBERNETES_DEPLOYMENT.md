@@ -18,21 +18,23 @@ The final architecture review and demonstration will run in a local Kubernetes c
 | Flink | Apache Flink Kubernetes Operator resources | 1 manager, 2+ workers | Checkpoint volume/object-compatible store |
 | Kafka | Strimzi `Kafka` and `KafkaTopic` resources | 1-broker dev; 3-broker review profile | Persistent volumes |
 | Kafka Connect/Debezium | Strimzi `KafkaConnect` resource | 1 required; 2 only if measured need permits | Connector offsets/config/status topics |
-| Apicurio Registry | Deployment + Service | 1 class instance | PostgreSQL-backed registry state |
-| PostgreSQL | CloudNativePG `Cluster` resource | 1 primary for required scope | Persistent volume and documented backup/export |
+| PostgreSQL | Pinned Helm chart/StatefulSet | 1 primary with separate logical stores/roles | Persistent volume and documented backup/export |
 | OTel Collector | OpenTelemetry Operator resource | 1+ | Bounded queues |
 | Prometheus/Grafana/Tempo | Prometheus Operator/chart-managed workloads | 1 each for class environment | Persistent volumes |
-| Loki | Optional stretch workload | 1 if resources permit | Persistent volume |
-| OIDC provider | Deployment + Service | 1 class instance | Persistent configuration |
+| Keycloak OIDC provider | Deployment + Service | 1 class instance | Persistent configuration |
 
-Kafka, Flink, and PostgreSQL have nontrivial stateful lifecycle requirements. The project will use their established Kubernetes operators rather than maintain custom StatefulSets and recovery scripts. Helm installs pinned third-party charts/operators; Kustomize supplies developer, integration, and review overlays for team-owned workloads. Operator use does not replace design work: the repository must still declare resources, durability, replication, probes, disruption behavior, and acceptance evidence.
+Kafka and Flink use their established Kubernetes operators because their distributed lifecycle and recovery behavior are part of the project. One PostgreSQL primary does not justify another operator; a pinned Helm chart plus persistent volume, probes, backup/export, and recovery test is sufficient. Kustomize supplies developer, integration, and review overlays for team-owned workloads. Reused charts/operators do not replace design work: the repository must still declare resources, durability, replication, probes, disruption behavior, and acceptance evidence.
+
+## Workload ownership
+
+Each component owner supplies their Deployment/operator resource, Service, probes, resources, ServiceAccount/RBAC, NetworkPolicy, PodMonitor, dashboard panel, and fault test. Member_1 installs the shared observability stack; Member_4 owns Gateway, Keycloak, product SLO views, and the final overlay. Neither implements another member's component resources.
 
 ## Discovery and traffic
 
 - Kubernetes Services and cluster DNS provide stable names; pod addresses are never application configuration.
 - Gateway/Ingress exposes only the web UI, query API, OIDC endpoints, and optional Grafana access.
 - Kafka, databases, Flink management, gRPC registry, and telemetry backends remain cluster-internal.
-- Apicurio, Kafka Connect, operator APIs, and database administration endpoints remain cluster-internal.
+- Kafka Connect, operator APIs, and database administration endpoints remain cluster-internal.
 - The Copilot Service is reached through the authenticated API/Gateway path. Only it receives restricted egress to the configured model endpoint; the Tool Gateway remains cluster-internal.
 - Readiness decides normal routing; liveness is reserved for locally unrecoverable process failure; startup probes protect slow initialization.
 - The project will record endpoint propagation and connection-reuse behavior instead of assuming immediate or perfectly even balancing.
@@ -48,7 +50,7 @@ Deployments declare desired replicas and Kubernetes replaces failed pods. Applic
 - Copilot Service concurrency is capped by provider quota and a bulkhead; adding replicas does not increase the configured global investigation budget.
 - Simulators scale by scenario shard.
 - Flink parallelism aligns with Kafka partitions and available task slots.
-- Kafka-lag-driven scaling with KEDA is a stretch goal after a baseline is measured; required scaling uses manual replicas or a simple HPA where applicable.
+- Required scaling uses measured manual replica changes or a simple HPA where applicable; a separate event-driven autoscaling platform is excluded.
 - Action Service replicas do not increase control concurrency unless ownership is partitioned and fenced.
 - Resource requests/limits are mandatory so scheduling and overload behavior are visible.
 

@@ -2,7 +2,7 @@
 
 Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List endpoints use `limit` and opaque `cursor`. Errors use `{ "error": { "code", "message", "request_id", "details" } }`.
 
-The API runs as multiple Kubernetes replicas behind a Service. Configuration writes use optimistic versions and all database access uses the single required PostgreSQL primary. Responses still include data freshness where it affects operator interpretation. Trace context and authenticated role are preserved across internal calls.
+The API runs as multiple Kubernetes replicas behind a Service. It reads and writes only its `projection` logical store. Configuration changes use optimistic versions and a typed internal Action control endpoint owned by Member_3 rather than direct access to `control` tables. Scenario operations similarly call the Member_1-owned scenario boundary. Responses include data freshness where it affects operator interpretation, and trace context plus authenticated role are preserved across internal calls.
 
 ## Planned endpoints
 
@@ -42,6 +42,18 @@ The dedicated investigation stream uses `investigation.started`, `investigation.
 
 Every evidence item contains an investigation-local evidence ID, source type, entity/correlation reference, observed timestamp, freshness, truncation flag, and an authorized application deep link. The server rejects or labels factual observations whose evidence IDs were not returned by a tool in the same investigation.
 
+## Internal command boundaries
+
+The public API authenticates the user and forwards bounded commands rather than writing another service's store.
+
+| Internal operation | Owner | Required fields | Standalone replacement |
+|---|---|---|---|
+| `PATCH /internal/v1/control/transformers/{id}/policy` | Member_3 Action Service | Expected version, validated thresholds, actor/role, request ID, trace context | Contract mock returning success/conflict/unavailable |
+| `POST /internal/v1/scenario-runs` | Member_1 Scenario Service | Approved scenario, scale, seed, duration, actor/role, request ID | Contract mock returning accepted/conflict |
+| `POST /internal/v1/scenario-runs/{id}/stop` | Member_1 Scenario Service | Run ID, actor/role, request ID | Contract mock returning stopped/not found |
+
+Internal calls have fixed OpenAPI examples, deadlines, idempotency, service identity, and error mapping. Member_4 can test every public path against mocks; Members 1 and 3 can test their boundaries without the UI/API.
+
 ## Status codes
 
 `400` invalid request, `401` unauthenticated, `403` insufficient role, `404` absent entity, `409` conflicting state or active scenario, `422` valid JSON with invalid domain values, `429` rate limited, and `503` dependency unavailable.
@@ -50,6 +62,8 @@ Every evidence item contains an investigation-local evidence ID, source type, en
 
 - APIs return server-calculated status; the UI does not recreate threshold logic.
 - Policy writes require optimistic version matching and an audit record.
+- Internal control/scenario calls have deadlines, idempotency keys, authorization context, and independently mockable contracts.
+- Normal query endpoints use event-built projections and never join across another service's tables.
 - Starting or stopping a scenario is idempotent by client request ID.
 - Investigation creation is rate/concurrency limited, has a fixed deadline/tool-turn budget, and never grants the model a write-capable tool.
 - Tool authorization is enforced using the authenticated caller and requested scope; model output cannot widen access.

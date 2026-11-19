@@ -4,7 +4,7 @@
 
 Start with 1,000 devices, then increase toward 10,000 devices and 5,000 events/second across at least 20 transformers. Record the exact cluster, CPU, memory, Kubernetes version, partitions, replicas, Flink parallelism, payload size, and duration.
 
-k6 supplies API/SSE load and threshold reporting, while the project simulators supply domain-correct Kafka telemetry. Testcontainers supplies reproducible integration dependencies where a full Kubernetes test is unnecessary. The team will write scenarios and assertions, not a new load runner or container harness.
+k6 supplies API/SSE load and threshold reporting, while the project simulators supply domain-correct Kafka telemetry. Testcontainers supplies reproducible integration dependencies where a full Kubernetes test is unnecessary. Member_1 owns the reusable runner and scenario parameters; every component owner supplies their command, metrics, limits, assertions, and bottleneck analysis. The team will write scenarios and assertions, not a new load runner or container harness.
 
 ## Measurements
 

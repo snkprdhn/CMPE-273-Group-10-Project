@@ -8,6 +8,8 @@
 | API to browser | SSE | Ordered one-way live updates with cursor recovery |
 | Simulator/action to Device Registry | gRPC | Typed internal capability contract and explicit deadlines |
 | Domain workflow | Kafka | Durable asynchronous events, independent consumers, replay |
+| Projection API to Action control boundary | Internal REST | Optimistic policy/configuration commands without shared-table writes |
+| Projection API to Scenario boundary | Internal REST | Authenticated, idempotent start/stop without importing simulator internals |
 | Browser/API to Copilot Service | REST plus bounded SSE progress | Authenticated investigation creation, status, cancellation, and incremental UI feedback |
 | Copilot Service to Tool Gateway | Internal REST with typed schemas | Read-only evidence retrieval, explicit authorization, deadlines, and bounded results |
 | Copilot Service to model provider | Provider HTTPS API | Tool selection and structured explanation outside the deterministic control path |
@@ -20,6 +22,7 @@ Every synchronous request has an end-to-end deadline. Downstream calls receive t
 |---|---|---|
 | API → Registry gRPC | Calling API/action service | Deadline, circuit breaker, concurrency bulkhead |
 | Action → database | Database adapter | Transaction timeout, bounded pool, no blind transaction replay |
+| API → Action/Scenario boundary | Calling API | Deadline, idempotency key, authorization context, circuit breaker, independently mockable contract |
 | Debezium outbox → Kafka | Kafka Connect | Stable event ID, connector backoff, bounded backlog alert |
 | UI → API | Browser client | Bounded reconnect, jitter, authoritative refresh |
 | SSE client | Projection service/client | Heartbeat, cursor, bounded per-client buffer |

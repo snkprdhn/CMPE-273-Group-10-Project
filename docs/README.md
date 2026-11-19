@@ -17,12 +17,14 @@ This directory contains the design package for the Smart Grid / EV Fleet Energy 
 - [Replication and consistency](design/REPLICATION_AND_CONSISTENCY.md) — Kafka replication, database concurrency, and operation-specific guarantees
 - [Observability and SLOs](design/OBSERVABILITY_AND_SLOS.md) — OpenTelemetry, signals, SLIs, SLOs, and diagnostic evidence
 - [Grid Incident Investigator](design/AGENTIC_COPILOT.md) — required bounded agent, read-only tools, provider abstraction, guardrails, and evaluation
-- [Project scope](design/PROJECT_SCOPE.md) — required, stretch, excluded, and delivery-gate definitions
+- [Project scope](design/PROJECT_SCOPE.md) — required, independently deliverable, excluded, and delivery-gate definitions
 - [Open-source reuse](design/OPEN_SOURCE_STACK.md) — selected projects, build-versus-reuse boundary, integration ownership, and resource profiles
+- [Dependency minimization](design/DEPENDENCY_MINIMIZATION.md) — contract-first boundaries, logical data ownership, platform ownership, and integration cadence
 
 ## Contracts
 
 - [Event contracts](contracts/EVENT_CONTRACTS.md) — canonical Kafka topics and event envelopes
+- [Stream semantics v1](contracts/STREAM_SEMANTICS_V1.md) — reporting, identity, validation, windows, completeness, revisions, capacity, and late-data rules
 - [HTTP API contracts](contracts/API_CONTRACTS.md) — planned operator and UI API
 - [gRPC contracts](contracts/GRPC_CONTRACTS.md) — typed internal device registry and deadline behavior
 - [Agent tool contracts](contracts/AGENT_TOOL_CONTRACTS.md) — typed read-only tools, evidence envelope, errors, output validation, and versioning
@@ -43,6 +45,7 @@ Contract changes require agreement from the producer, consumer, and integration 
 - [Failure-injection matrix](testing/FAILURE_INJECTION_MATRIX.md)
 - [Load-test plan](testing/LOAD_TEST_PLAN.md)
 - [Agent evaluation plan](testing/AGENT_EVALUATION_PLAN.md)
+- [Independent component testing](testing/INDEPENDENT_COMPONENT_TESTING.md)
 - [Incident diagnosis runbook](runbooks/INCIDENT_DIAGNOSIS.md)
 
 ## Documentation rules

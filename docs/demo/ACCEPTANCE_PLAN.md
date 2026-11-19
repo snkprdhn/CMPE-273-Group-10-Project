@@ -47,6 +47,7 @@ The final submission must distinguish proposed targets from measured results. Me
 - Reproducible scenario configuration and seed
 - Expected fixture totals
 - Automated test report
+- Four standalone-profile reports and four pairwise-integration reports
 - Load-test report and machine specifications
 - Screenshots or short recording
 - CI result
@@ -58,4 +59,4 @@ The final submission must distinguish proposed targets from measured results. Me
 
 ## Presentation ownership
 
-Member_1 explains distributed producers, gRPC behavior, backpressure, command consumers, and device-related agent fixtures. Member_2 explains Kafka/Flink, event time, replication, checkpoint recovery, and stream-health evidence. Member_3 explains leader fencing, saga/outbox/inbox, consistency, idempotent effects, and action-history evidence. Member_4 explains Kubernetes discovery/reconciliation, projections, the Copilot Service, OpenTelemetry/SLOs, security integration, the UI, and final results.
+Member_1 explains distributed producers, gRPC behavior, backpressure, command consumers, deterministic fixtures, the shared load/fault runner, and observability-stack operation. Member_2 explains Kafka/Flink, topic replication, event time, schema compatibility, checkpoint recovery, and stream-health evidence. Member_3 explains PostgreSQL ownership, Debezium, leader fencing, saga/outbox/inbox, consistency, idempotent effects, and action-history evidence. Member_4 explains projections/SSE, Gateway/Keycloak, product SLOs, the Copilot Service, UI, and final business results. Every member demonstrates their own Kubernetes resources, instrumentation, and fault result.
