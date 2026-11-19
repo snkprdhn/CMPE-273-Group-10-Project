@@ -2,7 +2,9 @@
 
 ## Purpose
 
-The final architecture review and demonstration will run in a local Kubernetes cluster such as `kind` or `minikube`. Docker Compose may support lightweight development, but it is not the final deployment target. This document defines the planned Kubernetes behavior; no manifests have been implemented yet.
+The reproducible architecture-review and demonstration baseline will run in a local Kubernetes cluster such as `kind` or `minikube`. The team will also use one shared AWS EKS cluster for member sandboxes, continuous integration, pairwise testing, and the protected full-system integration environment when the agreed budget and credits permit. The same application images, contracts, Helm releases, and Kustomize bases must work in both environments; EKS-specific patches are limited to infrastructure differences. Docker Compose may support lightweight development, but it is not the final deployment target. This document defines the planned Kubernetes behavior; no manifests have been implemented yet.
+
+Every member retains a standalone local profile, so an unavailable shared cluster never blocks implementation. The full local Kubernetes deployment remains the offline grading and demonstration fallback. Shared-cluster access, namespace isolation, cost controls, CI promotion, and teardown are defined in the [master implementation guide](../implementation/MASTER_IMPLEMENTATION_GUIDE.md).
 
 ## Workload model
 

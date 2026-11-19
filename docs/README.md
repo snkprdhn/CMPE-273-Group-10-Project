@@ -2,6 +2,10 @@
 
 This directory contains the design package for the Smart Grid / EV Fleet Energy Balancing Platform. The root README is the executive overview; the files below are the detailed sources of truth.
 
+## Implementation
+
+- [Master implementation guide](implementation/MASTER_IMPLEMENTATION_GUIDE.md) — prerequisites, decisions, twelve-week build order, independent workflows, local Kubernetes, shared AWS EKS collaboration, CI/CD, testing, rollback, evidence, and final acceptance
+
 ## Design
 
 - [System design](design/SYSTEM_DESIGN.md) — scope, requirements, architecture, component responsibilities, and deployment view

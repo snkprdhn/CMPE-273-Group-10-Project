@@ -8,4 +8,6 @@ Every member owns the Kubernetes and observability resources for their workloads
 
 A lightweight Docker Compose profile may support development, but Kubernetes is the architecture-review and final-demo target. See the [Kubernetes design](../docs/design/KUBERNETES_DEPLOYMENT.md) and [open-source reuse plan](../docs/design/OPEN_SOURCE_STACK.md).
 
+The planned delivery model uses standalone local profiles, a reproducible full local `kind` cluster, and one shared AWS EKS integration cluster with member sandboxes plus a protected `integration` namespace. The complete sequencing, access, isolation, testing, cost-control, and teardown plan is in the [master implementation guide](../docs/implementation/MASTER_IMPLEMENTATION_GUIDE.md). EKS improves collaboration but is not the only way to build, test, or demonstrate the system.
+
 The planned Copilot Service is a separate restricted Deployment with an internal Service, read-only Tool Gateway access, model-provider-only egress, provider credentials from a Kubernetes Secret, and no Kafka or Kubernetes API permission. A deterministic mock-provider profile supports CI and offline demonstrations; no manifests or provider integration have been implemented yet.

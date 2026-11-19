@@ -9,7 +9,7 @@
 | ADR-003 | Operational persistence | PostgreSQL with time-indexed tables | Proposed |
 | ADR-004 | Main UI | React + TypeScript + Material UI + Recharts | Proposed |
 | ADR-005 | Live browser updates | Server-Sent Events | Proposed |
-| ADR-006 | Target runtime | Kubernetes using kind/minikube; Compose optional for development | Proposed |
+| ADR-006 | Target runtime | Reproducible local kind/minikube plus one shared AWS EKS integration cluster when budget permits; Compose optional for development | Proposed |
 | ADR-007 | Command guarantee | At-least-once delivery with idempotent effects | Proposed |
 | ADR-008 | Internal RPC | gRPC/Protobuf Device Registry with deadlines | Proposed |
 | ADR-009 | Control coordination | Kubernetes Lease plus fencing epoch | Proposed |

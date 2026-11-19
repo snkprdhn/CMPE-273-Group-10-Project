@@ -220,7 +220,7 @@ The model has no write-capable tool and the Copilot Service has no access to dom
 | Operational database | PostgreSQL installed from a pinned Helm chart | Durable service-owned schemas for registry, control, projections, and agent audit data |
 | Web UI | React, TypeScript, Material UI, and Recharts | Simple, responsive, professional, and dynamic operator dashboard |
 | Observability | OpenTelemetry Operator/Collector, Prometheus Operator, Grafana, Tempo, and structured Kubernetes logs | Correlated metrics, traces, logs, SLIs, SLOs, and incident evidence |
-| Target runtime | Kubernetes using kind or minikube, packaged with Helm and Kustomize | Service discovery, replica management, probes, scaling, and failure testing |
+| Target runtime | Kubernetes using local kind/minikube plus one shared AWS EKS integration cluster, packaged with Helm and Kustomize | Reproducible local grading, team collaboration, service discovery, replica management, probes, scaling, and failure testing |
 | Developer runtime | Docker Compose | Optional lightweight local profile; not the final deployment target |
 | Identity and policy | OIDC/Keycloak, Kubernetes RBAC, NetworkPolicies, and Secrets | User and workload authorization with least privilege |
 | Agent-assisted operations | Provider-neutral Copilot Service, typed function tools/MCP-compatible facade, and deterministic mock provider | Read-only incident investigation with evidence, auditability, and model portability |
@@ -278,6 +278,7 @@ The final demonstration will run in Kubernetes and show normal operation, overlo
 ## Project Documentation
 
 - [Documentation index](docs/README.md)
+- [Master implementation guide](docs/implementation/MASTER_IMPLEMENTATION_GUIDE.md)
 - [System design](docs/design/SYSTEM_DESIGN.md)
 - [Data flow and stream semantics](docs/design/DATA_FLOW.md)
 - [Data model](docs/design/DATA_MODEL.md)
