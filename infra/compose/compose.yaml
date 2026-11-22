@@ -1,0 +1,64 @@
+# Fixed disposable environment: smart-grid-local-dev. No external volumes/networks.
+name: smart-grid-local-dev
+services:
+  kafka:
+    image: smart-grid-local-dev/kafka:3.9.2
+    build:
+      context: .
+      target: kafka
+    entrypoint: /bin/bash
+    command:
+      - -ec
+      - |
+        /opt/kafka/bin/kafka-storage.sh format --ignore-formatted -t MkU3OEVBNTcwNTJENDM2Qk -c /config/kafka.properties
+        exec /opt/kafka/bin/kafka-server-start.sh /config/kafka.properties
+    environment:
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    ports:
+      - '127.0.0.1:19092:19092'
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: [CMD, /opt/kafka/bin/kafka-topics.sh, --bootstrap-server, kafka:9092, --list]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    stop_grace_period: 30s
+    mem_limit: 1g
+  postgres:
+    image: smart-grid-local-dev/postgres:17.4
+    build:
+      context: .
+      target: postgres
+    environment:
+      POSTGRES_USER: local_admin
+      POSTGRES_PASSWORD: local_admin_disposable
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: [postgres, -c, wal_level=logical, -c, max_replication_slots=4, -c, max_wal_senders=4]
+    ports:
+      - '127.0.0.1:15432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U local_admin -d postgres']
+      interval: 3s
+      timeout: 5s
+      retries: 30
+    stop_grace_period: 30s
+    mem_limit: 512m
+  toxiproxy:
+    image: smart-grid-local-dev/toxiproxy:2.12.0
+    build:
+      context: .
+      target: toxiproxy
+    profiles: [faults]
+    ports:
+      - '127.0.0.1:18474:8474'
+      - '127.0.0.1:15433:15433'
+    command: [-host=0.0.0.0, -config=/config/proxies.json]
+    mem_limit: 64m
+volumes:
+  kafka-data:
+  postgres-data:

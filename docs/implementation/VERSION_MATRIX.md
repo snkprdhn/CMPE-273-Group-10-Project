@@ -98,3 +98,28 @@ Environment setup scaffolded no application service, created no cloud resource, 
 [requirements-contracts.txt](../../requirements-contracts.txt) pins all 27 distributions and wheel hashes. Hash-checked downloads succeeded for macOS ARM64 and Linux x86_64 CPython 3.12; a clean Mac venv installed offline from those wheels and passed the suite. Linux wheel resolution is verified; hosted GitHub CI execution remains pending. No host `protoc`, JDK, Maven, Node.js or npm is needed. Wire standards are JSON Schema Draft 2020-12, Protobuf proto3, and OpenAPI 3.1.1. Official sources: [gRPC compiler release metadata](https://pypi.org/pypi/grpcio-tools/1.71.0/json), [Protobuf](https://protobuf.dev/programming-guides/proto3/), [OpenAPI](https://spec.openapis.org/oas/v3.1.1.html).
 
 Read-only inventory during the contract milestone confirmed Apple M5/ARM64, 10 CPU cores, 16 GiB RAM, 258 GiB available disk, and 36% macOS free-memory snapshot. Git 2.54.0, project Python 3.12.9, kind 0.30.0, kubectl 1.34.0/Kustomize 5.7.1, Helm 3.19.0, Docker Desktop 4.99.0/Engine 29.9.3/CLI 29.8.0, and the Kubernetes 1.34.0 Ready node match the accepted baseline. Docker still has four CPUs/6,210,510,848 usable guest bytes; built-in Kubernetes is disabled. Colima 0.10.3 is stopped. Global Python is 3.14.7, Node.js is absent, and `/usr/bin/java` is only a launcher with no installed Java runtime. None was changed. The [official Flink 2.2 installation guide](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/python/installation/) still specifies Python 3.9–3.12; the [Helm table](https://helm.sh/docs/v3/topics/version_skew/) still pairs 3.19.x with Kubernetes 1.31–1.34. Those compatibility checks do not prove the future ARM64 PyFlink image or full stack runnable.
+
+## Lightweight Compose artifact lock — 2026-11-21
+
+The local development milestone uses the same selected Kafka/PostgreSQL releases as
+the planned kind stack. Pulled multi-platform image digests (ARM64 selected locally):
+
+| Image | Manifest digest |
+|---|---|
+| `quay.io/strimzi/kafka:0.45.2-kafka-3.9.2` | `sha256:5d96fe7c68db643f4916146176a7587aaf9f91c32fa9da7300f013e3e79298d8` |
+| `postgres:17.4-bookworm` | `sha256:304ab813518754228f9f792f79d6da36359b82d8ecf418096c636725f8c930ad` |
+| `ghcr.io/shopify/toxiproxy:2.12.0` | `sha256:9378ed52a28bc50edc1350f936f518f31fa95f0d15917d6eb40b8e376d1a214e` |
+
+Docker Compose **5.7.0** is bundled with the existing Docker Desktop. No new host or
+Python dependency is needed: the runner uses stdlib and the pinned images' Kafka/psql
+clients. See [runbook](../../infra/compose/README.md) and [status](IMPLEMENTATION_STATUS.md)
+for executed runtime evidence and remaining limitations. This does not deploy the
+planned Kubernetes stack or establish its compatibility through runtime tests.
+
+The Compose profile derives `smart-grid-local-dev/kafka:3.9.2`,
+`smart-grid-local-dev/postgres:17.4` and `smart-grid-local-dev/toxiproxy:2.12.0` locally
+from those exact bases using [one multi-target Dockerfile](../../infra/compose/Dockerfile).
+It copies only repository configuration and prepares Kafka's non-root directories.
+No image is pushed; `up --build` uses the build cache and reflects configuration edits.
+Runtime host bind mounts are omitted after diagnostics found a Docker Desktop
+FSEvents watcher deadlock during VolumeShare.Add; named data volumes are retained.

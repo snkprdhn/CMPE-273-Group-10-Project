@@ -1,6 +1,6 @@
 # Smart Grid / EV Fleet Energy Balancing Platform
 
-> **Status:** Repository preparation, Docker Desktop/venv prerequisites and the executable v1 contract bundle are verified, including an empty local kind cluster; application implementation has not started. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). All application/test code is Python; infrastructure JVMs stay in containers. No host JDK or Node.js is required.
+> **Status:** Repository preparation, Docker Desktop/venv prerequisites, the executable v1 contract bundle and lightweight Compose dependencies are verified, including persistence, fault-proxy and reset checks plus an empty local kind cluster; application implementation has not started. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). All application/test code is Python; infrastructure JVMs stay in containers. No host JDK or Node.js is required.
 
 Run `make contracts` for the offline contract gate; see the [bundle guide](schemas/README.md) for setup, fixtures and compatibility checks.
 
@@ -316,3 +316,10 @@ The final demonstration will run in Kubernetes and show normal operation, overlo
 ## Security and Project Hygiene
 
 No real customer, utility, location, or vehicle data will be used. Secrets, access tokens, private keys, database files, and generated telemetry must not be committed. Example configuration should contain safe placeholders only. The platform is an educational simulation and must never be connected to real charging or grid equipment without a separate safety and security review.
+
+## Local dependency development
+
+Run `make infra-up`, `make infra-health`, `make infra-smoke`, and `make infra-down`
+with Docker Desktop and the preparation `.venv`. See the [Compose runbook](infra/compose/README.md)
+for persistence verification, service-owned stores/topics, optional Toxiproxy and the
+explicit project-only reset. This does not start application services or monitoring.

@@ -1,0 +1,15 @@
+-- Disposable local credentials only; each service owns one database.
+CREATE ROLE registry LOGIN PASSWORD 'registry_disposable' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE ROLE control LOGIN PASSWORD 'control_disposable' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE ROLE projection LOGIN PASSWORD 'projection_disposable' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE ROLE copilot_audit LOGIN PASSWORD 'copilot_audit_disposable' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE DATABASE local_dev_registry OWNER registry;
+CREATE DATABASE local_dev_control OWNER control;
+CREATE DATABASE local_dev_projection OWNER projection;
+CREATE DATABASE local_dev_copilot_audit OWNER copilot_audit;
+REVOKE ALL ON DATABASE postgres FROM PUBLIC;
+REVOKE ALL ON DATABASE template1 FROM PUBLIC;
+REVOKE ALL ON DATABASE local_dev_registry FROM PUBLIC;
+REVOKE ALL ON DATABASE local_dev_control FROM PUBLIC;
+REVOKE ALL ON DATABASE local_dev_projection FROM PUBLIC;
+REVOKE ALL ON DATABASE local_dev_copilot_audit FROM PUBLIC;

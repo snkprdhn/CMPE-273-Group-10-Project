@@ -1,6 +1,6 @@
 # Master Implementation Guide
 
-**Status:** Repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; application services, application dependency locks, and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
+**Status:** Lightweight local dependency infrastructure passes full local acceptance (see [Compose runbook](../../infra/compose/README.md) and current verification status); repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; application services, application dependency locks, and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
 
 ## 1. Purpose
 
@@ -69,7 +69,7 @@ No cloud or external model account is required. Use deterministic model mocks, s
 
 Preparation decisions are accepted in [ADR-002](../decisions/ADR-002-python-stream-processing.md), [ADR-004](../decisions/ADR-004-python-dashboard.md), [ADR-006](../decisions/ADR-006-local-kind.md), and [ADR-024](../decisions/ADR-024-pinned-local-baseline.md). They resolve PyFlink, Python UI/test tooling, local deployment, version pins, partition/replication defaults, and resource profiles.
 
-The **contract/schema milestone is complete** under [ADR-025](../decisions/ADR-025-executable-contract-freeze.md): canonical JSON Schema/Protobuf/OpenAPI, versioned examples, deterministic golden cases, compatibility checks and contract CI are implemented. Action defaults and local identity names/roles are fixed there. Run `make contracts`; see [schemas](../../schemas/README.md). The next milestone is repository foundation/component packaging, including native ARM64 PyFlink build/import/checkpoint evidence before an aggregation slice is called runnable. Repository licensing remains an owner/public-release decision. Cloud and external-provider choices remain deferred.
+The **contract/schema milestone is complete** under [ADR-025](../decisions/ADR-025-executable-contract-freeze.md): canonical JSON Schema/Protobuf/OpenAPI, versioned examples, deterministic golden cases, compatibility checks and contract CI are implemented. Action defaults and local identity names/roles are fixed there. Run `make contracts`; see [schemas](../../schemas/README.md). The requested minimum local infrastructure slice uses Compose for Kafka/PostgreSQL and optional Toxiproxy; it does not implement all of Phase 1. After that slice, the next recommended milestone remains repository foundation/component packaging, including native ARM64 PyFlink build/import/checkpoint evidence before an aggregation slice is called runnable. Repository licensing remains an owner/public-release decision. Cloud and external-provider choices remain deferred.
 
 No application service scaffolding is part of preparation.
 
@@ -94,7 +94,7 @@ The implementation should converge on this structure. Names may change through a
 ├── dashboard/                     # Member_4
 ├── infra/
 │   ├── kind/                      # Local cluster configuration
-│   ├── compose/                   # Optional lightweight dependencies
+│   ├── compose/                   # Implemented lightweight dependencies
 │   ├── charts/                    # Pinned values for third-party charts
 │   ├── base/                      # Project-owned Kustomize bases
 │   ├── overlays/
