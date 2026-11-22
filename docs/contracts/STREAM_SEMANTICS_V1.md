@@ -1,6 +1,6 @@
 # Stream Semantics v1
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_1 telemetry/command and Member_2 standalone aggregation runtimes are implemented; control/projection runtime remains a later milestone. Member_2 runtime boundaries are in [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md). See [implementation status](../implementation/IMPLEMENTATION_STATUS.md).
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_1 telemetry/command and Member_2 standalone aggregation runtimes are implemented; the Member_3 fixture-driven Action domain is implemented under [ADR-028](../decisions/ADR-028-member3-action-domain.md), while live control integration/projection runtime remain later milestones. Member_2 runtime boundaries are in [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md). See [implementation status](../implementation/IMPLEMENTATION_STATUS.md).
 
 ## Status and purpose
 

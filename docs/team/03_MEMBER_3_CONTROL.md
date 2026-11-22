@@ -4,7 +4,16 @@
 
 Member_3 owns the distributed action processor, Kubernetes leader lease and fencing epochs, durable control saga, outbox/inbox, PostgreSQL state, and the at-least-once command lifecycle. The main challenge is creating one logical control effect when leaders fail or events are replayed concurrently.
 
-## Planned responsibilities
+## Implemented standalone domain
+
+[Member_3 runbook](../../member3/README.md) and
+[ADR-028](../decisions/ADR-028-member3-action-domain.md) cover the fixture-driven
+PostgreSQL domain/saga, transactional inbox/outbox, versions and recovery.
+Live Kafka/CDC, distributed leadership, operator compensation API and operational
+deployment remain later gates. The domain profile needs only PostgreSQL plus
+load/result fixtures and a fake Registry with explicit charger observations.
+
+## Responsibilities (remaining integration gates included)
 
 1. Consume transformer loads through a coordinated consumer group.
 2. Implement deterministic transformer state transitions, hysteresis, and cooldowns.

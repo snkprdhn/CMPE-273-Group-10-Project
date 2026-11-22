@@ -160,3 +160,14 @@ amd64 execution, image security scans/SBOM, kind/operator deployment, replicated
 Kafka and full-session HA remain unverified. Earlier statements that PyFlink
 ARM64 build/import/checkpoint execution is unverified are superseded only for
 this standalone profile. See [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md).
+
+## Member_3 standalone Action domain — verified 2026-11-22
+
+The [Member_3 lock](../../member3/requirements.txt) reuses accepted Python 3.12.9,
+psycopg/binary 3.2.9, jsonschema 4.23.0 and pytest 8.3.5 pins/hashes in an independent
+`.tools/member3-venv`. All 12 runtime/test distributions installed offline from
+existing Mac ARM64 wheels with hash checking; `pip check` and 42 real PostgreSQL
+tests pass. No gRPC/Kafka/PyFlink/model dependency is introduced for this domain
+slice. PostgreSQL reuses the existing pinned 17.4 local container. Linux runtime,
+CDC, distributed leadership and kind packaging remain separate gates under
+[ADR-028](../decisions/ADR-028-member3-action-domain.md).

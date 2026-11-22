@@ -1,5 +1,12 @@
-# Action Service
+# Action Service — Member_3
 
-**Status: design only; implementation not started.**
+The standalone Action domain and durable PostgreSQL saga are implemented in
+[member3](../../member3/README.md), with load/result fixtures, a fake Registry,
+transactional inbox/outbox, optimistic versions and restart acceptance.
+See [ADR-028](../../docs/decisions/ADR-028-member3-action-domain.md).
 
-Planned home of transformer state transitions, hysteresis, cooldown, charger selection, alert generation, idempotent command lifecycle management, and durable control-state recovery. It consumes calculated loads rather than raw telemetry. Domain changes and outbox rows commit together in the owned `control` logical store; Debezium/Kafka Connect publishes alert, action, and command events, so this service will not contain a custom polling relay. A typed internal control endpoint accepts optimistic policy changes without exposing tables. The service is tested independently with load/result fixtures and a fake Registry. See the [system design](../../docs/design/SYSTEM_DESIGN.md), [transaction design](../../docs/design/TRANSACTIONS_AND_SAGAS.md), and [Member_3's work plan](../../docs/team/03_MEMBER_3_CONTROL.md).
+Kafka consumption, Debezium publication, Kubernetes Lease/fencing allocation,
+live charger observations, operator compensation API and deployment/operations
+remain later milestones. Member_1 owns simulation/Registry/observability,
+Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium, and Member_4
+projection/API/UI/identity/Copilot. No custom polling relay is used.

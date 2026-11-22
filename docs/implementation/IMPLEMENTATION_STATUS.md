@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for Member_2 standalone aggregation acceptance. Member_1 simulation/Registry and Member_2 aggregation are implemented; Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot retain their ownership. Historical infrastructure/preparation evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for Member_3 Action domain acceptance. Member_1 simulation/Registry, Member_2 aggregation and the Member_3 standalone Action domain are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
@@ -13,19 +13,98 @@ Updated **2026-11-22 (America/Los_Angeles)** for Member_2 standalone aggregation
 | Member_1 standalone edge and Registry | Deterministic three-device scenario; Kafka telemetry/commands/results; durable simulated effects/dedup/fences; PostgreSQL gRPC Registry; operational endpoints and independent ARM64 images | [Runbook](../../member1/README.md), [ADR-026](../decisions/ADR-026-member1-standalone-state.md), executed evidence below |
 
 | Member_2 standalone Kafka/PyFlink aggregation | Native ARM64 source-built runtime, 56-package hash lock; fixed golden telemetry, transactional load/DLQ/late output; checkpoint/replay proof with an open transaction at TaskManager crash | [Runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md), evidence below |
+| Member_3 Action domain and durable saga | PostgreSQL transactional state/inbox/outbox, deterministic fixture allocation, retry/timeout/hold/restore, optimistic versions and restart recovery | [Runbook](../../member3/README.md), [ADR-028](../decisions/ADR-028-member3-action-domain.md), 42 PostgreSQL tests and demo below |
 
 ## Current milestone and verification
 
-**Member_2 standalone aggregation is complete locally.** All frozen stream
-scenarios pass against the production engine. Real Kafka/Flink acceptance passes
-native ARM64 checkpoint restoration after SIGKILL, including an uncommitted
-correction transaction: committed loads remain revisions 0/1 at 15/17 kW,
-duplicate readings do not change load state, and very-late data reaches audit.
-See [Member_2 runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md)
-and exact evidence below. Member_1 remains complete and untouched; Member_3/4
-applications and full kind/operator deployment remain future milestones. No
-PostgreSQL writes, cloud/model calls, system installations, commit or push were
-added. There is no remaining blocker for this finite-run standalone slice.
+**Member_3 Action domain logic and durable state machine are complete locally.**
+Real PostgreSQL acceptance covers threshold/hysteresis/cooldown/freshness,
+deterministic allocation, stable identities, optimistic versions, transactional
+inbox/outbox, partial/timeout review, safe hold, restore and restart recovery.
+All 14 load/result scenarios assert fixed durable transition sequences, command
+targets and outbox records without duplicate logical plans. The separate-process
+demo reads back COMPLETED, four commands and 13 canonical-valid outbox rows.
+See [Member_3 runbook](../../member3/README.md) and
+[ADR-028](../decisions/ADR-028-member3-action-domain.md).
+
+No blocker remains for this requested fixture-driven domain slice. Live charger
+observation acquisition, Kafka/CDC publication, Kubernetes Lease/epoch allocation,
+operator compensation API and full platform deployment remain later gates.
+Member_1/2 services were already running and were neither required nor modified.
+No system installations or cloud/model calls were performed. The initial domain
+implementation made no commits or pushes; the user subsequently authorized review,
+fixes, and a normal commit/push to main (review evidence below).
+
+## Member_3 Action domain — executed 2026-11-22
+
+| Exact command / check | Result |
+|---|---|
+| `.venv/bin/python -m venv .tools/member3-venv` | Independent CPython 3.12.9 component environment created |
+| `.tools/member3-venv/bin/python -m pip install --no-index --find-links .tools/member1-wheels-macos --require-hashes -r member3/requirements.txt` | 12 locked packages installed offline; accepted psycopg 3.2.9/jsonschema 4.23.0/pytest 8.3.5 pins and hashes reused |
+| `.tools/member3-venv/bin/python -m pip check` | No broken requirements |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml ps --all` | Existing PostgreSQL healthy on loopback 15432; existing unrelated component containers preserved. Docker/host TCP checks required sandbox escalation; no infra restart/reset was performed |
+| `.tools/member3-venv/bin/python -m pytest -q tests/member3` (before final added cases, DSN absent) | 2 pure checks passed; then 20 database checks explicitly skipped. Not acceptance evidence |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m pytest -q tests/member3` | Initial 22, expanded 36 and final **37 passed** against real PostgreSQL; isolated random schemas removed after each test |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | Initial **37 passed**; post-review **42 passed**, including fixed fixtures, concurrent deliveries, atomic rollback after an outbox insert, optimistic conflicts, stale epochs, restore safety, cooldown and separate-process recovery |
+| `.tools/member3-venv/bin/python -m member3 cases` | Lists all 14 fixture scenarios |
+| `CONTROL_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m member3 replay --schema member3_demo --case 'safe restore and restart' > .tools/member3-safe-restore.json` | Durable demo completes; synthetic `member3_demo` schema intentionally retained for user inspection |
+| `CONTROL_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m member3 inspect --schema member3_demo > .tools/member3-inspected.json` | Fresh process returns identical committed state |
+| `.tools/contracts-venv/bin/python` inline validation of those two JSON files using `tools.contracts.validate` on every outbox event/key, plus state equality/count assertions | COMPLETED, four commands, 13 semantically valid outbox rows; exact fresh-process equality |
+| `make contracts BASE_REF=HEAD` | **214 passed**; frozen schema/OpenAPI/Protobuf compatibility and canonical Member_3 fixture validation pass; no contract shapes changed |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed**; existing infrastructure/preparation/aggregation behavior and documentation links preserved |
+| `git diff --check` | Passed |
+
+### Member_3 prepublication review — 2026-11-22
+
+The user authorized review, fixes, commit and a normal push to `main`. Review
+found and fixed three issues: a same-window correction could overwrite visible
+review hold with NORMAL; delayed results could bypass exhausted deadlines when
+no timer ran during downtime; and extremely small/large finite loads could
+produce an empty ACKS_PENDING plan (allocation resolution/intermediate overflow).
+Four new cases reproduced the failures before the fix. A fifth regression checks
+exhaustion of the final retry before TTL. Deadline exhaustion is shared by result
+handling and the timer; late effects are recorded while the saga remains held.
+Inspection now reads one consistent, read-only PostgreSQL snapshot.
+
+| Exact command / check | Final result |
+|---|---|
+| `git fetch origin main`; `git rev-list --left-right --count origin/main...HEAD` | Fetch succeeded; `0 0` before creating the Action commit |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m pytest -q tests/member3 -k 'review_hold_survives or late_results_cannot or extreme_finite'` | **4 failed before fixes**, proving the regressions |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | **42 passed**, no skipped database tests |
+| `make contracts BASE_REF=origin/main` | **214 passed**; canonical schemas, inputs and compatibility verified |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
+| `.tools/member1-venv/bin/python -m pytest -q tests/member1/test_edge.py tests/member1/test_operations.py` | **16 passed** with localhost permission; initial sandbox run had 15 pass/1 socket-bind permission failure, resolved by rerunning with host access |
+| `.tools/member3-venv/bin/python -m pip check`; `.tools/member3-venv/bin/python -m compileall -q member3 tests/member3`; `git diff --check` | All pass; no broken requirements or compilation/whitespace errors |
+
+Only Action milestone files and related documentation/test-target changes are
+included. Existing Member_1/Member_2 services and local data are preserved.
+Publication result is recorded by Git history/remote state; hosted CI is a
+separate check, not claimed by these local results.
+
+### Member_3 decisions and limitations
+
+- PostgreSQL is authoritative; inbox, domain state, commands, saga progress and
+  outbox commit atomically. A bounded global advisory lock serializes the small
+  standalone store; database versions/unique constraints enforce conflicts and
+  one active saga per transformer. No SQLite or success-returning relay stub.
+- Registry v1 lacks current-rate/online/charging observations. Explicit fresh
+  fixture observations supplement canonical capability records; no rate is
+  inferred from maximum capability or missing telemetry. This gap and the
+  outbox-commit meaning of dispatch states are resolved in affected design/docs.
+- Insufficient capacity records review/hold without issuing an inadequate plan.
+  Corrections preserve action history; retries preserve command/event IDs and
+  original expiry, with at most two total attempts. Physical outbox retry rows
+  have distinct delivery IDs. Partial/time-out/late results remain held until
+  explicit operator reconciliation; no automatic restore from unknown state.
+- Restore requires distinct consecutive post-confirmation recovery windows,
+  current matching capabilities/rates and projected restored load below critical.
+  Missing/stale state never means zero load or safe restoration.
+- Supplied positive epochs are stored/compared. Distributed Lease acquisition and
+  durable cluster epoch allocation, Kafka consumers/offsets, Debezium routing,
+  live observation adapters, authenticated operator compensation, kind packaging,
+  metrics and backup/export remain unimplemented here. Database-server restart,
+  actual CDC delivery and end-to-end physical effects are not claimed. Mac ARM64
+  offline install is verified; Linux runtime/security scans are future gates.
 
 ## Historical minimum-infrastructure verification
 
@@ -59,12 +138,13 @@ The bundle contains **77 valid JSON examples, 76 invalid JSON examples with prec
 
 ## Next milestone
 
-**Member_3 standalone deterministic control**, consuming frozen load fixtures,
-with its independently locked environment, PostgreSQL-owned state, policy,
-inbox/outbox and mock Registry boundary. Keep Member_1 simulation/Registry,
-Member_2 Kafka/PyFlink and Member_4 projection/API/UI/identity/Copilot ownership.
-Member_2 kind/operator packaging and distributed rescaling remain later gates;
-this does not claim the entire foundation or platform deployment complete.
+**Member_3 standalone control delivery/integration:** implement Kafka fixture
+consumption and Debezium outbox publication with duplicate-delivery proof, then
+explicit live charger observations and Lease/fencing allocation before pairwise
+control acceptance. Retain Member_1 simulation/Registry/observability, Member_2
+Kafka/PyFlink and Member_4 projection/API/UI/identity/Copilot boundaries. Operator
+compensation and operational packaging remain explicit follow-on work. Member_2
+kind/operator deployment and distributed rescaling remain later gates.
 
 ## Prepublication verification — 2026-11-21
 

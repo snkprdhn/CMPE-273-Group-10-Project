@@ -48,3 +48,9 @@ member2-live:
 
 member2-down:
 	$(MEMBER2_COMPOSE) stop taskmanager jobmanager
+
+# Member_3 Action domain; real PostgreSQL with fixtures and a fake Registry only.
+MEMBER3_PYTHON ?= .tools/member3-venv/bin/python
+.PHONY: member3-test
+member3-test:
+	$(MEMBER3_PYTHON) -m pytest -q tests/member3

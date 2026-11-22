@@ -43,3 +43,23 @@ The saga is orchestration-based: one durable owner decides transitions. Compensa
 ## Acceptance failures
 
 Restart after plan commit but before publish; publish then crash before marking the outbox; redeliver the load event; apply a device command but lose the response; restart during partial acknowledgement; and replay all topics through a fresh audit group. Every experiment must preserve the invariants and reconstruct an explainable outcome.
+
+## Standalone implementation boundary
+
+[Member_3](../../member3/README.md) implements the PostgreSQL transaction and
+saga in [ADR-028](../decisions/ADR-028-member3-action-domain.md). Dispatch states
+mean outbox commitment, not a claim of broker delivery. COMMANDS_DISPATCHED and
+ACKS_PENDING can commit together while retaining both transition events.
+Insufficient flexible capacity goes directly from PLAN_CREATED to
+NEEDS_OPERATOR_REVIEW without commands. Intermediate acknowledgements emit
+versioned same-state progress; failed restores also enter review. Safe hold is
+an operational transformer health state, represented by review or recovery
+monitoring on the frozen ActionStatus wire enum. Partial/time-out late results
+remain in review; approved operator compensation remains a future API milestone.
+
+Registry v1 supplies capabilities, not online/session/current-rate telemetry.
+Fixture snapshots provide those observations explicitly; a future live adapter
+must supply equally fresh evidence. Restore needs two distinct consecutive
+post-confirmation COMPLETE windows, verified current rates/capabilities and
+projected restored load below critical. Missing/stale state cannot satisfy any
+of those conditions. Automatic restore never releases a reviewed unknown outcome.

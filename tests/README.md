@@ -10,3 +10,5 @@ Every shared fixture has fixed expected results. Reference replay is an offline 
 
 - `make member2-test`: production aggregation engine against frozen stream golden cases and failure/replay boundaries.
 - `make member2-build`; `make member2-live`: hash-locked native image and real Kafka/Flink TaskManager SIGKILL with an open Kafka transaction. Committed revisions remain 0/1 at 15/17 kW. See [Member_2 runbook](../member2/README.md).
+
+- `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test`: real PostgreSQL Action domain acceptance using isolated disposable schemas, fixed load/result fixtures and a fake Registry; no Kafka, simulator or Flink dependency. Omitting the DSN skips database tests explicitly. See [Member_3](../member3/README.md).

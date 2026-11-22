@@ -47,7 +47,7 @@ Required standalone tests:
 
 ## Member_3 profile: control
 
-Run the Action Service, PostgreSQL, Kafka Connect/Debezium, a fake Registry, and fixture topics. Member_1 and Member_2 services are not required.
+The implemented domain profile runs PostgreSQL with load/result JSON fixtures and a fake Registry, including explicit fresh charger observations. See [Member_3](../../member3/README.md). Kafka Connect/Debezium, fixture topics and live leadership belong to the next integration gates; Member_1 and Member_2 services are not required.
 
 Required standalone tests:
 

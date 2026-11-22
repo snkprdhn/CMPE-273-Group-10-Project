@@ -44,3 +44,5 @@ Each accepted ADR should record context, decision, alternatives, consequences, d
 - [ADR-026 — Member_1 standalone state and acceptance boundary](ADR-026-member1-standalone-state.md) — accepted.
 
 - [ADR-027 — Member_2 standalone aggregation and recovery](ADR-027-member2-standalone-aggregation.md) — accepted; native ARM64 build and TaskManager checkpoint/replay verified, kind/rescaling remain future gates.
+
+- [ADR-028 — Member_3 Action domain and durable saga](ADR-028-member3-action-domain.md) — accepted; PostgreSQL fixture/restart acceptance, CDC/leadership remain later gates.

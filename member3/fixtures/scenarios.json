@@ -1,0 +1,2423 @@
+[
+  {
+    "name": "critical allocation",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "ACKS_PENDING",
+      "commands": 2,
+      "action_events": 3,
+      "health": "CRITICAL",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING"
+      ],
+      "command_deliveries": 2
+    }
+  },
+  {
+    "name": "duplicate and revised loads",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "5620aac2-2055-5fc8-9f83-3254f6891e13",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 1,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 61,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 101,
+            "capacity_kw": 100,
+            "utilization_pct": 101,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "ACKS_PENDING",
+      "commands": 2,
+      "action_events": 3,
+      "health": "CRITICAL",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING"
+      ],
+      "command_deliveries": 2
+    }
+  },
+  {
+    "name": "stale telemetry",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:21Z"
+      }
+    ],
+    "expected": {
+      "actions": 0,
+      "status": null,
+      "commands": 0,
+      "action_events": 0,
+      "health": "SAFE_HOLD",
+      "command_targets": {},
+      "transitions": [],
+      "command_deliveries": 0
+    }
+  },
+  {
+    "name": "missing telemetry",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 6,
+            "estimated_device_count": 0,
+            "missing_device_count": 4,
+            "late_event_count": 0,
+            "quality_flags": [
+              "MISSING_DEVICES"
+            ],
+            "completeness": "STALE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      }
+    ],
+    "expected": {
+      "actions": 0,
+      "status": null,
+      "commands": 0,
+      "action_events": 0,
+      "health": "SAFE_HOLD",
+      "command_targets": {},
+      "transitions": [],
+      "command_deliveries": 0
+    }
+  },
+  {
+    "name": "insufficient capacity",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 5,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 5,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "NEEDS_OPERATOR_REVIEW",
+      "commands": 0,
+      "action_events": 2,
+      "health": "SAFE_HOLD",
+      "command_targets": {},
+      "transitions": [
+        "PLAN_CREATED",
+        "NEEDS_OPERATOR_REVIEW"
+      ],
+      "command_deliveries": 0
+    }
+  },
+  {
+    "name": "missing charger observations",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "NEEDS_OPERATOR_REVIEW",
+      "commands": 0,
+      "action_events": 2,
+      "health": "SAFE_HOLD",
+      "command_targets": {},
+      "transitions": [
+        "PLAN_CREATED",
+        "NEEDS_OPERATOR_REVIEW"
+      ],
+      "command_deliveries": 0
+    }
+  },
+  {
+    "name": "partial rejection",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "296f4741-da91-53c0-8ddb-521ed59e1c77",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "859c247b-14fb-5218-9a5b-98e318d1842f",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+          "payload": {
+            "command_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "REJECTED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 20,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "NEEDS_OPERATOR_REVIEW",
+      "commands": 2,
+      "action_events": 6,
+      "health": "SAFE_HOLD",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "ACKS_PENDING",
+        "PARTIALLY_APPLIED",
+        "NEEDS_OPERATOR_REVIEW"
+      ],
+      "command_deliveries": 2
+    }
+  },
+  {
+    "name": "partial acknowledgement timeout",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "296f4741-da91-53c0-8ddb-521ed59e1c77",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:10Z"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "NEEDS_OPERATOR_REVIEW",
+      "commands": 2,
+      "action_events": 6,
+      "health": "SAFE_HOLD",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "ACKS_PENDING",
+        "PARTIALLY_APPLIED",
+        "NEEDS_OPERATOR_REVIEW"
+      ],
+      "command_deliveries": 3
+    }
+  },
+  {
+    "name": "timeout and restart",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:10Z"
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:10Z"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:15Z"
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:30Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "NEEDS_OPERATOR_REVIEW",
+      "commands": 2,
+      "action_events": 5,
+      "health": "SAFE_HOLD",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "TIMED_OUT",
+        "NEEDS_OPERATOR_REVIEW"
+      ],
+      "command_deliveries": 4
+    }
+  },
+  {
+    "name": "stale state holds confirmed limits",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "296f4741-da91-53c0-8ddb-521ed59e1c77",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "df8b6904-ffad-567a-b4e2-82a67c8a45d6",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+          "payload": {
+            "command_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 15,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:30Z"
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "e7a5b012-795e-5f75-91e5-b1e7b6b9e017",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:35Z",
+          "ingested_at": "2026-11-22T18:30:35Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "0d4ee9b9-a5c9-5904-ae2c-49559194c41d",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:30Z",
+            "window_end": "2026-11-22T18:30:35Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 20,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 60,
+            "capacity_kw": 100,
+            "utilization_pct": 60,
+            "expected_device_count": 10,
+            "good_device_count": 6,
+            "estimated_device_count": 0,
+            "missing_device_count": 4,
+            "late_event_count": 0,
+            "quality_flags": [
+              "MISSING_DEVICES"
+            ],
+            "completeness": "STALE"
+          }
+        },
+        "now": "2026-11-22T18:30:35Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "RECOVERY_MONITORING",
+      "commands": 2,
+      "action_events": 6,
+      "health": "SAFE_HOLD",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "ACKS_PENDING",
+        "REDUCTION_CONFIRMED",
+        "RECOVERY_MONITORING"
+      ],
+      "command_deliveries": 2
+    }
+  },
+  {
+    "name": "safe restore and restart",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "296f4741-da91-53c0-8ddb-521ed59e1c77",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "df8b6904-ffad-567a-b4e2-82a67c8a45d6",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+          "payload": {
+            "command_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 15,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "580713d1-332a-5c50-8fee-57462991223c",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:15Z",
+          "ingested_at": "2026-11-22T18:30:15Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "4614736d-a409-5d9a-9799-cc444f45b60b",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:10Z",
+            "window_end": "2026-11-22T18:30:15Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 20,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 60,
+            "capacity_kw": 100,
+            "utilization_pct": 60,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:15Z"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:20Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 0,
+              "online": true,
+              "charging": false,
+              "observed_at": "2026-11-22T18:30:20Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:20Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 15,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:20Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "1118ea02-838d-5f6a-818f-2c5657cfde3c",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:20Z",
+          "ingested_at": "2026-11-22T18:30:20Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "55868ea1-3ee8-5895-bff2-e50ca80c9d0d",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:15Z",
+            "window_end": "2026-11-22T18:30:20Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 20,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 60,
+            "capacity_kw": 100,
+            "utilization_pct": 60,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:20Z"
+      },
+      {
+        "op": "restart"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:21Z",
+        "event": {
+          "event_id": "9e376878-00eb-5022-a130-d3f2e308aadb",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:21Z",
+          "ingested_at": "2026-11-22T18:30:21Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "825288e4-e237-5930-94fd-1c16044a232f",
+          "payload": {
+            "command_id": "825288e4-e237-5930-94fd-1c16044a232f",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 0,
+            "applied_rate_kw": 20,
+            "result_time": "2026-11-22T18:30:21Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:21Z",
+        "event": {
+          "event_id": "0a03d2cf-af41-55a5-b187-cd4e0fed92ee",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:21Z",
+          "ingested_at": "2026-11-22T18:30:21Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "71605a05-5b71-5a69-afe3-4dcea516ad41",
+          "payload": {
+            "command_id": "71605a05-5b71-5a69-afe3-4dcea516ad41",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 15,
+            "applied_rate_kw": 20,
+            "result_time": "2026-11-22T18:30:21Z"
+          }
+        }
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "COMPLETED",
+      "commands": 4,
+      "action_events": 9,
+      "health": "NORMAL",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15,
+        "ev-0/RESTORE": 20,
+        "ev-1/RESTORE": 20
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "ACKS_PENDING",
+        "REDUCTION_CONFIRMED",
+        "RECOVERY_MONITORING",
+        "RESTORE_DISPATCHED",
+        "RESTORE_DISPATCHED",
+        "COMPLETED"
+      ],
+      "command_deliveries": 4
+    }
+  },
+  {
+    "name": "revised window cannot count twice",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "296f4741-da91-53c0-8ddb-521ed59e1c77",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "df8b6904-ffad-567a-b4e2-82a67c8a45d6",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+          "payload": {
+            "command_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 15,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "580713d1-332a-5c50-8fee-57462991223c",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:15Z",
+          "ingested_at": "2026-11-22T18:30:15Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "4614736d-a409-5d9a-9799-cc444f45b60b",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:10Z",
+            "window_end": "2026-11-22T18:30:15Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 20,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 60,
+            "capacity_kw": 100,
+            "utilization_pct": 60,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:15Z"
+      },
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:15Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 0,
+              "online": true,
+              "charging": false,
+              "observed_at": "2026-11-22T18:30:15Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:15Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 15,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:15Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "60b954c9-e9dc-5f7c-a007-20794c9ad28b",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:15Z",
+          "ingested_at": "2026-11-22T18:30:15Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "4614736d-a409-5d9a-9799-cc444f45b60b",
+            "revision": 1,
+            "window_start": "2026-11-22T18:30:10Z",
+            "window_end": "2026-11-22T18:30:15Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 21,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 61,
+            "capacity_kw": 100,
+            "utilization_pct": 61,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "RECOVERY_MONITORING",
+      "commands": 2,
+      "action_events": 6,
+      "health": "NORMAL",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "ACKS_PENDING",
+        "REDUCTION_CONFIRMED",
+        "RECOVERY_MONITORING"
+      ],
+      "command_deliveries": 2
+    }
+  },
+  {
+    "name": "rebound risk holds",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "296f4741-da91-53c0-8ddb-521ed59e1c77",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:06Z",
+        "event": {
+          "event_id": "df8b6904-ffad-567a-b4e2-82a67c8a45d6",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:06Z",
+          "ingested_at": "2026-11-22T18:30:06Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+          "payload": {
+            "command_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 15,
+            "result_time": "2026-11-22T18:30:06Z"
+          }
+        }
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "580713d1-332a-5c50-8fee-57462991223c",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:15Z",
+          "ingested_at": "2026-11-22T18:30:15Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "4614736d-a409-5d9a-9799-cc444f45b60b",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:10Z",
+            "window_end": "2026-11-22T18:30:15Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 34,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 74,
+            "capacity_kw": 100,
+            "utilization_pct": 74,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:15Z"
+      },
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:20Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 0,
+              "online": true,
+              "charging": false,
+              "observed_at": "2026-11-22T18:30:20Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:20Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 15,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:20Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "1118ea02-838d-5f6a-818f-2c5657cfde3c",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:20Z",
+          "ingested_at": "2026-11-22T18:30:20Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "55868ea1-3ee8-5895-bff2-e50ca80c9d0d",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:15Z",
+            "window_end": "2026-11-22T18:30:20Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 34,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 74,
+            "capacity_kw": 100,
+            "utilization_pct": 74,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:20Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "RECOVERY_MONITORING",
+      "commands": 2,
+      "action_events": 6,
+      "health": "SAFE_HOLD",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "ACKS_PENDING",
+        "REDUCTION_CONFIRMED",
+        "RECOVERY_MONITORING"
+      ],
+      "command_deliveries": 2
+    }
+  },
+  {
+    "name": "late result needs reconciliation",
+    "steps": [
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:05Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 20,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:05Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "92b70865-dc28-5df1-a8db-ab44047681cc",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:05Z",
+          "ingested_at": "2026-11-22T18:30:05Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bdca97a5-7403-578c-89e4-21eeca2ebe28",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:00Z",
+            "window_end": "2026-11-22T18:30:05Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 60,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 100,
+            "capacity_kw": 100,
+            "utilization_pct": 100,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:05Z"
+      },
+      {
+        "op": "tick",
+        "now": "2026-11-22T18:30:15Z"
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:16Z",
+        "event": {
+          "event_id": "01c1a7a5-7a64-53d2-854d-b9a4e0d3d59d",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:16Z",
+          "ingested_at": "2026-11-22T18:30:16Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+          "payload": {
+            "command_id": "7d4fcd6e-a90a-5cd0-a90d-c68b1e6e0baa",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-0",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 0,
+            "result_time": "2026-11-22T18:30:16Z"
+          }
+        }
+      },
+      {
+        "op": "result",
+        "now": "2026-11-22T18:30:16Z",
+        "event": {
+          "event_id": "543fff1c-eb86-5020-ad8f-29fd004a998f",
+          "event_type": "command.result",
+          "schema_version": 1,
+          "source": "fixture.edge",
+          "event_time": "2026-11-22T18:30:16Z",
+          "ingested_at": "2026-11-22T18:30:16Z",
+          "correlation_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+          "causation_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+          "payload": {
+            "command_id": "111bdddc-e0cd-53a7-b24b-30d6e1097772",
+            "action_id": "f08f566e-eec3-5f01-afe9-53cfd08205d1",
+            "device_id": "ev-1",
+            "outcome": "APPLIED",
+            "previous_rate_kw": 20,
+            "applied_rate_kw": 15,
+            "result_time": "2026-11-22T18:30:16Z"
+          }
+        }
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "04bbada2-db7f-5158-acb1-e075916ae38c",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:25Z",
+          "ingested_at": "2026-11-22T18:30:25Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "9ced43fd-0292-5cd8-acfd-a44d556dca71",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:20Z",
+            "window_end": "2026-11-22T18:30:25Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 20,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 60,
+            "capacity_kw": 100,
+            "utilization_pct": 60,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:25Z"
+      },
+      {
+        "op": "snapshots",
+        "values": [
+          {
+            "device": {
+              "device_id": "ev-0",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 0,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:30Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 0,
+              "online": true,
+              "charging": false,
+              "observed_at": "2026-11-22T18:30:30Z"
+            }
+          },
+          {
+            "device": {
+              "device_id": "ev-1",
+              "transformer_id": "tx-fixture",
+              "device_type": "EV_CHARGER",
+              "controllable": true,
+              "minimum_rate_kw": 0,
+              "maximum_rate_kw": 20,
+              "priority": 1,
+              "capability_version": 1,
+              "updated_at": "2026-11-22T18:30:30Z"
+            },
+            "telemetry": {
+              "current_rate_kw": 15,
+              "online": true,
+              "charging": true,
+              "observed_at": "2026-11-22T18:30:30Z"
+            }
+          }
+        ]
+      },
+      {
+        "op": "load",
+        "event": {
+          "event_id": "e1be7281-8978-58b5-a4a0-627fcecce381",
+          "event_type": "transformer.load",
+          "schema_version": 1,
+          "source": "fixture.aggregation",
+          "event_time": "2026-11-22T18:30:30Z",
+          "ingested_at": "2026-11-22T18:30:30Z",
+          "correlation_id": "fixture-run",
+          "causation_id": null,
+          "payload": {
+            "transformer_id": "tx-fixture",
+            "window_id": "bbbb6832-75fb-5ca9-be0d-ad471b9586d2",
+            "revision": 0,
+            "window_start": "2026-11-22T18:30:25Z",
+            "window_end": "2026-11-22T18:30:30Z",
+            "topology_version": "fixture-v1",
+            "meter_demand_kw": 20,
+            "ev_demand_kw": 40,
+            "solar_generation_kw": 0,
+            "net_load_kw": 60,
+            "capacity_kw": 100,
+            "utilization_pct": 60,
+            "expected_device_count": 10,
+            "good_device_count": 10,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        "now": "2026-11-22T18:30:30Z"
+      }
+    ],
+    "expected": {
+      "actions": 1,
+      "status": "NEEDS_OPERATOR_REVIEW",
+      "commands": 2,
+      "action_events": 7,
+      "health": "SAFE_HOLD",
+      "command_targets": {
+        "ev-0/THROTTLE": 0,
+        "ev-1/THROTTLE": 15
+      },
+      "transitions": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "TIMED_OUT",
+        "NEEDS_OPERATOR_REVIEW",
+        "NEEDS_OPERATOR_REVIEW",
+        "NEEDS_OPERATOR_REVIEW"
+      ],
+      "command_deliveries": 2
+    }
+  }
+]
