@@ -30,7 +30,7 @@ Required standalone tests:
 - Duplicate and expired commands produce one or zero logical effects as specified.
 - Registry replicas return contract-compatible responses and enforce deadlines.
 - Seeded scenarios reproduce the same logical event sequence.
-- k6/Toxiproxy and CI scenario commands are usable by the other members.
+- Locust/Toxiproxy and CI scenario commands are usable by the other members.
 
 ## Member_2 profile: streaming
 

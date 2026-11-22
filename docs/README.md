@@ -4,7 +4,12 @@ This directory contains the design package for the Smart Grid / EV Fleet Energy 
 
 ## Implementation
 
-- [Master implementation guide](implementation/MASTER_IMPLEMENTATION_GUIDE.md) — prerequisites, decisions, twelve-week build order, independent workflows, local Kubernetes, shared AWS EKS collaboration, CI/CD, testing, rollback, evidence, and final acceptance
+- [Implementation status](implementation/IMPLEMENTATION_STATUS.md) — completed milestone, remaining gates, and next step
+- [Accepted version matrix](implementation/VERSION_MATRIX.md) — exact pins and upstream compatibility evidence
+- [Local prerequisites](implementation/LOCAL_PREREQUISITES.md) — machine inventory, manual installation, verification, and resource profiles
+- [Preparation verification](implementation/PREPARATION_VERIFICATION.md) — exact diagnostic commands and observed results
+
+- [Master implementation guide](implementation/MASTER_IMPLEMENTATION_GUIDE.md) — prerequisites, decisions, twelve-week build order, independent workflows, local kind integration (cloud deferred), CI/CD, testing, rollback, evidence, and final acceptance
 
 ## Design
 
@@ -57,5 +62,5 @@ Contract changes require agreement from the producer, consumer, and integration 
 1. Describe planned behavior as planned until it has been implemented and verified.
 2. Keep event field names and API paths canonical in the contract documents rather than copying competing definitions into component READMEs.
 3. Record significant architectural changes as ADRs in `docs/decisions/`.
-4. Add setup commands only after another team member has reproduced them.
+4. Setup instructions may be documented before execution when clearly labeled unverified. Record exact commands, environment, and results when reproduced; a clean-checkout rerun on the implementation computer is sufficient.
 5. Update diagrams and acceptance criteria in the same pull request as any design change.

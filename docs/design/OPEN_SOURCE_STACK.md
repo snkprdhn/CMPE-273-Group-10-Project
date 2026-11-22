@@ -22,7 +22,7 @@ These components contain the project's domain value and must remain team-owned:
 
 | Need | Selected open-source project | How it will be used | What the team will not build |
 |---|---|---|---|
-| Container orchestration | Kubernetes with `kind` or `minikube` | Scheduling, Services, DNS, probes, reconciliation, RBAC, Secrets, NetworkPolicies, and Leases | A scheduler, service registry, or leader-election protocol |
+| Container orchestration | Kubernetes with local `kind` | Scheduling, Services, DNS, probes, reconciliation, RBAC, Secrets, NetworkPolicies, and Leases | A scheduler, service registry, or leader-election protocol |
 | Kafka lifecycle | Strimzi Operator | Kafka clusters, topics, users, storage, rolling updates, and the three-broker review profile | Custom Kafka StatefulSets or lifecycle scripts |
 | Stream-job lifecycle | Apache Flink Kubernetes Operator | Flink deployment, checkpoints/savepoints, upgrades, rollback, recovery, and job observability | A custom Flink controller |
 | Event backbone | Apache Kafka | Partitioned telemetry, derived state, commands, replay, and consumer groups | A message broker or delivery protocol |
@@ -30,17 +30,17 @@ These components contain the project's domain value and must remain team-owned:
 | Reliable outbox publication | Kafka Connect with Debezium Outbox Event Router | Capture committed outbox rows and publish them to Kafka using stable event IDs | A polling outbox relay |
 | Operational data | PostgreSQL installed from a pinned Helm chart | One persistent primary with separate logical stores/roles for registry, control, projections, and agent audit | A database, replication protocol, or cross-service shared-table model |
 | Identity | Keycloak | Local OIDC login, tokens, and operator/viewer roles | An identity provider or password system |
-| Telemetry collection | OpenTelemetry SDKs, Operator, and Collector | Instrumentation, context propagation, collection, batching, and export | A telemetry agent or collector |
+| Telemetry collection | OpenTelemetry Python SDKs and Helm-managed Collector | Instrumentation, context propagation, collection, batching, and export | A telemetry agent or collector |
 | Metrics and dashboards | Prometheus Operator, Prometheus, and Grafana | Service discovery, metric storage, alerts, and engineering dashboards | A monitoring database or dashboard framework |
 | Tracing | Grafana Tempo | Store and query distributed traces from the OpenTelemetry Collector | A trace backend |
-| UI foundation | React, Material UI, and Recharts | Accessible components, responsive layout, and charts | A component system or charting library |
-| Agent integration | Official provider SDKs, JSON Schema/Pydantic validation, and OpenTelemetry | Model calls, typed tool/output validation, and traceable orchestration behind a small provider adapter | A general agent framework, model server, or custom schema validator |
-| Load and browser testing | k6 and Playwright | API/SSE load, end-to-end user flows, and repeatable performance scenarios | A custom load-testing framework |
+| UI foundation | NiceGUI (Python) with built-in charts | Accessible components, responsive layout, and charts | A component system or charting library |
+| Agent integration | Deterministic Python mock, JSON Schema/Pydantic validation, and OpenTelemetry; external SDKs deferred | Seeded tool plans, typed tool/output validation, and traceable bounded orchestration | A general agent framework, model server, or custom schema validator |
+| Load and browser testing | Locust and Playwright Python | API/SSE load, end-to-end user flows, and repeatable performance scenarios | A custom load-testing framework |
 | Dependency fault injection | Toxiproxy plus Kubernetes-native pod/broker faults | Latency, connection loss, timeouts, and bounded recovery tests | A general-purpose chaos platform |
 | Integration testing | Testcontainers | Real Kafka/PostgreSQL-compatible test dependencies where practical | In-memory substitutes for every integration test |
 | Packaging | Helm for third-party stacks; Kustomize overlays for project workloads | Pin upstream charts/operators and maintain dev/review resource profiles | Forked vendor manifests or a custom deployment engine |
 
-The exact versions will be pinned before implementation. Only stable, mutually compatible releases will be used; `latest` image tags are prohibited.
+The accepted versions and evidence limits are in [VERSION_MATRIX.md](../implementation/VERSION_MATRIX.md). Project code/tests are Python; infrastructure JVMs stay inside containers. No host Node.js or Java is required. `latest` image tags are prohibited. ADR-024 removes the OTel Operator; ADR-004 replaces the original frontend and load-test stack.
 
 ## Integration boundaries
 
@@ -80,8 +80,8 @@ Primary project documentation:
 - [Strimzi Operator](https://strimzi.io/docs/operators/latest/overview/)
 - [Apache Flink Kubernetes Operator](https://nightlies.apache.org/flink/flink-kubernetes-operator-docs-main/)
 - [Debezium Outbox Event Router](https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html)
-- [OpenTelemetry Operator](https://opentelemetry.io/docs/platforms/kubernetes/operator/)
+- [OpenTelemetry Collector Helm chart](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-collector)
 - [Prometheus Operator](https://prometheus-operator.dev/docs/getting-started/introduction/)
 - [Keycloak](https://www.keycloak.org/documentation)
-- [k6](https://grafana.com/docs/k6/latest/), [Toxiproxy](https://github.com/Shopify/toxiproxy), and [Testcontainers](https://testcontainers.com/)
+- [Locust](https://docs.locust.io/en/2.33.2/), [Toxiproxy](https://github.com/Shopify/toxiproxy), and [Testcontainers](https://testcontainers.com/)
 

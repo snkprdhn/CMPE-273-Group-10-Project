@@ -43,9 +43,9 @@ These are design targets to validate on the team's agreed demo machine; they are
 
 | Quality | Proposed target |
 |---|---|
-| Scale | 10,000 simulated devices across at least 20 transformers |
-| Steady ingestion | 5,000 telemetry events per second for 10 minutes |
-| Detection latency | P95 under 8 seconds with a 5-second aggregation window |
+| Scale | Initial local review: 100 devices across 3 transformers; 10,000-device goal is optional after measurement |
+| Steady ingestion | Start at 100 events/sec (1 Hz/device); 5,000 events/sec is an optional capacity experiment |
+| Detection latency | Measure from window end with contractual 10-second watermark delay; former under-8-second target withdrawn pending baseline |
 | UI freshness | New accepted load state visible within 2 seconds of API publication |
 | Correctness | Fixture windows match independently calculated expected totals |
 | Duplicate safety | Replayed input or commands create no duplicate logical control effect |
@@ -72,7 +72,7 @@ These are design targets to validate on the team's agreed demo machine; they are
 | Read-only Tool Gateway | Execute allowlisted entity, health, metric, and trace-summary queries with authorization and bounds | Arbitrary SQL, PromQL, Kafka, shell, or Kubernetes access |
 | Copilot service | Orchestrate model turns and tools, validate evidence-backed output, and audit investigations | Authoritative grid state or control actions |
 | Configured model provider | Select tools and produce a structured explanation from supplied evidence | Tool execution or access to internal credentials |
-| React dashboard | Operator workflows and live visualization | Domain-state inference |
+| NiceGUI dashboard | Operator workflows and live visualization | Domain-state inference |
 | Kubernetes | Scheduling, discovery, probes, reconciliation, replica management, and policy | Business correctness or durable workflow state |
 | OpenTelemetry stack | Metrics, traces, structured logs, SLO evidence, and incident correlation | Primary operator workflow |
 
@@ -81,7 +81,7 @@ These are design targets to validate on the team's agreed demo machine; they are
 ```mermaid
 flowchart LR
     subgraph Client
-        UI[React UI]
+        UI[NiceGUI UI]
     end
     subgraph Services
         API[FastAPI]
@@ -147,7 +147,7 @@ flowchart TB
     BROWSER[Operator Browser]
     subgraph CLUSTER[Local Kubernetes Cluster]
         GW[Gateway / Ingress]
-        WEB[React Deployment]
+        WEB[NiceGUI Deployment]
         API1[Projection API Replica A]
         API2[Projection API Replica B]
         ACT1[Action Replica A]
@@ -199,7 +199,7 @@ flowchart TB
 
 The configured external model provider sits outside the cluster and is reachable only from the Copilot Service through restricted egress. The deterministic mock provider can run in-process for tests and offline demonstrations.
 
-The required reproducible environment uses local `kind` or `minikube`, while one shared AWS EKS cluster provides team sandboxes and protected continuous integration when budget permits. A lightweight developer profile may run one Kafka broker, but the architecture-review profile targets three brokers with replicated critical topics. Kubernetes Services provide stable discovery; readiness controls normal routing; Deployments reconcile stateless replicas. Strimzi and the Flink Kubernetes Operator manage the distributed streaming lifecycles; a pinned PostgreSQL Helm deployment is sufficient for the single persistent primary. The same contracts and application images run locally and in EKS. The detailed resource, ownership, scaling, and failure-domain plan is in [KUBERNETES_DEPLOYMENT.md](KUBERNETES_DEPLOYMENT.md), and the end-to-end build/deployment sequence is in the [master implementation guide](../implementation/MASTER_IMPLEMENTATION_GUIDE.md).
+The required reproducible environment uses local kind on one computer; cloud/EKS deployment is deferred. Use the accepted [version matrix](../implementation/VERSION_MATRIX.md) and [resource profiles](../implementation/LOCAL_PREREQUISITES.md#resource-profiles). All application/test code is Python, including PyFlink and the NiceGUI UI; upstream JVMs run inside infrastructure containers. One-broker development and three-broker review use Strimzi, with Flink Operator lifecycle, one Helm-managed PostgreSQL primary, direct Helm-managed OTel Collector, and Prometheus/Grafana/Tempo. API/Action replica and recovery demonstrations remain required; UI replication needs session-aware routing and reconnect testing. See [Kubernetes design](KUBERNETES_DEPLOYMENT.md).
 
 ## 10. Design limitations
 

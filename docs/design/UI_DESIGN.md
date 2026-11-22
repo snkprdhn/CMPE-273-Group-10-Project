@@ -8,7 +8,7 @@ The main UI should feel like a modern operations console: calm, readable, and re
 2. Which transformer needs attention and why?
 3. What action did the platform take, and did it work?
 
-The planned stack is React, TypeScript, Material UI, and Recharts. REST provides initial snapshots and historical queries; Server-Sent Events provide live updates. Grafana remains a separate engineering tool.
+The accepted stack is NiceGUI 3.19.0, authored in Python with packaged browser assets and built-in ECharts. The Python UI server consumes the separate FastAPI REST/SSE contract, then forwards rendering updates through NiceGUI’s built-in WebSocket/Socket.IO transport. Cursor replay, snapshot recovery, and version ordering remain mandatory at the API boundary. No Node.js toolchain or project JavaScript/TypeScript is required. Grafana remains a separate engineering tool. See [ADR-004](../decisions/ADR-004-python-dashboard.md).
 
 ## 2. Information architecture
 
@@ -131,7 +131,7 @@ On small screens, the sidebar becomes a drawer and KPI cards wrap into one colum
 ## 6. Dynamic behavior
 
 1. Load a REST snapshot when entering a screen.
-2. Connect to SSE with a last-event cursor.
+2. The Python UI server connects to API SSE with a last-event cursor; the browser uses NiceGUI’s packaged live transport.
 3. Merge versioned updates without duplicating records.
 4. Show “reconnecting” after missed heartbeats.
 5. Mark values stale rather than freezing them without explanation.
@@ -154,3 +154,7 @@ Every screen requires loading, empty, partial-data, stale, permission-denied, an
 - Primary workflows are usable with a keyboard and do not rely on color alone.
 - An operator can trace each factual agent observation to displayed evidence and distinguish observations from hypotheses.
 - Provider failure leaves all non-agent screens and control workflows fully functional.
+
+## Deployment implications
+
+Start with one UI process/replica. A browser reconnect reconstructs its view from authoritative API snapshots/cursors. Two UI replicas require sticky connections and explicit reconnect/failover tests; two API replicas remain a separate required review gate. UI session state never becomes authoritative control state.

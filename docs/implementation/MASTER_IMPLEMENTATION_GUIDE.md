@@ -1,10 +1,10 @@
 # Master Implementation Guide
 
-**Status:** Implementation plan only. Application code, deployment manifests, automation, and executable project commands have not been created or verified.
+**Status:** Repository-preparation milestone complete; an empty local kind cluster and locked preparation venv are verified; application services, application dependency locks, and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
 
 ## 1. Purpose
 
-This is the end-to-end delivery guide for the Smart Grid / EV Fleet Energy Balancing Platform. It turns the approved design into an ordered implementation plan for four members working in parallel. It covers prerequisites, contract freeze, local development, Kubernetes packaging, a shared AWS EKS integration environment, testing, security, observability, failure experiments, release evidence, and final demonstration.
+This is the end-to-end delivery guide for the Smart Grid / EV Fleet Energy Balancing Platform. It preserves Member_1 through Member_4 ownership while implementation happens on one computer. It covers prerequisites, contract freeze, Python application development, local kind packaging, testing, security, observability, failure experiments, release evidence, and final demonstration. Cloud deployment and external model calls are deferred.
 
 This guide coordinates the work; it does not replace the detailed design and contract documents. When a conflict exists, the canonical contract or accepted architecture decision is authoritative.
 
@@ -39,100 +39,39 @@ This guide coordinates the work; it does not replace the detailed design and con
 
 ## 4. Target environments
 
-The project uses three environments. All three run the same contracts and application images; only scale, dependencies, and exposure differ.
+[ADR-006](../decisions/ADR-006-local-kind.md) makes local kind the required integration and demonstration target. All project application/test code is Python; JVM-based infrastructure stays inside containers. Host Java/Maven and Node.js/npm are unnecessary.
 
-| Environment | Purpose | Users | Required characteristics |
-|---|---|---|---|
-| Standalone local profile | Daily implementation and component tests | One member | Owned service, fixtures/mocks, and minimum real dependencies |
-| Full local Kubernetes | Reproducible offline integration and grading fallback | Whole team | `kind`, all core services, bounded scale, no cloud dependency |
-| Shared AWS EKS | Continuous team integration, realistic collaboration, and optional final demo | Whole team and CI | Namespace isolation, shared platform, controlled access, budgets, and repeatable teardown |
+| Environment | Purpose | Required characteristics |
+|---|---|---|
+| Standalone lightweight development | One owned slice with fixtures/mocks | Only minimum real dependencies; independently runnable |
+| Local kind integration/review | Closed loop, replica/recovery/security evidence | Pinned images/contracts; three-broker review exercises; staged to fit 16 GiB host |
+| Cloud | Deferred | No resources, accounts, cloud registry, budget, or credentials required |
 
-The shared EKS cluster is recommended for integration but must never become a prerequisite for unit or component work. The full local Kubernetes profile remains the reproducible fallback if AWS, campus networking, credentials, or quotas are unavailable.
-
-### 4.1 Shared-cluster namespace model
-
-```text
-smart-grid EKS cluster
-├── platform                 # Operators and shared platform services
-├── observability            # OTel, Prometheus, Grafana, Tempo
-├── member-1-dev             # Member_1 integration sandbox
-├── member-2-dev             # Member_2 integration sandbox
-├── member-3-dev             # Member_3 integration sandbox
-├── member-4-dev             # Member_4 integration sandbox
-└── integration              # Protected full-system release candidate
-```
-
-Member namespaces are disposable sandboxes. The `integration` namespace is deployed from the protected `main` branch through CI and must not be edited manually except during a documented incident exercise. Shared Kafka or PostgreSQL installations must use environment-specific topic prefixes, consumer groups, databases/schemas, roles, and fixture IDs so one sandbox cannot corrupt another.
+Use local `platform`, `observability`, and `integration` namespaces as appropriate; member namespace labels remain available for isolation without requiring four concurrent copies. Scope topics/groups, logical stores, and fixtures by environment/run ID. Build locally and load application images into kind; no registry is needed.
 
 ## 5. Prerequisites and downloads
 
 ### 5.1 Developer machine
 
-Recommended starting capacity for the full local profile:
+The inspected machine is Apple M5/ARM64 with 10 CPU cores and 16 GiB RAM (268 GiB disk was free at the initial inventory). Use the [resource budgets](LOCAL_PREREQUISITES.md#resource-profiles): 4 CPUs/6 GiB Docker Desktop development profile; 8 CPUs/10 GiB larger review profile, one at a time. These are planning budgets, not measured deployment capacity.
 
-- 8 CPU cores or equivalent
-- 16 GB RAM, with at least 8 GB available to the container runtime
-- 40 GB free disk space for images, volumes, checkpoints, and test evidence
-- Reliable broadband for the first image and dependency download
+### 5.2 Required tools and downloads
 
-A lower-capacity machine can run a member's standalone profile. The three-broker review profile may require the shared EKS cluster or a higher-capacity laptop. Actual resource requests and limits must be measured and recorded before feature freeze.
+The authoritative [version matrix](VERSION_MATRIX.md) and [prerequisites guide](LOCAL_PREREQUISITES.md) contain installed results, exact pins, manual installation commands, and verification steps. Git, Docker Desktop/CLI, project-venv Python, kind, matching kubectl/bundled Kustomize, and Helm cover the workflow. Project Python 3.12.9 is installed in `.venv`; use venvs for all Python work. The default host Python 3.14 is unsuitable for the selected PyFlink environment.
 
-### 5.2 Required tools
+Docker Desktop is now running; kind/Helm/matching kubectl and Python 3.12.9 are installed project-locally. Activate `.venv` for all Python and selected CLI work. The latest verified gates are in implementation status. Java/Node were inventoried but are not host prerequisites. Use Python gRPC tooling, Locust, and Playwright Python instead of grpcurl/k6/authored JavaScript.
 
-Exact versions are a blocking architecture decision. Before implementation, the team must create one reviewed version matrix and pin every item; `latest` tags are prohibited.
+### 5.3 Accounts and data
 
-| Tool | Why it is needed | Installation source | Preflight check |
-|---|---|---|---|
-| Git | Source control and collaboration | [Git downloads](https://git-scm.com/downloads) | `git --version` |
-| Docker Desktop, Docker Engine, or compatible runtime | Builds images and runs Testcontainers/`kind` | [Docker documentation](https://docs.docker.com/get-docker/) | `docker version` |
-| `kubectl` | Kubernetes administration | [Kubernetes tool installation](https://kubernetes.io/docs/tasks/tools/) | `kubectl version --client` |
-| `kind` | Reproducible local Kubernetes | [kind quick start](https://kind.sigs.k8s.io/docs/user/quick-start/) | `kind version` |
-| Helm | Installs pinned third-party charts | [Helm installation](https://helm.sh/docs/intro/install/) | `helm version` |
-| Kustomize support | Builds project-owned overlays | Pin standalone Kustomize or the supported `kubectl kustomize` version | `kubectl kustomize --help` |
-| Python 3.12 | Simulators and planned Python services | [Python downloads](https://www.python.org/downloads/) | `python3 --version` |
-| Java/JDK | Flink tooling/runtime if required by the selected implementation | Selected JDK vendor after ADR approval | `java -version` |
-| Node.js LTS and package manager | React/TypeScript dashboard | [Node.js downloads](https://nodejs.org/en/download) | `node --version` |
-| `jq` | Scripted JSON inspection | Operating-system package manager | `jq --version` |
-| `grpcurl` | Registry contract and diagnostic calls | [grpcurl releases](https://github.com/fullstorydev/grpcurl/releases) | `grpcurl -version` |
-| `k6` | API/SSE load tests | [k6 installation](https://grafana.com/docs/k6/latest/set-up/install-k6/) | `k6 version` |
+No cloud or external model account is required. Use deterministic model mocks, synthetic devices/data, and local disposable credentials. Keep credentials out of Git, images, browser state, logs, and evidence.
 
-### 5.3 Shared AWS environment tools
+## 6. Decisions and milestone boundaries
 
-Only members administering or diagnosing EKS require these locally; CI uses a short-lived federated identity rather than stored access keys.
+Preparation decisions are accepted in [ADR-002](../decisions/ADR-002-python-stream-processing.md), [ADR-004](../decisions/ADR-004-python-dashboard.md), [ADR-006](../decisions/ADR-006-local-kind.md), and [ADR-024](../decisions/ADR-024-pinned-local-baseline.md). They resolve PyFlink, Python UI/test tooling, local deployment, version pins, partition/replication defaults, and resource profiles.
 
-| Tool/account | Purpose | Verification |
-|---|---|---|
-| AWS account with student credits or an agreed budget | Hosts the shared cluster | Billing owner confirms budget and region |
-| AWS CLI v2 | Identity, EKS, registry, and diagnostics | `aws --version` and `aws sts get-caller-identity` |
-| `eksctl` | Declarative EKS lifecycle | `eksctl version` |
-| AWS IAM identity for each member | Auditable individual access | EKS access entry exists for the principal |
-| GitHub repository secrets or OIDC trust | CI image publishing and deployment | Test workflow assumes role without a long-lived key |
+The next **contract/schema milestone** will produce executable schemas, golden fixtures, compatibility checks, and unresolved domain/auth defaults. Existing [Stream Semantics v1](../contracts/STREAM_SEMANTICS_V1.md) already fixes five-second windows, ten-second watermarks, and thirty-second inclusive correction limits; do not reopen those as unspecified defaults. Action cooldown/recovery/timeout rules and exact identity bootstrap require contract work before their services, not before documentation preparation. Repository license remains an owner/public-release decision. Cloud and external-provider choices are deferred and cannot block local implementation.
 
-The team must not share one AWS access key. Use individual IAM identities and EKS access entries. Human access, CI access, and billing administration are separate responsibilities.
-
-### 5.4 External accounts
-
-- GitHub accounts for all members and branch protection on `main`
-- One model-provider account only if the external Copilot adapter is enabled
-- No real utility, customer, vehicle, or location data
-- No model-provider credential in browser code, Git, container images, fixtures, screenshots, or logs
-
-## 6. Decisions that must close before coding
-
-The following decisions block reproducible implementation:
-
-1. PyFlink or Java for the aggregation job.
-2. Exact compatible versions of Kubernetes, `kind`, Strimzi, Kafka, Flink Operator, Flink, Debezium, PostgreSQL, Keycloak, OpenTelemetry, Prometheus, Grafana, and Tempo.
-3. Kafka partition count, replication factor, retention, and developer/review resource limits.
-4. JSON Schema compatibility rule and validation tooling.
-5. Default action thresholds, hysteresis, cooldown, recovery, and command timeout.
-6. Keycloak realm, clients, roles, seeded users, and local redirect URIs.
-7. Container registry: GitHub Container Registry or Amazon ECR.
-8. EKS region, cluster lifecycle owner, cost ceiling, node shape, and shutdown policy.
-9. External model provider, model identifier, per-investigation budget, and credential owner.
-10. Repository license, dependency attribution, image scanning, and software bill-of-materials process.
-
-Record each accepted choice as an ADR under `docs/decisions/`. The version matrix and deployment overlays must reference the ADRs rather than silently choosing different versions.
+No application service scaffolding is part of preparation.
 
 ## 7. Planned repository additions
 
@@ -165,7 +104,7 @@ The implementation should converge on this structure. Names may change through a
 │   │   ├── member-3/
 │   │   ├── member-4/
 │   │   └── integration/
-│   └── eks/                       # Declarative EKS cluster/access configuration
+│   └── review/                    # Local larger-profile evidence/configuration
 └── tests/
     ├── contracts/
     ├── component/
@@ -204,7 +143,7 @@ Every environment defines an immutable environment ID such as `local-m2`, `dev-m
 - Commit `.env.example`, never `.env`.
 - Use safe local placeholder credentials only for disposable local profiles.
 - Keep shared credentials in Kubernetes Secrets created by CI or the environment administrator.
-- Prefer GitHub-to-AWS OIDC for CI; do not store long-lived AWS keys in repository secrets.
+- Local implementation needs no cloud credentials; do not add AWS keys or external model keys.
 - Rotate a credential immediately if it appears in Git history, logs, screenshots, or chat.
 - Keep the model key available only to the Copilot pod and exclude it from all core-service environments.
 
@@ -243,7 +182,7 @@ Do not deploy `latest`. Promote the same tested image digest from a member names
 
 | Area | Primary owner | Required reviewers |
 |---|---|---|
-| EKS cluster, access, budget, and base namespaces | One rotating environment administrator | One other member |
+| Local kind lifecycle and base namespaces | Shared, coordinated by Member_4 | Affected component owners |
 | Kafka/Strimzi and Flink Operator | Member_2 | Producers/consumers affected by change |
 | PostgreSQL and Kafka Connect/Debezium | Member_3 | Logical-store owner affected by change |
 | OTel, Prometheus, Grafana, and Tempo installation | Member_1 | Member_4 for product SLO views |
@@ -264,7 +203,7 @@ The environment administrator maintains the cluster but does not implement or de
 4. Freeze Protobuf, OpenAPI, SSE, agent-tool, and evidence contracts.
 5. Create valid and invalid fixtures with expected outcomes.
 6. Agree on environment IDs, ports, health endpoints, log fields, trace headers, and metric naming.
-7. Agree on the local machine profile and EKS budget/region.
+7. Use the accepted local resource profiles; cloud remains deferred.
 
 **Exit gate:** Contract validation can run without application code, all open blocking choices have ADRs, and each member can explain their standalone input and expected output.
 
@@ -289,7 +228,7 @@ The environment administrator maintains the cluster but does not implement or de
 3. Implement bounded buffering, retry/backoff, delivery callbacks, and observable backpressure.
 4. Implement charger command consumption with expiry, command-ID deduplication, fencing-epoch rejection, and result events.
 5. Implement the gRPC Registry contract, deadlines, validation, and owned persistence.
-6. Create the scenario runner and reusable k6/Toxiproxy orchestration interface.
+6. Create the scenario runner and reusable Locust/Toxiproxy orchestration interface.
 7. Package owned workloads and add health, metrics, traces, logs, policies, and fault tests.
 
 #### Member_2: Kafka and stateful stream processing
@@ -344,7 +283,7 @@ Install in dependency order:
 
 1. Create the pinned multi-node `kind` cluster and local storage/ingress prerequisites.
 2. Create namespaces, quotas, service accounts, RBAC, and default-deny NetworkPolicies.
-3. Install operators: Strimzi, Flink Kubernetes Operator, OpenTelemetry Operator, and Prometheus Operator/chart.
+3. Install Strimzi, Flink Kubernetes Operator, and Prometheus Operator/chart; deploy the OTel Collector directly by Helm (ADR-024).
 4. Install PostgreSQL, Keycloak, Prometheus, Grafana, Tempo, and the OTel Collector.
 5. Create Kafka, topics/users, Kafka Connect, databases/roles, and Keycloak realm/client configuration.
 6. Apply project bases for Registry, simulators, aggregation, Action, projection/API, dashboard, and Copilot.
@@ -352,43 +291,13 @@ Install in dependency order:
 8. Run the overload-to-throttle-to-recovery scenario.
 9. Verify probes, DNS, persistence, security boundaries, dashboards, logs, traces, and cleanup.
 
-The exact commands must be added to `infra/README.md` only after a second member reproduces them. The intended eventual command surface should be small: prerequisites check, cluster create, platform install, application deploy, smoke test, evidence capture, and cluster delete.
+Document commands as planned until executed; a clean-checkout rerun on this computer records reproducibility without inventing a second operator. The intended eventual command surface should be small: prerequisites check, cluster create, platform install, application deploy, smoke test, evidence capture, and cluster delete.
 
 **Exit gate:** A new teammate can reproduce the complete local system from a clean checkout using the verified runbook.
 
-### Phase 5 — Create the shared EKS integration environment (Weeks 5–7)
+### Phase 5 — Cloud deployment deferred
 
-This phase may start once the local Kubernetes base is healthy. Do not debug first-time application failures in EKS.
-
-1. Confirm AWS budget, region, quota, lifecycle owner, tags, and teardown date.
-2. Create a reviewed declarative `eksctl` cluster configuration rather than relying on CLI defaults.
-3. Create the managed node group sized for the integration profile and persistent workloads.
-4. Configure individual EKS access entries and namespace-scoped Kubernetes RBAC.
-5. Configure CI federation, container registry access, image scanning, and immutable tags/digests.
-6. Create `platform`, `observability`, member sandbox, and protected `integration` namespaces.
-7. Apply quotas, limit ranges, default-deny policies, storage classes, and restricted external exposure.
-8. Install the same pinned operators and charts used locally with EKS-specific values only where required.
-9. Deploy each member's already-passing slice to its sandbox.
-10. Promote immutable image digests to `integration` after pairwise gates pass.
-11. Run smoke, authorization, persistence, observability, and failure tests.
-12. Record actual resource use and adjust the node plan without weakening required replicas or correctness.
-
-Planned lifecycle operations after the reviewed configuration exists:
-
-```text
-Create/update cluster from infra/eks/cluster.yaml
-Create access entries from reviewed IAM principal mappings
-Update kubeconfig and verify the expected AWS identity/context
-Install pinned platform releases
-Deploy Kustomize integration overlay by immutable image digest
-Capture evidence and backup/export required state
-Delete the cluster through the same declared lifecycle tool when no longer needed
-Verify CloudFormation, load balancers, volumes, snapshots, and registry retention after teardown
-```
-
-Do not copy unreviewed example commands into production accounts. Follow the current [Amazon EKS `eksctl` guide](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html) and [EKS access-entry documentation](https://docs.aws.amazon.com/eks/latest/userguide/access-entries.html) when the cluster configuration is implemented.
-
-**Exit gate:** All members can inspect their namespace, CI can deploy `integration`, unauthorized cross-namespace operations fail, and the local fallback still passes.
+No AWS/EKS resources, accounts, registry, or credentials are required or authorized. Use the local kind integration/review profiles. Reopening cloud deployment requires a separately approved scope change.
 
 ### Phase 6 — Reliability, security, and operations (Weeks 7–10)
 
@@ -411,7 +320,7 @@ Do not copy unreviewed example commands into production accounts. Follow the cur
 5. Freeze features at the start of Week 11.
 6. Rebuild from a clean checkout and deploy the exact release candidate.
 7. Produce the contribution record, known limitations, diagrams, screenshots, evidence index, and rehearsal script.
-8. Rehearse with the external model disabled and with the shared AWS cluster unavailable.
+8. Rehearse locally using deterministic model mocks and cached infrastructure images.
 
 **Exit gate:** The final release digest, manifests, seed, reports, dashboards, traces, and demo sequence are reproducible and owned by the team.
 
@@ -447,18 +356,14 @@ For a clean deployment, verify each layer before installing the next:
 
 Never continue installing later layers to hide an unhealthy earlier dependency.
 
-## 12. Shared EKS collaboration rules
+## 12. Local integration rules
 
-1. Every member retains a working local profile.
-2. Member sandboxes may deploy branch images; `integration` accepts only reviewed main-branch digests.
-3. Use explicit Kubernetes contexts and show the current context before any deployment or cleanup operation.
-4. Namespace-scoped permissions are the default; cluster-admin is limited to the environment administrator and backup administrator.
-5. Platform changes require a maintenance notice in the team channel and a rollback plan.
-6. Shared topics and databases require environment prefixes and least-privilege credentials.
-7. Generated load tests run in scheduled windows so they do not invalidate another member's results.
-8. Store evidence with environment, commit, image digest, start/end time, scenario seed, and configuration.
-9. Set an AWS budget alert before cluster creation and review costs at least weekly.
-10. Tear down unused load balancers, volumes, snapshots, and the cluster after the course unless retention is explicitly approved.
+1. Keep independent Member_1 through Member_4 slices and versioned fixture boundaries.
+2. Use explicit `kind-smart-grid-*` contexts and environment/run IDs.
+3. Run one VM/profile at a time and stage review exercises within the memory budget.
+4. Preserve service-owned schemas/roles, RBAC, and enforced NetworkPolicy tests.
+5. Record commit, image digest, commands, seeds, configuration, and results for each integration gate.
+6. Export evidence/backups before deleting disposable clusters or volumes.
 
 ## 13. Testing strategy and execution order
 
@@ -471,11 +376,11 @@ Testing progresses from cheapest and most isolated to most expensive and integra
 | Contract | Local and every PR | Merge | Schema/API compatibility and golden fixtures |
 | Component | Standalone local profile | Merge for owned slice | Real dependency plus fake boundaries |
 | Pairwise | Local or member namespaces | Integration promotion | Producer/consumer evidence report |
-| End-to-end | Local full cluster and EKS `integration` | Release candidate | Closed-loop business outcome |
+| End-to-end | Local kind `integration` | Release candidate | Closed-loop business outcome |
 | Security | Component and integration | Release candidate | Positive/negative authorization and isolation |
-| Failure | Local/EKS scheduled runs | Final acceptance | Recovery time, correctness, and evidence packet |
+| Failure | Local kind scheduled runs | Final acceptance | Recovery time, correctness, and evidence packet |
 | Load | Stable integration environment | Final performance claims | Raw result, machine/cluster profile, percentiles |
-| Agent evaluation | Mock on every PR; external provider scheduled | Agent release | Tool choice, citations, denial, cost, and failure isolation |
+| Agent evaluation | Deterministic mock; injected provider failures | Agent release | Tool choice, citations, denial, cost, and failure isolation |
 
 ### 13.1 Required smoke flow
 
@@ -515,7 +420,7 @@ Testing progresses from cheapest and most isolated to most expensive and integra
 
 1. Repeat required PR checks.
 2. Build and sign/tag immutable images by commit SHA.
-3. Publish images to the chosen registry.
+3. Load locally built immutable images into kind; registry publishing is deferred.
 4. Deploy the reviewed digests to the protected `integration` namespace.
 5. Run smoke and pairwise regression tests.
 6. Roll back the deployment if health or smoke checks fail.
@@ -527,10 +432,10 @@ Testing progresses from cheapest and most isolated to most expensive and integra
 - Failure-injection subset
 - Dependency and container scan
 - Load baseline at controlled times
-- Agent external-provider evaluation within the agreed budget
+- Deterministic mock-agent evaluation and injected provider failures
 - Backup/export and restore verification
 
-CI must not expose secrets to untrusted pull requests or allow a forked workflow to deploy to EKS.
+CI must not expose secrets to untrusted pull requests. Run local deployment gates deliberately on this computer; no cloud runner or paid model calls are required.
 
 ## 15. Kubernetes implementation checklist per workload
 
@@ -599,28 +504,17 @@ Every major experiment must preserve:
 - Flink upgrades require an approved savepoint/checkpoint and state-compatibility plan.
 - Kafka contract breaking changes use a new major topic/schema version and a migration period.
 - Platform chart/operator changes require pinned previous values and a tested rollback/recovery procedure.
-- Failed EKS changes must not be repaired through undocumented console edits; reconcile the declared configuration.
+- Reconcile local kind resources from declared configuration; record recovery commands.
 
-## 18. AWS cost and lifecycle controls
+## 18. Local resource and lifecycle controls
 
-Before creating EKS:
-
-1. Confirm credits, billing owner, cost ceiling, and teardown date.
-2. Create budget notifications to at least two members.
-3. Tag resources with project, course, environment, owner, and expiration date.
-4. Choose the smallest measured node group that supports the integration profile.
-5. Avoid unnecessary public load balancers, NAT traffic, snapshots, and duplicate clusters.
-6. Use one shared cluster—not one cluster per member.
-7. Scale simulators down outside scheduled tests.
-8. Review volumes, load balancers, snapshots, elastic IPs, and container retention weekly.
-
-The final cleanup is complete only when the cluster lifecycle tool reports deletion and the team verifies that dependent AWS resources are no longer billing. Preserve documentation and compact evidence outside the cluster before teardown.
+Keep one Docker Desktop resource profile active. Monitor memory pressure, CPU, images, PVCs, checkpoints, and evidence disk use. Stop idle components between exercises. Preserve authoritative state/evidence before deleting kind clusters; PVCs on kind nodes disappear with those nodes. No cloud resources or external model calls are authorized.
 
 ## 19. Troubleshooting order
 
 Diagnose from the lowest failing layer upward:
 
-1. Confirm Git commit, image digest, environment ID, Kubernetes context, namespace, and AWS identity.
+1. Confirm Git commit, image digest, environment ID, Kubernetes context, namespace, and local Docker context.
 2. Check node readiness, resource pressure, storage, and DNS.
 3. Check operator/controller health and custom-resource status.
 4. Check Kafka, PostgreSQL, Keycloak, and observability dependencies.
@@ -641,18 +535,18 @@ If delivery falls behind, reduce work in this order:
 2. Additional dashboards beyond the acceptance views
 3. Extra failure variations after each required category has evidence
 4. External model-provider integration, while retaining the deterministic mock and typed agent evaluation
-5. Shared EKS as a final-demo dependency, while retaining full local Kubernetes
+5. Extra concurrent review workloads; stage exercises on local kind while preserving required evidence
 
 Do not cut the closed-loop business scenario, Kafka/Flink semantics, duplicate-safe control, leader fencing, checkpoint recovery, Kubernetes runtime, core observability, contract tests, or security boundaries.
 
 ## 21. Definition of ready for implementation
 
-Implementation begins only when:
+Application service implementation begins only when (contract authoring is the next milestone):
 
 - Blocking ADRs and the version matrix are accepted.
 - Contract schemas and golden examples agree with the prose contracts.
 - Each member has a standalone input, expected output, owned directories, and test boundary.
-- The team agrees on local resource expectations and the shared EKS budget decision.
+- The local resource profiles are selected; cloud stays deferred.
 - CI can validate contracts and repository hygiene.
 - No real credentials or customer data are present.
 
@@ -673,12 +567,7 @@ The project is complete when a clean checkout can reproduce a Kubernetes deploym
 
 ## 23. Command verification policy
 
-Project-specific commands are intentionally not listed as executable commands in this version because their scripts, manifests, and pinned versions do not yet exist. As implementation progresses:
-
-1. The component owner adds the smallest useful command to the component README or shared task runner.
-2. A different member runs it from a clean checkout.
-3. The reviewer records the tested operating system, prerequisite versions, and result.
-4. Only then is the command copied into this master guide as verified.
+Setup commands may be documented before execution when explicitly labeled unverified. Do not describe scripts/manifests or service commands as working before they exist. For each verified command, record exact text, machine/prerequisite versions, expected/actual results, and limitations. A clean-checkout rerun on this computer supplies local reproducibility; Member_1 through Member_4 labels remain ownership boundaries and do not imply four operators.
 
 This policy prevents the final runbook from accumulating plausible-looking commands that have never worked.
 

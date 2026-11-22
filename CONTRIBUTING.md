@@ -25,5 +25,5 @@ Read the root README, documentation index, team overview, event contract, and AP
 - Reuse the approved projects in `docs/design/OPEN_SOURCE_STACK.md`; adding overlapping infrastructure or custom platform plumbing requires an ADR.
 - Pin container images, charts, operators, and application dependencies. Do not use `latest` tags.
 - Preserve required license notices and update the software bill of materials when dependencies change.
-- Add commands to component READMEs only after another teammate reproduces them.
+- Label setup commands as unverified until reproduced; record the exact command, environment, and result when verified. A clean-checkout rerun on this computer is sufficient for local implementation; retain ownership/review labels.
 - Prefer small pull requests with a clear owner and acceptance criterion.

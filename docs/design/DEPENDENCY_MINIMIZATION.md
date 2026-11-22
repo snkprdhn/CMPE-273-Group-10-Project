@@ -88,7 +88,7 @@ Shared infrastructure is divided rather than assigned wholesale to Member_4:
 |---|---|---|
 | Kafka, Strimzi, topics, Flink Operator | Member_2 | Supply producer/consumer requirements and test compatibility |
 | PostgreSQL deployment and Debezium/Kafka Connect | Member_3 | Own migrations and credentials only for their logical store |
-| CI scenario runner, k6/Toxiproxy harness, contract fixtures, OTel Collector, Prometheus/Grafana/Tempo | Member_1 | Contribute component commands, instrumentation, panels, and expected results |
+| CI scenario runner, Locust/Toxiproxy harness, contract fixtures, OTel Collector, Prometheus/Grafana/Tempo | Member_1 | Contribute component commands, instrumentation, panels, and expected results |
 | Gateway, Keycloak, product SLO views, and Copilot/API/UI platform | Member_4 | Use published auth/telemetry conventions and independently mock them |
 | Component Kubernetes resources | Each component owner | Member_4 supplies shared conventions, not manifests for everyone |
 | Final architecture-review overlay | Shared, coordinated by Member_4 | Every owner proves their slice works before inclusion |

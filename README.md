@@ -1,6 +1,6 @@
 # Smart Grid / EV Fleet Energy Balancing Platform
 
-> **Status:** Design complete; implementation has not started. This repository currently contains the approved system design, interface contracts, UI plan, team ownership, and acceptance plan for the CMPE 273 final project.
+> **Status:** Repository preparation and Docker Desktop/venv prerequisites are verified, including an empty local kind cluster; application implementation has not started. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). All application/test code is Python; infrastructure JVMs stay in containers. No host JDK or Node.js is required.
 
 ## Abstract
 
@@ -30,7 +30,7 @@ The project supports grid reliability, cleaner transportation, and better use of
 | Grid state | Net transformer load, utilization percentage, health state, and recent trend |
 | Automated response | Throttle and restore commands for eligible EV chargers |
 | Persistence | Helm-managed PostgreSQL with persistent Kubernetes storage and service-owned schemas |
-| Operator experience | React dashboard with live updates, charts, alerts, action history, and scenario controls |
+| Operator experience | NiceGUI dashboard with live updates, charts, alerts, action history, and scenario controls |
 | Kubernetes runtime | Multi-service deployment, discovery, health probes, reconciliation, scaling, and failure containment |
 | Observability | OpenTelemetry logs/traces, Prometheus metrics, Grafana dashboards, SLIs, SLOs, and error budgets |
 | Distributed coordination | Action-service leader lease and fencing epochs to reject stale workers |
@@ -81,7 +81,7 @@ flowchart TB
         end
 
         subgraph EXPERIENCE[Operator Experience]
-            UI[React Operations Dashboard]
+            UI[NiceGUI Operations Dashboard]
             COPILOT[Grid Incident Investigator<br/>provider-neutral agent]
             IDP[Local OIDC Provider]
         end
@@ -137,13 +137,13 @@ Telemetry is partitioned by `transformer_id`, keeping a transformer’s readings
 
 Kubernetes is the target runtime. Services use stable cluster DNS, readiness/liveness/startup probes, resource limits, rolling updates, and multiple replicas where state ownership permits. The Action Service uses a Kubernetes Lease plus a monotonically increasing fencing epoch so a stale leader cannot issue a valid command. Docker Compose may remain as a lightweight developer profile, but the architecture review and final demonstration use Kubernetes.
 
-The React dashboard is the primary project UI. Grafana is reserved for engineering evidence across metrics, traces, and structured logs. The Grid Incident Investigator is a required bounded extension, but it is isolated from the control path and integrated only after the deterministic telemetry-to-command loop and observability queries are stable. A deterministic mock provider keeps tests and the final demonstration independent of an external model API.
+The NiceGUI dashboard is the primary project UI. Grafana is reserved for engineering evidence across metrics, traces, and structured logs. The Grid Incident Investigator is a required bounded extension, but it is isolated from the control path and integrated only after the deterministic telemetry-to-command loop and observability queries are stable. A deterministic mock provider keeps tests and the final demonstration independent of an external model API.
 
 Detailed diagrams and rationale are available in the [system design](docs/design/SYSTEM_DESIGN.md), [data-flow design](docs/design/DATA_FLOW.md), [failure-handling design](docs/design/FAILURE_HANDLING.md), and [UI design](docs/design/UI_DESIGN.md).
 
 ## Build Versus Reuse
 
-The team will build the parts that express the grid use case: device behavior, transformer aggregation, overload policy, fenced control workflow, projections, operator experience, and the bounded incident-investigation workflow. Mature open-source projects will provide the surrounding platform. Strimzi will operate Kafka, the Flink Kubernetes Operator will manage stream jobs, and Debezium/Kafka Connect will publish transactional outbox records. Versioned JSON Schemas and fixtures in Git will be checked in CI instead of operating a separate schema-registry service. PostgreSQL will use a pinned Helm deployment with persistent storage and service-owned schemas. Keycloak, OpenTelemetry, Prometheus, Grafana, Tempo, k6, Toxiproxy, Testcontainers, official model SDKs, and schema-validation libraries cover identity, operations, testing, and model connectivity.
+The team will build the parts that express the grid use case: device behavior, transformer aggregation, overload policy, fenced control workflow, projections, operator experience, and the bounded incident-investigation workflow. Mature open-source projects will provide the surrounding platform. Strimzi will operate Kafka, the Flink Kubernetes Operator will manage stream jobs, and Debezium/Kafka Connect will publish transactional outbox records. Versioned JSON Schemas and fixtures in Git will be checked in CI instead of operating a separate schema-registry service. PostgreSQL will use a pinned Helm deployment with persistent storage and service-owned schemas. Keycloak, OpenTelemetry, Prometheus, Grafana, Tempo, Locust, Toxiproxy, Testcontainers, official model SDKs, and schema-validation libraries cover identity, operations, testing, and model connectivity.
 
 This still requires real distributed-systems work. The team owns partition and replication choices, event-time correctness, idempotency, fencing, failure recovery, security policy, SLOs, and measured failure experiments. It will not spend project time creating a broker, operator, schema registry, identity provider, telemetry collector, consensus algorithm, or generic test framework. The complete boundary and dependency criteria are in the [open-source reuse plan](docs/design/OPEN_SOURCE_STACK.md).
 
@@ -207,27 +207,27 @@ sequenceDiagram
 
 The model has no write-capable tool and the Copilot Service has no access to domain database tables, Kafka, shell, Kubernetes, or raw observability queries. Its application role can persist only bounded investigation/audit records. Provider failure returns a clear unavailable or partial result and never affects load balancing.
 
-## Proposed Technology Used
+## Technology baseline
 
-| Layer | Proposed technology | Purpose |
+| Layer | Selected technology | Purpose |
 |---|---|---|
 | Simulators and services | Python 3.12 | Device behavior, scenarios, action logic, and supporting services |
 | Messaging | Apache Kafka operated by Strimzi | Durable partitioned telemetry, derived events, commands, and Kubernetes-native lifecycle |
-| Stream processing | Apache Flink/PyFlink with the Flink Kubernetes Operator | Event-time aggregation, watermarks, state, checkpoints, upgrades, and recovery |
+| Stream processing | Apache Flink Python API (PyFlink) with the Flink Kubernetes Operator | Event-time aggregation, watermarks, state, checkpoints, upgrades, and recovery |
 | Contracts and CDC | Versioned JSON Schema fixtures in CI, Kafka Connect, and Debezium | Producer/consumer compatibility and transactional outbox publication without a runtime schema-registry service |
 | Internal RPC | gRPC and Protocol Buffers | Typed device registration/capability contract with deadlines |
 | Control API | FastAPI | CQRS projections, configuration, query APIs, health, and Server-Sent Events |
 | Operational database | PostgreSQL installed from a pinned Helm chart | Durable service-owned schemas for registry, control, projections, and agent audit data |
-| Web UI | React, TypeScript, Material UI, and Recharts | Simple, responsive, professional, and dynamic operator dashboard |
-| Observability | OpenTelemetry Operator/Collector, Prometheus Operator, Grafana, Tempo, and structured Kubernetes logs | Correlated metrics, traces, logs, SLIs, SLOs, and incident evidence |
-| Target runtime | Kubernetes using local kind/minikube plus one shared AWS EKS integration cluster, packaged with Helm and Kustomize | Reproducible local grading, team collaboration, service discovery, replica management, probes, scaling, and failure testing |
+| Web UI | NiceGUI (Python) with built-in charts | Simple, responsive, professional, and dynamic operator dashboard |
+| Observability | Helm-managed OpenTelemetry Collector, Prometheus Operator, Grafana, Tempo, and structured Kubernetes logs | Correlated metrics, traces, logs, SLIs, SLOs, and incident evidence |
+| Target runtime | Local kind, packaged with Helm and Kustomize; cloud deployment deferred | Reproducible local integration/review, discovery, replicas, probes, scaling, and failure testing |
 | Developer runtime | Docker Compose | Optional lightweight local profile; not the final deployment target |
 | Identity and policy | OIDC/Keycloak, Kubernetes RBAC, NetworkPolicies, and Secrets | User and workload authorization with least privilege |
 | Agent-assisted operations | Provider-neutral Copilot Service, typed function tools/MCP-compatible facade, and deterministic mock provider | Read-only incident investigation with evidence, auditability, and model portability |
-| Testing | Pytest, Testcontainers, Playwright, k6, and Toxiproxy | Unit, integration, UI, load, latency, and deterministic fault testing |
+| Testing | Pytest, Testcontainers Python, Playwright Python, Locust, and Toxiproxy | Unit, integration, UI, load, latency, and deterministic fault testing |
 | CI | GitHub Actions | Linting, contract validation, tests, and build verification |
 
-Technology choices are proposals until the team closes the decisions listed in [docs/decisions/README.md](docs/decisions/README.md).
+The preparation baseline is accepted in the [version matrix](docs/implementation/VERSION_MATRIX.md) and [ADRs](docs/decisions/README.md). Component implementations and runtime compatibility remain unverified until their gates pass.
 
 ## Repository Organization
 
@@ -253,7 +253,7 @@ CMPE-273-Group-10-Project/
 │   ├── registry/     # Planned internal gRPC device registry
 │   ├── api/          # Planned operator-facing API and read-only tool gateway
 │   └── copilot/      # Planned evidence-grounded incident investigator
-├── dashboard/        # Planned React operator UI
+├── dashboard/        # Planned NiceGUI operator UI
 ├── infra/            # Planned Kubernetes, developer Compose, and observability assets
 └── tests/            # Planned unit, integration, failure, load, and UI tests
 ```

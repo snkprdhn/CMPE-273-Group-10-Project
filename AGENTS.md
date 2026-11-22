@@ -1,0 +1,12 @@
+# Repository conventions
+
+- Implement only the requested milestone. Read `docs/implementation/IMPLEMENTATION_STATUS.md`, the master guide, relevant contracts, and accepted ADRs first.
+- All project application and test code is Python. Use PyFlink for aggregation and NiceGUI for the dashboard. Third-party JVM runtimes stay in containers; no host JDK, Maven, Node.js, npm, or authored Java/JavaScript/TypeScript is required. Declarative schemas, SQL, YAML, and minimal shell commands are allowed.
+- Required deployment target: local kind on Docker Desktop. Keep Docker Desktop's built-in Kubernetes disabled; Colima is an unselected alternative. Keep infrastructure free and local; cloud deployment and external model calls are deferred. Use deterministic model mocks.
+- Always use a virtual environment for Python work: activate `.venv` or invoke `.venv/bin/python` directly. Never use system/global pip. Preparation tools and native kind/kubectl/Helm binaries live in `.venv`; managed Python/downloads/caches live in ignored `.tools`. Future components get independent venvs/locks when their milestones begin.
+- Preserve Member_1 (simulation/Registry/observability), Member_2 (Kafka/PyFlink), Member_3 (control/PostgreSQL/Debezium), and Member_4 (projection/API/UI/identity/Copilot) ownership labels, even on one computer.
+- Executable contracts and existing behavior take precedence over assumptions. Resolve contradictions in affected documentation. Keep service-owned data and packages isolated; use contracts and fixtures across boundaries.
+- Reuse selected tools and standard libraries. Pin versions from `docs/implementation/VERSION_MATRIX.md`; never use floating image tags. Keep component environments independently runnable and testable.
+- Implement real behavior with input validation and meaningful success/failure tests. Run relevant checks and report unverified checks honestly.
+- Update implementation status with completed/current milestones, exact verification commands/results, decisions, limitations, and the next milestone. Distinguish planned commands from executed evidence.
+- Preserve unrelated changes. Do not install system software, create cloud resources, make paid API calls, commit, or push without explicit authorization. Never commit secrets, caches, volumes, or generated evidence containing sensitive data.

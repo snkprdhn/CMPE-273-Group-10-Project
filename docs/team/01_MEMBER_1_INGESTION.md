@@ -17,7 +17,7 @@ Member_1 owns the distributed edge and reusable test orchestration: concurrent d
 9. Define the Protobuf registry contract, service identity, deadlines, error codes, and safe degraded behavior.
 10. Deploy simulator shards and registry replicas as Kubernetes workloads with health probes and resource limits.
 11. Provide seeded device-outage, delayed-telemetry, duplicate-command, and missing-acknowledgement fixtures with expected evidence for agent evaluation.
-12. Own shared scenario fixtures plus the k6/Toxiproxy and CI runner that invokes component-owned test commands without implementing their internals.
+12. Own shared scenario fixtures plus the Locust/Toxiproxy and CI runner that invokes component-owned test commands without implementing their internals.
 13. Package and instrument Member_1 workloads with their own Kubernetes resources, RBAC/NetworkPolicy, metrics/traces/logs, dashboard panel, and fault experiment.
 14. Install and document the shared OpenTelemetry Collector, Prometheus, Grafana, and Tempo stack; component owners still supply their own instrumentation and panels.
 

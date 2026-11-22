@@ -2,9 +2,13 @@
 
 This file is the scope-control source of truth for a four-person, twelve-week project using AI-assisted development. AI may accelerate scaffolding, tests, manifests, and documentation, but it does not remove integration, correctness, resource, and live-demo risk.
 
+## Implementation baseline
+
+Application and test code is Python: PyFlink aggregation, FastAPI services, and NiceGUI dashboard. Upstream infrastructure JVMs stay in containers; host Java and Node.js are not required. Local kind is the required deployment target. Cloud deployment and external model calls are deferred; deterministic model mocks are required. Keep Member_1 through Member_4 ownership on the single implementation computer. See the [accepted decisions](../decisions/README.md).
+
 ## Required scope
 
-- Kubernetes as the final runtime using `kind` or `minikube`
+- Kubernetes as the final runtime using local `kind`
 - One-broker Kafka developer profile and three-broker final-review profile
 - Strimzi-managed Kafka and Flink Kubernetes Operator rather than custom stateful controllers
 - Kafka topics, partitions, consumer groups, replay, DLQ, and schema versions
@@ -15,7 +19,7 @@ This file is the scope-control source of truth for a four-person, twelve-week pr
 - Threshold/hysteresis policy, charger selection, and duplicate-safe commands
 - Debezium/Kafka Connect transactional outbox publication, idempotent inbox, and one simplified control saga
 - One Helm-managed PostgreSQL primary with persistent storage and service-owned logical schemas/roles
-- FastAPI REST/SSE service and focused React operator dashboard
+- FastAPI REST/SSE service and focused NiceGUI operator dashboard
 - Local OIDC roles, Kubernetes RBAC/Secrets/NetworkPolicies, and negative tests
 - Prometheus/Grafana, OpenTelemetry tracing, and structured Kubernetes logs
 - Versioned JSON Schemas, golden fixtures, and CI compatibility checks without a runtime schema-registry service

@@ -31,7 +31,7 @@ The agent is an operations aid, not part of the control plane. Transformer load,
 
 ```mermaid
 flowchart LR
-    USER[Operator] --> UI[React Investigation Drawer]
+    USER[Operator] --> UI[NiceGUI Investigation Drawer]
 
     subgraph K8S[Kubernetes Cluster]
         AGENT[Copilot Service]
@@ -117,9 +117,9 @@ A claim that references a nonexistent evidence ID is rejected or marked unsuppor
 
 ## Provider abstraction and availability
 
-The Copilot Service owns a small adapter interface for model request, tool call, structured output, cancellation, usage, and error mapping. The project configures one external provider for the demonstration; supporting both OpenAI and Gemini at runtime is not required. Provider-specific model names and credentials remain configuration rather than domain logic.
+The Copilot Service owns a small adapter interface for model request, tool call, structured output, cancellation, usage, and error mapping. The local implementation and demonstration use a deterministic mock provider. External provider selection, credentials, SDKs, paid calls, and live-model evaluation are deferred; future adapter contracts must retain the same read-only authorization and evidence rules.
 
-The deterministic mock provider replays expected tool plans and answers for seeded incidents. It is used for automated tests and as the final-demo fallback. The core grid system does not retry or fail over because of an agent-provider outage.
+The deterministic mock provider replays expected tool plans and answers for seeded incidents. It is the required provider for automated tests and the local final demonstration. The core grid system does not retry or fail over because of an agent-provider outage.
 
 ## Security and guardrails
 

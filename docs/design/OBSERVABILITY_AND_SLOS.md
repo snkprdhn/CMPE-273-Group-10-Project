@@ -6,7 +6,7 @@ The platform must explain a user-visible grid outcome across HTTP/gRPC, Kafka, F
 
 ## Planned pipeline
 
-OpenTelemetry SDKs emit traces, metrics, and correlated log context to an OpenTelemetry Collector managed by the OpenTelemetry Operator. The Prometheus Operator manages metric discovery and storage, Tempo stores traces, and services write structured JSON to Kubernetes logs. Grafana provides required metric and trace views. A separate log backend is excluded; `kubectl logs` plus correlation fields provide bounded class-demo log evidence. The team configures and instruments these projects instead of writing a collector, monitoring store, or trace backend.
+OpenTelemetry SDKs emit traces, metrics, and correlated log context to a Helm-managed OpenTelemetry Collector. The Prometheus Operator manages metric discovery and storage, Tempo stores traces, and services write structured JSON to Kubernetes logs. Grafana provides required metric and trace views. A separate log backend is excluded; `kubectl logs` plus correlation fields provide bounded class-demo log evidence. The team configures and instruments these projects instead of writing a collector, monitoring store, or trace backend.
 
 W3C trace context propagates over HTTP/gRPC. Kafka records carry `traceparent`, `correlation_id`, and `causation_id` headers. Consumers create processing spans and use span links when asynchronous fan-out makes a strict parent relationship misleading.
 
@@ -36,14 +36,16 @@ These are targets until measured on a named environment.
 
 | SLI | Proposed SLO |
 |---|---|
-| Fresh load update visible | 99% within 8 seconds of event time |
+| Fresh load update visible | Measure from `window_end`, allowing the contractual 10-second watermark delay; set percentile target after baseline |
 | Critical decision latency | 99% within 2 seconds of a complete critical load event |
 | Command acknowledgement | 99% within the configured deadline |
 | Query API good requests | 99.5% successful within 1 second during the measured window |
-| Projection freshness | 99% less than 10 seconds old |
+| Projection freshness | Measure publication-to-projection delay separately from event-time/window age; set target after baseline |
 | Duplicate logical effects | Zero in acceptance and replay tests |
 | Agent evidence integrity | 100% of displayed evidence IDs resolve to results returned in that investigation |
 | Agent authorization | 100% of attempted unavailable/write tools are rejected in the evaluation suite |
+
+The former 8-second event-time load target conflicts with the canonical 10-second watermark delay and is withdrawn. This preparation milestone preserves stream semantics; it does not claim a measured replacement latency SLO.
 
 Each SLI defines eligible events, a good event, exclusions, aggregation window, and missing-data behavior. Error-budget calculations count one bad logical operation once even if it is both slow and unsuccessful.
 

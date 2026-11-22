@@ -10,13 +10,13 @@ Member_4 owns the distributed read/operations product slice, not every component
 2. Track entity versions so reordered or duplicate events cannot regress a projection.
 3. Provide REST snapshots and SSE fan-out with cursors, heartbeats, bounded buffers, and slow-client handling.
 4. Recover projections from durable data or replay and require a snapshot after an unrecoverable cursor gap.
-5. Build the React dashboard against the same snapshot and event contracts.
+5. Build the NiceGUI dashboard against the same snapshot and event contracts.
 6. Implement loading, partial, stale, reconnecting, and unavailable states in the UI.
 7. Define Prometheus metrics, Grafana dashboards, service health checks, and cross-service correlation IDs.
 8. Consume recorded domain-event fixtures for independent projection, API, UI, and agent testing.
 9. Own only shared Gateway/identity/observability resources and Member_4 workload manifests; combine, but do not author, other members' component overlays.
 10. Correlate component-owned metrics, traces, logs, and dashboard panels from the Member_1-operated stack into the product SLO/error-budget evidence package.
-11. Integrate Keycloak, the OpenTelemetry Operator, and Prometheus Operator; keep authentication and telemetry collection in mature platform components while owning application policy and instrumentation.
+11. Integrate Keycloak, the Helm-managed OpenTelemetry Collector, and Prometheus Operator; keep authentication and telemetry collection in mature platform components while owning application policy and instrumentation.
 12. Define the seven typed tool schemas, evidence/output schema, authorization, bounds, deadlines, and agent audit lifecycle with the contributing component owners.
 13. Build the provider-neutral adapter and deterministic mock-provider path without placing model logic in the control plane.
 14. Implement the investigation drawer states, evidence deep links, AI-generated label, and provider/tool failure behavior.

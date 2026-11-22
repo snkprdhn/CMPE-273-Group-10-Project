@@ -7,8 +7,8 @@ The final submission must distinguish proposed targets from measured results. Me
 | Area | Acceptance evidence |
 |---|---|
 | Correctness | Known fixture produces expected transformer totals and revisions |
-| Scale | 10,000 simulated devices and 5,000 events/second for 10 minutes on the agreed machine |
-| Detection | P95 telemetry-to-critical-state latency under 8 seconds |
+| Scale | Start at 100 devices/3 transformers/1 Hz on the named local review profile; larger rates are optional measured experiments |
+| Detection | Record window-end-to-load/critical-state latency with the 10-second watermark budget; approve target after baseline |
 | Control | One logical throttle effect per command ID and documented acknowledgement |
 | Recovery | Aggregator restart resumes from checkpoint without double counting |
 | Late data | In-policy late event corrects a revision; very-late event is audited only |
@@ -39,7 +39,7 @@ The final submission must distinguish proposed targets from measured results. Me
 13. Diagnose one injected fault using a metric, trace, and correlated structured logs.
 14. Ask the Grid Incident Investigator why the injected incident occurred and open its cited load, action, metric, and trace evidence.
 15. Attempt an unauthorized/write tool request and show that the tool gateway denies it.
-16. Disable the external provider, show explicit agent degradation or mock mode, and confirm the core control loop remains healthy.
+16. Inject deterministic provider unavailability, show explicit agent degradation, and confirm the core control loop remains healthy.
 17. Show SLO/error-budget calculations, agent evaluation results, and the final measured-results table.
 
 ## Required artifacts
