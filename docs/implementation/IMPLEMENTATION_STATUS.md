@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for Member_1 standalone acceptance. Member_1 simulation/Registry is implemented; Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot retain their ownership. Historical infrastructure/preparation evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for Member_2 standalone aggregation acceptance. Member_1 simulation/Registry and Member_2 aggregation are implemented; Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot retain their ownership. Historical infrastructure/preparation evidence is preserved below.
 
 ## Completed milestones
 
@@ -12,17 +12,20 @@ Updated **2026-11-22 (America/Los_Angeles)** for Member_1 standalone acceptance.
 | Executable contract bundle v1 | Eight Kafka events; canonical topology, REST/internal/SSE and seven agent-tool/evidence/output schemas; Registry proto; versioned examples and fixed golden scenarios; compatibility tests and Ubuntu CI workflow | [Bundle](../../schemas/README.md), [ADR-025](../decisions/ADR-025-executable-contract-freeze.md), `make contracts` |
 | Member_1 standalone edge and Registry | Deterministic three-device scenario; Kafka telemetry/commands/results; durable simulated effects/dedup/fences; PostgreSQL gRPC Registry; operational endpoints and independent ARM64 images | [Runbook](../../member1/README.md), [ADR-026](../decisions/ADR-026-member1-standalone-state.md), executed evidence below |
 
+| Member_2 standalone Kafka/PyFlink aggregation | Native ARM64 source-built runtime, 56-package hash lock; fixed golden telemetry, transactional load/DLQ/late output; checkpoint/replay proof with an open transaction at TaskManager crash | [Runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md), evidence below |
+
 ## Current milestone and verification
 
-**Member_1 standalone slice is complete locally.** Deterministic EV/meter/solar
-scenarios, telemetry validation and routing, bounded Kafka delivery, durable
-command deduplication/fencing/results, all Registry RPCs, operational endpoints,
-independent locks, images and restart tests pass. See the [runbook](../../member1/README.md),
-[ADR-026](../decisions/ADR-026-member1-standalone-state.md), and the exact executed
-Member_1 evidence at the end of this file. No Member_2/3/4 application, full
-Kubernetes deployment, paid/cloud resource, or model call was added. No commit or
-push was made. Scope limitations are explicit; there is no remaining blocker for
-this requested standalone milestone.
+**Member_2 standalone aggregation is complete locally.** All frozen stream
+scenarios pass against the production engine. Real Kafka/Flink acceptance passes
+native ARM64 checkpoint restoration after SIGKILL, including an uncommitted
+correction transaction: committed loads remain revisions 0/1 at 15/17 kW,
+duplicate readings do not change load state, and very-late data reaches audit.
+See [Member_2 runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md)
+and exact evidence below. Member_1 remains complete and untouched; Member_3/4
+applications and full kind/operator deployment remain future milestones. No
+PostgreSQL writes, cloud/model calls, system installations, commit or push were
+added. There is no remaining blocker for this finite-run standalone slice.
 
 ## Historical minimum-infrastructure verification
 
@@ -51,12 +54,17 @@ The bundle contains **77 valid JSON examples, 76 invalid JSON examples with prec
 - [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) fixes Registry pagination/errors/deadlines, stable window/load UUIDs, corrected-window semantics, command expiry/fencing, control policy defaults, OIDC realm/client/role names, REST/internal errors/idempotency, SSE replay, and agent scope/budgets. The system-design recovery proposal is now accepted at **75% for two fresh COMPLETE windows**. No blocking choice remains in this contract milestone.
 - The new independent compiler/validator environment has a portable hashed lock. Application packages remain independently scoped; no PyFlink/Beam dependencies were merged into it.
 - CI workflow is authored for standard GitHub Ubuntu runners and its local command sequence passes. Hosted CI results are tracked by GitHub Actions for the published commit; local checks are not a hosted-run claim. The compatibility gate deliberately rejects some safe changes and cannot detect arbitrary changes in business meaning; producer/consumer review remains required.
-- Member_1 standalone Kafka routing, durable simulated effects/fencing, Registry local-token authorization and process/container restart proofs now pass (evidence below). PyFlink ARM64 import/checkpoint proof, replicated Kafka recovery, Registry mTLS/production identity, OIDC, SSE, policy state machines, full-stack behavior, CNI allow/deny and Kubernetes PVC I/O/recovery remain unverified. The empty cluster does not establish them.
+- Member_1 standalone Kafka routing, durable simulated effects/fencing, Registry local-token authorization and process/container restart proofs now pass (evidence below). PyFlink ARM64 import/checkpoint proof now passes under ADR-027; replicated Kafka recovery, Registry mTLS/production identity, OIDC, SSE, policy state machines, full-stack behavior, CNI allow/deny and Kubernetes PVC I/O/recovery remain unverified. The empty cluster does not establish them.
 - Lightweight development remains 4 CPUs/6 GiB VM; staged review remains 8 CPUs/10 GiB on this 16 GiB host. Larger-profile fit, performance, security scans and application/chart/image artifact gates remain unmeasured. Licensing remains the owner's decision before public release.
 
 ## Next milestone
 
-**Member_2 foundation/component packaging and standalone aggregation**, starting with native ARM64 PyFlink build/import/checkpoint proof and its independently locked environment. Member_1 standalone packaging is complete under ADR-026. Add only the owning component's required dependencies, configuration, CI and fixtures; keep cloud and external model integrations deferred. Later components must run the frozen fixtures against real implementations. This does not claim the master guide's entire Phase 0/foundation or an application deployment complete.
+**Member_3 standalone deterministic control**, consuming frozen load fixtures,
+with its independently locked environment, PostgreSQL-owned state, policy,
+inbox/outbox and mock Registry boundary. Keep Member_1 simulation/Registry,
+Member_2 Kafka/PyFlink and Member_4 projection/API/UI/identity/Copilot ownership.
+Member_2 kind/operator packaging and distributed rescaling remain later gates;
+this does not claim the entire foundation or platform deployment complete.
 
 ## Prepublication verification — 2026-11-21
 
@@ -254,3 +262,117 @@ passed **23** tests, and `.venv/bin/python -m pytest -q tests/test_local_infra.p
 passed **21** tests. `git diff --check` passed. These reruns do not claim hosted
 CI execution. The normal push result is recorded in Git history; no force push
 is authorized or required.
+
+## Member_2 standalone aggregation — accepted 2026-11-22
+
+Member_2 owns the new `member2` package, independent 56-distribution hash lock,
+native ARM64 container, Compose Flink processes, golden tests and Kafka recovery
+probe. Member_1 simulation/Registry/observability, Member_3 control/PostgreSQL/
+Debezium and Member_4 projection/API/UI/identity/Copilot ownership is preserved.
+No executable schema changed and no other component's internal code is imported.
+
+### Executed commands and evidence
+
+| Exact command | Result |
+|---|---|
+| `git status --short`; `rg --files`; reads of `AGENTS.md`, master/status/version guides, stream/event contracts, relevant accepted ADRs, design/testing plans and executable reference/fixtures | Initial working tree clean; existing implementations/contracts inspected before editing |
+| `docker info --format '{{.Architecture}} {{.MemTotal}}'`; `docker images --format '{{.Repository}}:{{.Tag}}'` | Native aarch64, 6,210,510,848 guest bytes; existing images/services preserved. Initial socket denial resolved through authorized Docker access |
+| `docker pull flink:2.2.1-scala_2.12-java17`; `docker buildx imagetools inspect flink:2.2.1-scala_2.12-java17` | Selected image includes native ARM64; immutable index digest recorded in matrix/Dockerfile |
+| `docker build -f member2/Dockerfile -t smart-grid-local-dev/member2:v1 . > .tools/member2-build-final.log 2>&1`; `make member2-build` | Pass. Hash-verified published sources/wheels, native PyFlink source wheel, offline runtime install, `pip check`, verified connector checksum and ARM64 import |
+| `make member2-test` | **28 passed**: all 15 stream golden scenarios plus invalid-input isolation, boot/latest ordering, finite-state limit, topology identity validation, superseded late-count behavior, audit dedup and cross-transformer watermark isolation |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml -f infra/compose/member2.yaml exec -T jobmanager /opt/venv/bin/python -m pytest -q tests/member2/test_aggregation.py` | **28 passed** in the native runtime image |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml -f infra/compose/member2.yaml exec -T jobmanager /opt/venv/bin/python -m pip check` | No broken requirements |
+| `.venv/bin/python tools/member2_live.py --run acceptance02` | **PASS**, real Kafka/Flink job `a6c7cd84e5628384fd3e49ca6bf310f5`: checkpoint 2 completed; revision 1 observed in an open transaction before crash; SIGKILL/start of TaskManager restored one checkpoint; committed readers saw exactly revision 0 / 15 kW and revision 1 / 17 kW. Replayed inputs did not double count; invalid JSON reached DLQ and >30s reading reached late audit |
+| `.venv/bin/python tools/member2_live.py --run guardcheck` | Expected exit 1: active-job guard refuses before any Compose mutation; current job preserved |
+| `make contracts`; `make contracts BASE_REF=HEAD` | **213 passed** each; schema/OpenAPI/Protobuf and compatibility gate pass; executable v1 contracts unchanged |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py` | **21 passed** |
+| `.venv/bin/python -m pytest -q tests/member2/test_aggregation.py tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py` | **49 passed** |
+| `git diff --check` | Passed |
+
+Earlier development attempts failed and were fixed: Docker's existing context
+allowlist excluded Member_2; PyFlink 2.2 uses
+`set_externalized_checkpoint_retention`; initial TaskManager memory fractions
+exceeded the configured total; published sdist hashes must be checked before
+compilation, while locally built wheels require their own manifest during offline
+installation. Recovery also exposed an overly tight ten-second heartbeat under
+simultaneous build load; the final profile uses sixty seconds. The final clean
+acceptance above uses the corrected configuration and locked image.
+
+### Decisions, limitations and inspection
+
+[ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md) records the
+explicit managed-state event-time clock, inclusive `ingested_at` lateness,
+selected-reading revision fingerprints, fixed topology and transactional sink
+boundaries. The design's solar equation is corrected to meter + EV minus the
+reported positive solar magnitude. Runtime replay of the historical fixture is
+STALE/OLD_RESULT; golden tests use the frozen evaluation UTC for freshness cases.
+
+This is one finite-run aggregation task, retaining all dedup/window state up to
+100,000 unique valid IDs; at the limit it fails rather than corrupting loads.
+Rescaling/throughput, native Flink watermark display, full-session HA/automatic
+JobManager restore, kind/operator deployment, replicated Kafka availability,
+security scans/SBOM, tracing and monitoring-stack integration are unverified or
+deferred. Custom semantic watermark is exposed as an operator metric. Sink
+transaction timeout is 300s versus a 60s checkpoint timeout: recovery must remain
+inside that budget and consumers must use `read_committed`. Three output topics
+do not have cross-topic atomic visibility. No platform-wide exactly-once claim
+is made. Source-build tools/apt packages are not a bit-reproducible toolchain;
+the runtime artifact inputs are hash checked and compiled hashes retained.
+
+The live job and [Flink UI](http://127.0.0.1:18081) remain available for inspection;
+its checkpoint volume and four topics per test run persist. Member_1 applications,
+PostgreSQL, Kafka data and the existing kind cluster were not removed or reset.
+Stop only Flink with `make member2-down`; rerun with a new run ID using
+`make member2-live`. See [the runbook](../../member2/README.md) for all entry points.
+No remaining blocker for this requested standalone slice. Next recommended work
+is Member_3 standalone deterministic control against load fixtures. No commit or
+push was made.
+
+## Member_2 review and publication verification — 2026-11-22
+
+The user authorized correctness/contract review, fixes, then commit and normal
+push to `main` if checks pass. Review found and fixed these issues before
+publication:
+
+- The independently locked jsonschema runtime lacks its optional RFC3339 checker.
+  Malformed event/ingestion/departure timestamps could be accepted. A local UTC
+  date-time format checker now validates every schema timestamp without a new
+  dependency; regression cases failed before the fix and pass afterward.
+- Extreme but structurally valid timestamps could overflow datetime arithmetic
+  and restart the job repeatedly. Difference-based comparisons preserve exact
+  boundaries; an unrepresentable window end reaches DLQ before state mutation.
+  Selected totals/utilization that overflow finite JSON numbers are likewise
+  rejected before changing dedup/window state. Valid very-late finite readings
+  remain audit events.
+- The real recovery probe waited for a later checkpoint but did not actually
+  rescan output. It now rescans committed output, asserts exactly one DLQ and
+  late-audit event, and verifies the exact restored checkpoint ID.
+- Required accepted-late count and watermark-delay gauges were absent. Added
+  both and checked their values through the real recovered operator's REST
+  metrics. REST discovery is asynchronous; the probe now waits with a deadline.
+- The new Ubuntu CI job used the Mac-specific preparation lock. It now uses
+  `member2/requirements-test.txt`, a portable subset of the same runtime pins.
+  Clean Mac installation/execution and Linux x86_64 wheel resolution pass.
+
+Executed review evidence:
+
+| Exact command | Result |
+|---|---|
+| `make member2-test` | **43 passed**, including regression failures reproduced before fixes |
+| `make contracts BASE_REF=HEAD`; `make contracts BASE_REF=origin/main` | **213 passed** each; executable v1 definitions unchanged |
+| `.venv/bin/python -m pytest -q tests/member2/test_aggregation.py tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py` | **64 passed** (43 aggregation + 21 repository checks) |
+| `.venv/bin/python -m venv .tools/member2-test-check`; `.tools/member2-test-check/bin/python -m pip install --only-binary=:all: --require-hashes -r member2/requirements-test.txt`; `.tools/member2-test-check/bin/python -m pip check`; `.tools/member2-test-check/bin/python -m pytest -q tests/member2/test_aggregation.py` | Clean independent hash-checked installation, no broken requirements, **43 passed** |
+| `.venv/bin/python -m pip download --only-binary=:all: --require-hashes -r member2/requirements-test.txt --dest .tools/member2-test-wheels-linux --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64 --implementation cp --python-version 3.12 --abi cp312 --abi abi3 --abi none` | All ten pure-test dependencies resolve/hash-verify for Linux x86_64; not a Linux execution claim |
+| `make member2-build > .tools/member2-review-final-build.log 2>&1`; `make member2-down`; `.venv/bin/python tools/member2_live.py --run review02` | Native ARM64 build and real Kafka/Flink acceptance pass. Job `f18edd78dfdd70ff0ff8c337fcd32e9f` restores checkpoint 2 after SIGKILL with revision 1 in an open transaction. Both output scans show only revisions 0/1 at 15/17 kW; exactly one DLQ and one too-late audit event |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml -f infra/compose/member2.yaml exec -T jobmanager /opt/venv/bin/python -m pytest -q tests/member2/test_aggregation.py`; same prefix with `-m pip check` | **43 passed** in native runtime; no broken requirements |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml -f infra/compose/member2.yaml exec -T jobmanager /opt/venv/bin/python tests/member2/live.py metrics review02` | Required REST gauges visible: accepted late count **1**, semantic watermark **1794249005000 ms**, positive watermark delay. First immediate inspection saw no metrics before asynchronous discovery; bounded retry succeeds |
+| `git fetch origin main`; `git rev-list --left-right --count origin/main...HEAD` | Fetch succeeded; **0 0** before publication |
+| `git diff --check` | Passed |
+
+No unresolved correctness finding remains for the documented finite-run slice.
+The single-task/run limit, transactional Kafka recovery conditions, lack of
+cross-topic atomic visibility, and deferred kind/scaling/whole-cluster HA gates
+remain unchanged. Hosted CI is authored, not claimed as locally executed. The
+review02 job/UI and checkpoints remain available; unrelated services and kind
+are preserved. Commit/push outcome is recorded in Git history; no force push is
+authorized or needed. Next milestone remains Member_3 standalone control.

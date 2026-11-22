@@ -41,7 +41,7 @@ Retention and partition counts remain proposals until load testing. The architec
 4. Valid events update keyed state; invalid events go to the DLQ with a reason.
 5. A 5-second half-open tumbling event-time window selects the latest accepted reading per device, then calculates category totals and net load.
 6. A watermark 10 seconds behind the greatest observed event time allows common network delay.
-7. Events arriving within 30 seconds after a window closes produce a corrected load revision.
+7. Valid events with `ingested_at <= window_end + 30s` may correct an emitted window when selected readings change; the boundary is inclusive.
 8. Valid events later than the inclusive allowed-lateness boundary go to `grid.telemetry.late.v1` and do not rewrite control history.
 
 ## 3. Load calculation
@@ -49,7 +49,7 @@ Retention and partition counts remain proposals until load testing. The architec
 All power values use kilowatts. Consumption is positive and generation is negative.
 
 ```text
-net_load_kw = meter_demand_kw + ev_demand_kw + solar_generation_kw
+net_load_kw = meter_demand_kw + ev_demand_kw - solar_generation_kw
 utilization_pct = (net_load_kw / transformer_capacity_kw) × 100
 ```
 
@@ -89,7 +89,7 @@ sequenceDiagram
 ## 5. Processing guarantees
 
 - Kafka provides durable at-least-once delivery to consumers and ordering within a partition.
-- Flink checkpoints are intended to provide exactly-once state and Kafka output for committed windows.
+- The standalone Member_2 job checkpoints source offsets and aggregation state and selects transactional Kafka sinks. Exactly-once Kafka visibility requires successful checkpoints, `read_committed` readers and bounded recovery; it is not a platform-wide guarantee. See [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md).
 - Database projections use unique event IDs and upserts to tolerate reprocessing.
 - Device commands are delivered at least once. Exactly-once physical effect is approximated through deterministic command IDs and a device-side processed-command ledger.
 - Acknowledging a Kafka record does not prove that a simulated charger changed its rate; the command-result event is the explicit outcome.

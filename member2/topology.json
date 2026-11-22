@@ -1,0 +1,23 @@
+{
+  "topology_version": "topology-001",
+  "transformers": [
+    {
+      "transformer_id": "tx-001",
+      "capacity_kw": 100,
+      "devices": [
+        {
+          "device_id": "meter-001",
+          "device_type": "SMART_METER"
+        },
+        {
+          "device_id": "ev-001",
+          "device_type": "EV_CHARGER"
+        },
+        {
+          "device_id": "solar-001",
+          "device_type": "SOLAR"
+        }
+      ]
+    }
+  ]
+}

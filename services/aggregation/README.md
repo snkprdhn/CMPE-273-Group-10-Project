@@ -1,5 +1,10 @@
-# Aggregation Service
+# Aggregation Service — Member_2
 
-**Status: design only; implementation not started.**
+The standalone Python/Kafka/Flink slice is implemented in [member2](../../member2/README.md).
+It publishes transformer loads, DLQ and late audit events using the frozen v1
+contracts and never writes PostgreSQL. Pure golden checks and real native ARM64
+TaskManager/checkpoint/replay acceptance run independently of simulators and other
+members' applications. See [ADR-027](../../docs/decisions/ADR-027-member2-standalone-aggregation.md).
 
-Planned home of the PyFlink job that validates telemetry, keys it by transformer, applies event-time windows and watermarks, checkpoints state, and publishes `grid.transformer-load.v1`. The Apache Flink Kubernetes Operator manages job lifecycle; this directory owns the grid aggregation logic and its tests, not a custom controller. It does not own control policy or write PostgreSQL. It is tested independently with telemetry fixtures and golden load outputs. See the [data-flow design](../../docs/design/DATA_FLOW.md), [independent testing plan](../../docs/testing/INDEPENDENT_COMPONENT_TESTING.md), and [Member_2's work plan](../../docs/team/02_MEMBER_2_STREAMING.md).
+Local kind/operator deployment, distributed scaling and whole-cluster HA remain
+future integration gates; this slice uses the lightweight Compose profile.

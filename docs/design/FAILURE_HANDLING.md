@@ -10,7 +10,7 @@ The system prefers a visible degraded state over an unsafe decision based on mis
 |---|---|---|---|
 | Simulator offline | Heartbeat/telemetry age | Mark device offline; exclude it from controllable candidates | Device warning and reduced data completeness |
 | Malformed telemetry | Schema validation | Send to DLQ; continue valid records | DLQ count and validation reason |
-| Late telemetry | Event time vs watermark | Apply within allowed lateness; otherwise audit only | Corrected revision or very-late counter |
+| Late telemetry | Validated ingestion time vs window end+30s | Apply through the inclusive deadline; otherwise audit only | Corrected revision or very-late counter |
 | Duplicate telemetry | Event ID/state | Ignore duplicate logical event | Deduplication metric |
 | Kafka unavailable | Producer/consumer errors | Retry with backoff; buffer only within bounded client limits | Platform degraded and data stale |
 | Flink task failure | Runtime/checkpoint status | Restart from last successful checkpoint | Processing recovering; lag displayed |

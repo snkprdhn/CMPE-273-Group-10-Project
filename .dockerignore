@@ -9,3 +9,11 @@ member1/**/__pycache__/
 !.tools/generated/
 !.tools/generated/registry_pb2.py
 !.tools/generated/registry_pb2_grpc.py
+!member2/
+!member2/**
+member2/**/__pycache__/
+!tests/
+!tests/member2/
+!tests/member2/**
+tests/member2/**/__pycache__/
+!schemas/v1/golden.scenarios.json

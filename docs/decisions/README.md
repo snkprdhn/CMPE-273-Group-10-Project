@@ -42,3 +42,5 @@ Preparation choices are resolved in the accepted ADRs and [version matrix](../im
 Each accepted ADR should record context, decision, alternatives, consequences, date, and approvers in a separate `ADR-NNN-title.md` file.
 
 - [ADR-026 — Member_1 standalone state and acceptance boundary](ADR-026-member1-standalone-state.md) — accepted.
+
+- [ADR-027 — Member_2 standalone aggregation and recovery](ADR-027-member2-standalone-aggregation.md) — accepted; native ARM64 build and TaskManager checkpoint/replay verified, kind/rescaling remain future gates.

@@ -33,3 +33,18 @@ member1-up: bindings
 
 member1-down:
 	$(MEMBER1_COMPOSE) stop registry simulator
+
+# Member_2 standalone aggregation. No simulator, Registry or PostgreSQL required.
+MEMBER2_COMPOSE = docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml -f infra/compose/member2.yaml
+.PHONY: member2-test member2-build member2-live member2-down
+member2-test:
+	.venv/bin/python -m pytest -q tests/member2/test_aggregation.py
+
+member2-build:
+	$(MEMBER2_COMPOSE) build jobmanager
+
+member2-live:
+	.venv/bin/python tools/member2_live.py
+
+member2-down:
+	$(MEMBER2_COMPOSE) stop taskmanager jobmanager

@@ -4,7 +4,16 @@
 
 Member_2 owns Kafka topic topology and the distributed Flink aggregation job, including parallel keyed state, event-time processing, checkpoints, replay, and scaling behavior.
 
-## Planned responsibilities
+## Standalone implementation status
+
+The finite-run Kafka/PyFlink slice, native ARM64 source build, golden checks and
+TaskManager checkpoint/replay proof are implemented. See the [runbook](../../member2/README.md)
+and [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md). The standalone
+profile uses one task for global v1 identity/watermark semantics; distributed
+rescaling, kind/operator deployment and full operational integration remain later
+gates. Other ownership boundaries below remain unchanged.
+
+## Workstream responsibilities
 
 1. Define topic partitions, replication assumptions, retention, and consumer groups.
 2. Validate telemetry and route invalid records without blocking healthy partitions.

@@ -1,0 +1,19 @@
+name: member2
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  golden:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.9'
+      - name: Isolated pure aggregation checks
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --only-binary=:all: --require-hashes -r member2/requirements-test.txt
+          make member2-test

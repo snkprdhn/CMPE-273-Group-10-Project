@@ -138,3 +138,25 @@ build/start pass. Linux x86_64 wheel resolution/hash verification is separate
 from hosted CI execution. These application results supersede only Member_1's
 previously unimplemented dependency/startup claims; other application gates
 remain unverified. Exact commands/results are in implementation status.
+
+## Member_2 standalone runtime — verified 2026-11-22
+
+The selected Python **3.12.9**, Flink/PyFlink **2.2.1**, connector **5.0.0-2.2**,
+jsonschema **4.23.0**, pytest **8.3.5** and confluent-kafka **2.8.2** are unchanged.
+[Member_2's independent lock](../../member2/requirements.txt) pins all 56 runtime/
+test distributions with published artifact hashes. The pure-test subset in
+`member2/requirements-test.txt` uses the same pins with portable artifact hashes. PyFlink is compiled natively
+from its hash-verified sdist; Beam 2.61.0, grpcio 1.65.5 and protobuf 5.29.6 stay
+isolated from Registry/contract environments. Offline built-wheel installation,
+`pip check`, ARM64 import, golden tests and real checkpoint restore pass.
+
+Immutable Flink base: `flink:2.2.1-scala_2.12-java17@sha256:f0aa6be1ea6979e0c0c29d02bb1a41eee0bc1a350b86a39056351db165f9f3ff`.
+Connector JAR SHA-256: `5605c691d11a501382c383fecba37a7a552467da5ab7ba904ef5d6f3d62c5616`.
+The Python base reuses Member_1's accepted immutable Python 3.12.9 base.
+The image retains resolved versions and compiled wheel SHA-256s in
+`/opt/member2-resolved.txt` and `/opt/member2-wheel-sha256.txt`. Build-only apt/
+isolated Python build tools are not a bit-reproducible toolchain lock. Linux
+amd64 execution, image security scans/SBOM, kind/operator deployment, replicated
+Kafka and full-session HA remain unverified. Earlier statements that PyFlink
+ARM64 build/import/checkpoint execution is unverified are superseded only for
+this standalone profile. See [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md).
