@@ -1,0 +1,1309 @@
+[
+  {
+    "name": "Id",
+    "schema": "Id",
+    "value": "tx-001"
+  },
+  {
+    "name": "Timestamp",
+    "schema": "Timestamp",
+    "value": "2026-11-09T18:30:01Z"
+  },
+  {
+    "name": "Uuid",
+    "schema": "Uuid",
+    "value": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c"
+  },
+  {
+    "name": "Freshness",
+    "schema": "Freshness",
+    "value": "FRESH"
+  },
+  {
+    "name": "Completeness",
+    "schema": "Completeness",
+    "value": "COMPLETE"
+  },
+  {
+    "name": "DeviceType",
+    "schema": "DeviceType",
+    "value": "EV_CHARGER"
+  },
+  {
+    "name": "Outcome",
+    "schema": "Outcome",
+    "value": "APPLIED"
+  },
+  {
+    "name": "ActionStatus",
+    "schema": "ActionStatus",
+    "value": "PLAN_CREATED"
+  },
+  {
+    "name": "InvestigationStatus",
+    "schema": "InvestigationStatus",
+    "value": "QUEUED"
+  },
+  {
+    "name": "Role",
+    "schema": "Role",
+    "value": "Viewer"
+  },
+  {
+    "name": "TimeRange",
+    "schema": "TimeRange",
+    "value": {
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z"
+    }
+  },
+  {
+    "name": "Policy",
+    "schema": "Policy",
+    "value": {
+      "version": 1,
+      "warning_pct": 80,
+      "critical_pct": 95,
+      "recovery_pct": 75,
+      "cooldown_seconds": 30,
+      "recovery_windows": 2,
+      "command_ttl_seconds": 10,
+      "ack_timeout_seconds": 5
+    }
+  },
+  {
+    "name": "PolicyWrite",
+    "schema": "PolicyWrite",
+    "value": {
+      "expected_version": 0,
+      "policy": {
+        "version": 1,
+        "warning_pct": 80,
+        "critical_pct": 95,
+        "recovery_pct": 75,
+        "cooldown_seconds": 30,
+        "recovery_windows": 2,
+        "command_ttl_seconds": 10,
+        "ack_timeout_seconds": 5
+      }
+    }
+  },
+  {
+    "name": "TelemetryPayload",
+    "schema": "TelemetryPayload",
+    "value": {
+      "device_id": "ev-001",
+      "transformer_id": "tx-001",
+      "device_type": "EV_CHARGER",
+      "boot_id": "boot-001",
+      "power_kw": 7,
+      "quality": "GOOD",
+      "sequence_number": 1
+    }
+  },
+  {
+    "name": "LoadPayload",
+    "schema": "LoadPayload",
+    "value": {
+      "transformer_id": "tx-001",
+      "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+      "window_start": "2026-11-09T18:30:00Z",
+      "window_end": "2026-11-09T18:30:05Z",
+      "revision": 0,
+      "topology_version": "topology-001",
+      "meter_demand_kw": 10,
+      "ev_demand_kw": 7,
+      "solar_generation_kw": 2,
+      "net_load_kw": 15,
+      "capacity_kw": 100,
+      "utilization_pct": 15,
+      "expected_device_count": 3,
+      "good_device_count": 3,
+      "estimated_device_count": 0,
+      "missing_device_count": 0,
+      "late_event_count": 0,
+      "quality_flags": [],
+      "completeness": "COMPLETE"
+    }
+  },
+  {
+    "name": "AlertPayload",
+    "schema": "AlertPayload",
+    "value": {
+      "alert_id": "tx-001",
+      "transformer_id": "tx-001",
+      "severity": "WARNING",
+      "status": "OPEN",
+      "load_window_id": "tx-001",
+      "load_revision": 0,
+      "message": "sample",
+      "opened_at": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "ActionPayload",
+    "schema": "ActionPayload",
+    "value": {
+      "action_id": "tx-001",
+      "transformer_id": "tx-001",
+      "status": "PLAN_CREATED",
+      "trigger_window_id": "tx-001",
+      "trigger_revision": 0,
+      "policy_version": 0,
+      "leader_epoch": 0,
+      "target_reduction_kw": 0,
+      "expected_reduction_kw": 0,
+      "confirmed_reduction_kw": 0,
+      "selected_device_count": 0,
+      "acknowledged_device_count": 0,
+      "reason": "sample",
+      "transition_time": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "CommandPayload",
+    "schema": "CommandPayload",
+    "value": {
+      "command_id": "command-001",
+      "action_id": "action-001",
+      "device_id": "ev-001",
+      "transformer_id": "tx-001",
+      "command_type": "THROTTLE",
+      "target_rate_kw": 3,
+      "issued_at": "2026-11-09T18:30:01Z",
+      "expires_at": "2026-11-09T18:30:11Z",
+      "reason": "overload",
+      "policy_version": 1,
+      "saga_version": 1,
+      "leader_epoch": 42
+    }
+  },
+  {
+    "name": "ResultPayload",
+    "schema": "ResultPayload",
+    "value": {
+      "command_id": "tx-001",
+      "action_id": "tx-001",
+      "device_id": "tx-001",
+      "outcome": "APPLIED",
+      "previous_rate_kw": 0,
+      "applied_rate_kw": 0,
+      "result_time": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "Telemetry",
+    "schema": "Telemetry",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      }
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "Load",
+    "schema": "Load",
+    "value": {
+      "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+      "event_type": "transformer.load",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 15,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      }
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "Alert",
+    "schema": "Alert",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "alert.transition",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "alert_id": "tx-001",
+        "transformer_id": "tx-001",
+        "severity": "WARNING",
+        "status": "OPEN",
+        "load_window_id": "tx-001",
+        "load_revision": 0,
+        "message": "sample",
+        "opened_at": "2026-11-09T18:30:01Z"
+      }
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "Action",
+    "schema": "Action",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "action.transition",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "action_id": "tx-001",
+        "transformer_id": "tx-001",
+        "status": "PLAN_CREATED",
+        "trigger_window_id": "tx-001",
+        "trigger_revision": 0,
+        "policy_version": 0,
+        "leader_epoch": 0,
+        "target_reduction_kw": 0,
+        "expected_reduction_kw": 0,
+        "confirmed_reduction_kw": 0,
+        "selected_device_count": 0,
+        "acknowledged_device_count": 0,
+        "reason": "sample",
+        "transition_time": "2026-11-09T18:30:01Z"
+      },
+      "leader_epoch": 0,
+      "saga_version": 1
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "Command",
+    "schema": "Command",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "command_id": "command-001",
+        "action_id": "action-001",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-09T18:30:01Z",
+        "expires_at": "2026-11-09T18:30:11Z",
+        "reason": "overload",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "key": "ev-001"
+  },
+  {
+    "name": "Result",
+    "schema": "Result",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "command.result",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "command_id": "tx-001",
+        "action_id": "tx-001",
+        "device_id": "tx-001",
+        "outcome": "APPLIED",
+        "previous_rate_kw": 0,
+        "applied_rate_kw": 0,
+        "result_time": "2026-11-09T18:30:01Z"
+      }
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "LatePayload",
+    "schema": "LatePayload",
+    "value": {
+      "original_event": {
+        "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+        "event_type": "telemetry.reading",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:01Z",
+        "ingested_at": "2026-11-09T18:30:01Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "device_id": "ev-001",
+          "transformer_id": "tx-001",
+          "device_type": "EV_CHARGER",
+          "boot_id": "boot-001",
+          "power_kw": 7,
+          "quality": "GOOD",
+          "sequence_number": 1
+        }
+      },
+      "window_id": "tx-001",
+      "lateness_ms": 0,
+      "audited_at": "2026-11-09T18:30:01Z",
+      "reason": "BEYOND_ALLOWED_LATENESS"
+    }
+  },
+  {
+    "name": "DlqPayload",
+    "schema": "DlqPayload",
+    "value": {
+      "original_event": {},
+      "original_key": "sample",
+      "failure_stage": "DECODE",
+      "attempt_count": 1,
+      "validation_reasons": [
+        "sample"
+      ]
+    }
+  },
+  {
+    "name": "Late",
+    "schema": "Late",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.late",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "original_event": {
+          "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:36Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        },
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "lateness_ms": 31000,
+        "audited_at": "2026-11-09T18:30:01Z",
+        "reason": "BEYOND_ALLOWED_LATENESS"
+      }
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "Dlq",
+    "schema": "Dlq",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.invalid",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "original_event": {},
+        "original_key": "sample",
+        "failure_stage": "DECODE",
+        "attempt_count": 1,
+        "validation_reasons": [
+          "sample"
+        ]
+      }
+    },
+    "key": "sample"
+  },
+  {
+    "name": "Topology",
+    "schema": "Topology",
+    "value": {
+      "topology_version": "tx-001",
+      "transformers": []
+    }
+  },
+  {
+    "name": "Transformer",
+    "schema": "Transformer",
+    "value": {
+      "transformer_id": "tx-001",
+      "state": "NORMAL",
+      "load": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 15,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      },
+      "policy": {
+        "version": 1,
+        "warning_pct": 80,
+        "critical_pct": 95,
+        "recovery_pct": 75,
+        "cooldown_seconds": 30,
+        "recovery_windows": 2,
+        "command_ttl_seconds": 10,
+        "ack_timeout_seconds": 5
+      },
+      "freshness": "FRESH",
+      "data_age_seconds": 0
+    }
+  },
+  {
+    "name": "Device",
+    "schema": "Device",
+    "value": {
+      "device_id": "tx-001",
+      "transformer_id": "tx-001",
+      "device_type": "EV_CHARGER",
+      "controllable": false,
+      "minimum_rate_kw": 0,
+      "maximum_rate_kw": 0,
+      "priority": 0,
+      "departure_time": "2026-11-09T18:30:01Z",
+      "capability_version": 1,
+      "updated_at": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "DeviceView",
+    "schema": "DeviceView",
+    "value": {
+      "device": {
+        "device_id": "tx-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "controllable": false,
+        "minimum_rate_kw": 0,
+        "maximum_rate_kw": 0,
+        "priority": 0,
+        "departure_time": "2026-11-09T18:30:01Z",
+        "capability_version": 1,
+        "updated_at": "2026-11-09T18:30:01Z"
+      },
+      "freshness": "FRESH",
+      "latest_telemetry": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      },
+      "command_history": []
+    }
+  },
+  {
+    "name": "ScenarioStart",
+    "schema": "ScenarioStart",
+    "value": {
+      "scenario": "normal",
+      "scale": 1,
+      "seed": 0,
+      "duration_seconds": 1
+    }
+  },
+  {
+    "name": "ScenarioRun",
+    "schema": "ScenarioRun",
+    "value": {
+      "run_id": "tx-001",
+      "status": "RUNNING",
+      "configuration": {
+        "scenario": "normal",
+        "scale": 1,
+        "seed": 0,
+        "duration_seconds": 1
+      },
+      "updated_at": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "Accepted",
+    "schema": "Accepted",
+    "value": {
+      "id": "tx-001",
+      "status": "sample"
+    }
+  },
+  {
+    "name": "Health",
+    "schema": "Health",
+    "value": {
+      "status": "ok",
+      "observed_at": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "HttpError",
+    "schema": "HttpError",
+    "value": {
+      "error": {
+        "code": "INVALID_ARGUMENT",
+        "message": "sample",
+        "request_id": "tx-001",
+        "details": []
+      }
+    }
+  },
+  {
+    "name": "ToolError",
+    "schema": "ToolError",
+    "value": {
+      "schema_version": 1,
+      "code": "INVALID_ARGUMENT",
+      "message": "sample",
+      "retryable": false,
+      "observed_at": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "ToolContext",
+    "schema": "ToolContext",
+    "value": {
+      "investigation_id": "tx-001",
+      "actor_id": "tx-001",
+      "roles": [
+        "Operator"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    }
+  },
+  {
+    "name": "ToolCall",
+    "schema": "ToolCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-001"
+      }
+    }
+  },
+  {
+    "name": "Evidence",
+    "schema": "Evidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_transformer_snapshot",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "transformer_id": "tx-001",
+        "state": "NORMAL",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        },
+        "policy": {
+          "version": 1,
+          "warning_pct": 80,
+          "critical_pct": 95,
+          "recovery_pct": 75,
+          "cooldown_seconds": 30,
+          "recovery_windows": 2,
+          "command_ttl_seconds": 10,
+          "ack_timeout_seconds": 5
+        },
+        "freshness": "FRESH",
+        "data_age_seconds": 0
+      }
+    }
+  },
+  {
+    "name": "get_transformer_snapshotArguments",
+    "schema": "get_transformer_snapshotArguments",
+    "value": {
+      "transformer_id": "tx-001"
+    }
+  },
+  {
+    "name": "get_transformer_snapshotCall",
+    "schema": "get_transformer_snapshotCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-001"
+      }
+    }
+  },
+  {
+    "name": "get_transformer_snapshotEvidence",
+    "schema": "get_transformer_snapshotEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_transformer_snapshot",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "transformer_id": "tx-001",
+        "state": "NORMAL",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        },
+        "policy": {
+          "version": 1,
+          "warning_pct": 80,
+          "critical_pct": 95,
+          "recovery_pct": 75,
+          "cooldown_seconds": 30,
+          "recovery_windows": 2,
+          "command_ttl_seconds": 10,
+          "ack_timeout_seconds": 5
+        },
+        "freshness": "FRESH",
+        "data_age_seconds": 0
+      }
+    }
+  },
+  {
+    "name": "get_load_historyArguments",
+    "schema": "get_load_historyArguments",
+    "value": {
+      "transformer_id": "tx-001",
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z",
+      "limit": 1
+    }
+  },
+  {
+    "name": "get_load_historyCall",
+    "schema": "get_load_historyCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_load_history",
+      "arguments": {
+        "transformer_id": "tx-001",
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z",
+        "limit": 1
+      }
+    }
+  },
+  {
+    "name": "get_load_historyEvidence",
+    "schema": "get_load_historyEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_load_history",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "windows": []
+      }
+    }
+  },
+  {
+    "name": "get_action_timelineArguments",
+    "schema": "get_action_timelineArguments",
+    "value": {
+      "transformer_id": "tx-001",
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z"
+    }
+  },
+  {
+    "name": "get_action_timelineCall",
+    "schema": "get_action_timelineCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_action_timeline",
+      "arguments": {
+        "transformer_id": "tx-001",
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      }
+    }
+  },
+  {
+    "name": "get_action_timelineEvidence",
+    "schema": "get_action_timelineEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_action_timeline",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "actions": [],
+        "alerts": []
+      }
+    }
+  },
+  {
+    "name": "get_command_resultsArguments",
+    "schema": "get_command_resultsArguments",
+    "value": {
+      "action_id": "tx-001"
+    }
+  },
+  {
+    "name": "get_command_resultsCall",
+    "schema": "get_command_resultsCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_command_results",
+      "arguments": {
+        "action_id": "tx-001"
+      }
+    }
+  },
+  {
+    "name": "get_command_resultsEvidence",
+    "schema": "get_command_resultsEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_command_results",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "commands": [],
+        "confirmed_reduction_kw": 0
+      }
+    }
+  },
+  {
+    "name": "get_stream_healthArguments",
+    "schema": "get_stream_healthArguments",
+    "value": {
+      "components": [
+        "KAFKA"
+      ]
+    }
+  },
+  {
+    "name": "get_stream_healthCall",
+    "schema": "get_stream_healthCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_stream_health",
+      "arguments": {
+        "components": [
+          "KAFKA"
+        ]
+      }
+    }
+  },
+  {
+    "name": "get_stream_healthEvidence",
+    "schema": "get_stream_healthEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_stream_health",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "components": []
+      }
+    }
+  },
+  {
+    "name": "get_metric_windowArguments",
+    "schema": "get_metric_windowArguments",
+    "value": {
+      "metric": "INPUT_RATE",
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z",
+      "resolution_seconds": 1
+    }
+  },
+  {
+    "name": "get_metric_windowCall",
+    "schema": "get_metric_windowCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_metric_window",
+      "arguments": {
+        "metric": "INPUT_RATE",
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z",
+        "resolution_seconds": 1
+      }
+    }
+  },
+  {
+    "name": "get_metric_windowEvidence",
+    "schema": "get_metric_windowEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_metric_window",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "points": [],
+        "unit": "kW",
+        "threshold": 0,
+        "missing_intervals": [],
+        "queried_at": "2026-11-09T18:30:01Z"
+      }
+    }
+  },
+  {
+    "name": "get_trace_summaryArguments",
+    "schema": "get_trace_summaryArguments",
+    "value": {
+      "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  {
+    "name": "get_trace_summaryCall",
+    "schema": "get_trace_summaryCall",
+    "value": {
+      "schema_version": 1,
+      "tool": "get_trace_summary",
+      "arguments": {
+        "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "name": "get_trace_summaryEvidence",
+    "schema": "get_trace_summaryEvidence",
+    "value": {
+      "schema_version": 1,
+      "evidence_id": "evidence-001",
+      "source_type": "get_trace_summary",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "spans": []
+      }
+    }
+  },
+  {
+    "name": "ToolResult",
+    "schema": "ToolResult",
+    "value": {
+      "evidence": [
+        {
+          "schema_version": 1,
+          "evidence_id": "tx-001",
+          "source_type": "get_transformer_snapshot",
+          "source_version": "tx-001",
+          "entity_type": "TRANSFORMER",
+          "entity_id": "tx-001",
+          "observed_at": "2026-11-09T18:30:01Z",
+          "freshness": "FRESH",
+          "truncated": false,
+          "deep_link": "/system",
+          "data": {
+            "transformer_id": "tx-001",
+            "state": "NORMAL",
+            "load": {
+              "transformer_id": "tx-001",
+              "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+              "window_start": "2026-11-09T18:30:00Z",
+              "window_end": "2026-11-09T18:30:05Z",
+              "revision": 0,
+              "topology_version": "topology-001",
+              "meter_demand_kw": 10,
+              "ev_demand_kw": 7,
+              "solar_generation_kw": 2,
+              "net_load_kw": 15,
+              "capacity_kw": 100,
+              "utilization_pct": 15,
+              "expected_device_count": 3,
+              "good_device_count": 3,
+              "estimated_device_count": 0,
+              "missing_device_count": 0,
+              "late_event_count": 0,
+              "quality_flags": [],
+              "completeness": "COMPLETE"
+            },
+            "policy": {
+              "version": 1,
+              "warning_pct": 80,
+              "critical_pct": 95,
+              "recovery_pct": 75,
+              "cooldown_seconds": 30,
+              "recovery_windows": 2,
+              "command_ttl_seconds": 10,
+              "ack_timeout_seconds": 5
+            },
+            "freshness": "FRESH",
+            "data_age_seconds": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Claim",
+    "schema": "Claim",
+    "value": {
+      "text": "sample",
+      "evidence_ids": [
+        "tx-001"
+      ]
+    }
+  },
+  {
+    "name": "AgentDraft",
+    "schema": "AgentDraft",
+    "value": {
+      "schema_version": 1,
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    }
+  },
+  {
+    "name": "InvestigationCreate",
+    "schema": "InvestigationCreate",
+    "value": {
+      "question": "sample",
+      "transformer_id": "tx-001",
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z"
+    }
+  },
+  {
+    "name": "Investigation",
+    "schema": "Investigation",
+    "value": {
+      "investigation_id": "tx-001",
+      "status": "QUEUED",
+      "result": {
+        "schema_version": 1,
+        "summary": "sample",
+        "observations": [],
+        "hypotheses": [],
+        "unknowns": [],
+        "recommended_next_steps": [],
+        "evidence_ids": []
+      },
+      "evidence": [],
+      "freshness": "FRESH",
+      "provider_mode": "MOCK",
+      "usage": {
+        "tool_calls": 0,
+        "model_turns": 0,
+        "elapsed_ms": 0
+      },
+      "updated_at": "2026-11-09T18:30:01Z"
+    }
+  },
+  {
+    "name": "Overview",
+    "schema": "Overview",
+    "value": {
+      "transformer_count": 0,
+      "critical_count": 0,
+      "total_net_load_kw": 0,
+      "highest_risk": [],
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "TransformerPage",
+    "schema": "TransformerPage",
+    "value": {
+      "items": [],
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "DeviceViewPage",
+    "schema": "DeviceViewPage",
+    "value": {
+      "items": [],
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "AlertPayloadPage",
+    "schema": "AlertPayloadPage",
+    "value": {
+      "items": [],
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "ActionPayloadPage",
+    "schema": "ActionPayloadPage",
+    "value": {
+      "items": [],
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "LoadPayloadPage",
+    "schema": "LoadPayloadPage",
+    "value": {
+      "items": [],
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "ScenarioRunPage",
+    "schema": "ScenarioRunPage",
+    "value": {
+      "items": [],
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    }
+  },
+  {
+    "name": "ScenarioCatalog",
+    "schema": "ScenarioCatalog",
+    "value": {
+      "scenarios": [
+        "normal",
+        "evening_overload",
+        "late_correction",
+        "leader_failover"
+      ],
+      "active_run": {
+        "run_id": "tx-001",
+        "status": "RUNNING",
+        "configuration": {
+          "scenario": "normal",
+          "scale": 1,
+          "seed": 0,
+          "duration_seconds": 1
+        },
+        "updated_at": "2026-11-09T18:30:01Z"
+      }
+    }
+  },
+  {
+    "name": "SseEvent",
+    "schema": "SseEvent",
+    "value": {
+      "cursor": "tx-001",
+      "event_type": "transformer.updated",
+      "entity_id": "tx-001",
+      "version": 0,
+      "event_time": "2026-11-09T18:30:01Z",
+      "payload": {
+        "transformer_id": "tx-001",
+        "state": "NORMAL",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        },
+        "policy": {
+          "version": 1,
+          "warning_pct": 80,
+          "critical_pct": 95,
+          "recovery_pct": 75,
+          "cooldown_seconds": 30,
+          "recovery_windows": 2,
+          "command_ttl_seconds": 10,
+          "ack_timeout_seconds": 5
+        },
+        "freshness": "FRESH",
+        "data_age_seconds": 0
+      }
+    }
+  }
+]

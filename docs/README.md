@@ -34,11 +34,11 @@ This directory contains the design package for the Smart Grid / EV Fleet Energy 
 
 - [Event contracts](contracts/EVENT_CONTRACTS.md) — canonical Kafka topics and event envelopes
 - [Stream semantics v1](contracts/STREAM_SEMANTICS_V1.md) — reporting, identity, validation, windows, completeness, revisions, capacity, and late-data rules
-- [HTTP API contracts](contracts/API_CONTRACTS.md) — planned operator and UI API
+- [HTTP API contracts](contracts/API_CONTRACTS.md) — executable operator/UI routing and shared schemas
 - [gRPC contracts](contracts/GRPC_CONTRACTS.md) — typed internal device registry and deadline behavior
 - [Agent tool contracts](contracts/AGENT_TOOL_CONTRACTS.md) — typed read-only tools, evidence envelope, errors, output validation, and versioning
 
-Contract changes require agreement from the producer, consumer, and integration owner. Once implementation begins, machine-readable schemas under `schemas/` will become the executable representation of these documents.
+Contract changes require agreement from the producer, consumer, and integration owner. The [v1 schema bundle](../schemas/README.md) is the executable representation of these documents; `make contracts` validates it and [ADR-025](decisions/ADR-025-executable-contract-freeze.md) resolves exact defaults.
 
 ## Team and delivery
 

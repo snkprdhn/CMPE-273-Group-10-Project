@@ -1,5 +1,7 @@
 # Stream Semantics v1
 
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+
 ## Status and purpose
 
 This document is the v1 implementation baseline for telemetry and transformer-load behavior. It resolves the cross-member questions that would otherwise block independent work. A change requires review from the affected producer and consumer plus updated schemas and golden fixtures.
@@ -39,7 +41,7 @@ Capacity is fixed for one scenario run. Policy thresholds may change through Mem
 The topology fixture provides `expected_device_count` for each transformer.
 
 - `COMPLETE`: at least 95% of expected devices have `GOOD` readings in the window and capacity is valid.
-- `PARTIAL`: at least 70% are represented, or any selected reading is `ESTIMATED`.
+- `PARTIAL`: at least 70% are represented but COMPLETE criteria are unmet, including any selected `ESTIMATED` reading. STALE takes precedence below 70%.
 - `STALE`: fewer than 70% are represented, capacity is invalid, or the load result is already more than 15 seconds old when evaluated.
 
 Load events include `expected_device_count`, `good_device_count`, `estimated_device_count`, `missing_device_count`, and `quality_flags`. Automatic control requires a fresh `COMPLETE` event; other states remain visible for operations and audit.

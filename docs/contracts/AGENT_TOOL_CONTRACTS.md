@@ -1,5 +1,7 @@
 # Agent Tool and Evidence Contracts
 
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+
 ## Boundary
 
 These are internal read-only contracts between the Copilot Service and Tool Gateway. The model proposes a tool name and typed arguments, but server code authenticates, authorizes, validates, limits, and executes every call. No provider-generated URL, query language, credential, or executable text is accepted.

@@ -1,7 +1,9 @@
-# Test Strategy
+# Test strategy
 
-**Status: preparation documentation/environment smoke checks implemented; application/contract behavior tests not implemented.**
+Preparation and executable contract checks are implemented. Application/component and infrastructure behavior remain future gates.
 
-Run `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py`. Ten checks cover documentation links and shell syntax (including negative cases), isolated Python 3.12.9, selected native/Python tools, and valid/invalid JSON Schema behavior. The environment suite requires the prepared macOS ARM64 venv and makes no network calls. These tests do not establish application behavior, cluster persistence, or full deployment correctness.
+- `make contracts`: canonical schema/OpenAPI/Protobuf validation, valid/invalid fixtures with exact failure reasons, deterministic stream/control/agent golden cases, generated capability consistency and deliberate compatibility mutations. See [the bundle guide](../schemas/README.md).
+- `make contracts BASE_REF=HEAD`: also compare the old contracts from Git; the first introduction explicitly reports an absent executable baseline.
+- `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py`: ten local documentation/environment checks, requiring the prepared Mac ARM64 environment. These are separate from portable contract CI.
 
-Planned suites include unit tests, contract validation, independently runnable component profiles, pairwise integration gates, end-to-end event flows, restart/failure tests, load tests, and Playwright Python UI acceptance tests. Every shared fixture must have an expected result, and performance reports must name the machine and configuration used. No component test may require another member's unpublished branch or manually running service. See the [independent testing plan](../docs/testing/INDEPENDENT_COMPONENT_TESTING.md) and [acceptance plan](../docs/demo/ACCEPTANCE_PLAN.md).
+Every shared fixture has fixed expected results. Reference replay is an offline specification; it does not establish actual Kafka/Flink checkpoint recovery, persistent fencing, authentication, SSE transport, cluster persistence or workload performance. Future component tests must run the same fixtures against real behavior without another member’s unpublished branch. See [independent testing](../docs/testing/INDEPENDENT_COMPONENT_TESTING.md) and [acceptance](../docs/demo/ACCEPTANCE_PLAN.md).

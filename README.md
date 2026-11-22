@@ -1,6 +1,8 @@
 # Smart Grid / EV Fleet Energy Balancing Platform
 
-> **Status:** Repository preparation and Docker Desktop/venv prerequisites are verified, including an empty local kind cluster; application implementation has not started. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). All application/test code is Python; infrastructure JVMs stay in containers. No host JDK or Node.js is required.
+> **Status:** Repository preparation, Docker Desktop/venv prerequisites and the executable v1 contract bundle are verified, including an empty local kind cluster; application implementation has not started. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). All application/test code is Python; infrastructure JVMs stay in containers. No host JDK or Node.js is required.
+
+Run `make contracts` for the offline contract gate; see the [bundle guide](schemas/README.md) for setup, fixtures and compatibility checks.
 
 ## Abstract
 

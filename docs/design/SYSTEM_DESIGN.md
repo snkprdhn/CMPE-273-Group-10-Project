@@ -126,7 +126,7 @@ For final deployment, every major component runs as a Kubernetes workload with a
 
 ## 7. Transformer policy
 
-Each transformer has a rated capacity and configurable thresholds expressed as a percentage of that capacity. Proposed defaults are warning at 80%, critical at 95%, and recovery below 75% for two consecutive complete windows. The lower recovery threshold provides hysteresis. A cooldown prevents issuing a new plan before the previous plan has had time to affect telemetry.
+Each transformer has a rated capacity and configurable thresholds expressed as a percentage of that capacity. The accepted [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) defaults enter warning at 80%, critical at 95%, and recover at or below 75% for two consecutive fresh COMPLETE windows. The lower recovery threshold provides hysteresis. A cooldown prevents issuing a new plan before the previous plan has had time to affect telemetry.
 
 The action service estimates the reduction required to return below the target recovery load. Candidate chargers must be online, charging, controllable, above their minimum rate, and not inside a protected departure window. Lower-priority or less urgent sessions are reduced first. A plan records the input load event, policy version, candidates considered, selected devices, expected reduction, and reason.
 

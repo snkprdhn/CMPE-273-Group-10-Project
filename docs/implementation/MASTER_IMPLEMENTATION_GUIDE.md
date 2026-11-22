@@ -1,6 +1,6 @@
 # Master Implementation Guide
 
-**Status:** Repository-preparation milestone complete; an empty local kind cluster and locked preparation venv are verified; application services, application dependency locks, and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
+**Status:** Repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; application services, application dependency locks, and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
 
 ## 1. Purpose
 
@@ -69,7 +69,7 @@ No cloud or external model account is required. Use deterministic model mocks, s
 
 Preparation decisions are accepted in [ADR-002](../decisions/ADR-002-python-stream-processing.md), [ADR-004](../decisions/ADR-004-python-dashboard.md), [ADR-006](../decisions/ADR-006-local-kind.md), and [ADR-024](../decisions/ADR-024-pinned-local-baseline.md). They resolve PyFlink, Python UI/test tooling, local deployment, version pins, partition/replication defaults, and resource profiles.
 
-The next **contract/schema milestone** will produce executable schemas, golden fixtures, compatibility checks, and unresolved domain/auth defaults. Existing [Stream Semantics v1](../contracts/STREAM_SEMANTICS_V1.md) already fixes five-second windows, ten-second watermarks, and thirty-second inclusive correction limits; do not reopen those as unspecified defaults. Action cooldown/recovery/timeout rules and exact identity bootstrap require contract work before their services, not before documentation preparation. Repository license remains an owner/public-release decision. Cloud and external-provider choices are deferred and cannot block local implementation.
+The **contract/schema milestone is complete** under [ADR-025](../decisions/ADR-025-executable-contract-freeze.md): canonical JSON Schema/Protobuf/OpenAPI, versioned examples, deterministic golden cases, compatibility checks and contract CI are implemented. Action defaults and local identity names/roles are fixed there. Run `make contracts`; see [schemas](../../schemas/README.md). The next milestone is repository foundation/component packaging, including native ARM64 PyFlink build/import/checkpoint evidence before an aggregation slice is called runnable. Repository licensing remains an owner/public-release decision. Cloud and external-provider choices remain deferred.
 
 No application service scaffolding is part of preparation.
 
@@ -541,7 +541,7 @@ Do not cut the closed-loop business scenario, Kafka/Flink semantics, duplicate-s
 
 ## 21. Definition of ready for implementation
 
-Application service implementation begins only when (contract authoring is the next milestone):
+Application service implementation begins only when (contract authoring is complete; remaining foundation gates still apply):
 
 - Blocking ADRs and the version matrix are accepted.
 - Contract schemas and golden examples agree with the prose contracts.

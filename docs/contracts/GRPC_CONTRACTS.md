@@ -1,8 +1,10 @@
 # Device Registry gRPC Contract
 
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+
 ## Purpose
 
-The internal Device Registry provides typed, synchronous access to relatively stable device capabilities. High-volume telemetry and control outcomes remain Kafka events. The contract is planned; no `.proto` file or server has been implemented.
+The internal Device Registry provides typed, synchronous access to relatively stable device capabilities. High-volume telemetry and control outcomes remain Kafka events. The canonical `.proto` and generated-binding checks are implemented; the Registry server is not.
 
 ## Planned service
 
@@ -11,7 +13,7 @@ The internal Device Registry provides typed, synchronous access to relatively st
 | `RegisterDevice` | Unary | Idempotently create/update a device registration by device/version |
 | `Heartbeat` | Unary | Update liveness and current capability version |
 | `GetDevice` | Unary | Return authoritative capability and transformer assignment |
-| `ListEligibleChargers` | Server streaming or paginated unary | Return bounded candidates for one transformer/policy version |
+| `ListEligibleChargers` | Paginated unary | Return bounded candidates for one transformer/policy version |
 
 Messages include device ID, transformer ID, type, controllability, min/max rate, priority, departure constraint, capability version, and update time. Mutating calls carry an operation/idempotency key.
 

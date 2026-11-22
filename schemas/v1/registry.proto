@@ -1,0 +1,53 @@
+syntax = "proto3";
+package smartgrid.registry.v1;
+import "google/protobuf/timestamp.proto";
+
+// Member_1 owns Registry; Member_3/4 consume. Deadlines and authorization
+// travel in gRPC metadata, never in caller-editable device fields.
+service DeviceRegistry {
+  rpc RegisterDevice(RegisterDeviceRequest) returns (Device);
+  rpc Heartbeat(HeartbeatRequest) returns (Device);
+  rpc GetDevice(GetDeviceRequest) returns (Device);
+  rpc ListEligibleChargers(ListEligibleChargersRequest) returns (ChargerPage);
+}
+enum DeviceType {
+  DEVICE_TYPE_UNSPECIFIED = 0;
+  EV_CHARGER = 1;
+  SMART_METER = 2;
+  SOLAR = 3;
+}
+message Device {
+  string device_id = 1;
+  string transformer_id = 2;
+  DeviceType device_type = 3;
+  bool controllable = 4;
+  double minimum_rate_kw = 5;
+  double maximum_rate_kw = 6;
+  uint32 priority = 7;
+  optional google.protobuf.Timestamp departure_time = 8;
+  uint64 capability_version = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+message RegisterDeviceRequest {
+  string operation_id = 1;
+  Device device = 2;
+}
+message HeartbeatRequest {
+  string operation_id = 1;
+  string device_id = 2;
+  uint64 capability_version = 3;
+  google.protobuf.Timestamp observed_at = 4;
+}
+message GetDeviceRequest { string device_id = 1; }
+message ListEligibleChargersRequest {
+  string transformer_id = 1;
+  uint64 policy_version = 2;
+  uint32 limit = 3;
+  string cursor = 4;
+  google.protobuf.Timestamp evaluated_at = 5;
+}
+message ChargerPage {
+  repeated Device devices = 1;
+  string next_cursor = 2;
+  google.protobuf.Timestamp observed_at = 3;
+}

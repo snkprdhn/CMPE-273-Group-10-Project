@@ -1,0 +1,3218 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Smart Grid contracts",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "oidc": []
+    }
+  ],
+  "paths": {
+    "/overview": {
+      "get": {
+        "operationId": "get_overview",
+        "x-minimum-role": "Viewer",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Overview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/transformers": {
+      "get": {
+        "operationId": "get_transformers",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/Transformer/properties/state"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/TransformerPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/transformers/{id}": {
+      "get": {
+        "operationId": "get_transformers_by_id",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Transformer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/transformers/{id}/loads": {
+      "get": {
+        "operationId": "get_transformers_by_id_loads",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Timestamp"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Timestamp"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/LoadPayloadPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/transformers/{id}/policy": {
+      "patch": {
+        "operationId": "patch_transformers_by_id_policy",
+        "x-minimum-role": "Administrator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Policy"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "bundle.json#/$defs/PolicyWrite"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices": {
+      "get": {
+        "operationId": "get_devices",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "transformer_id",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "device_type",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/DeviceType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/DeviceViewPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/devices/{id}": {
+      "get": {
+        "operationId": "get_devices_by_id",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/DeviceView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/alerts": {
+      "get": {
+        "operationId": "get_alerts",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "transformer_id",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/AlertPayload/properties/status"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/AlertPayload/properties/severity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/AlertPayloadPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/alerts/{id}/acknowledge": {
+      "post": {
+        "operationId": "post_alerts_by_id_acknowledge",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/AlertPayload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/actions": {
+      "get": {
+        "operationId": "get_actions",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "transformer_id",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "bundle.json#/$defs/ActionPayload/properties/status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ActionPayloadPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/actions/{id}": {
+      "get": {
+        "operationId": "get_actions_by_id",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ActionPayload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/scenarios": {
+      "get": {
+        "operationId": "get_scenarios",
+        "x-minimum-role": "Viewer",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ScenarioCatalog"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/scenario-runs": {
+      "post": {
+        "operationId": "post_scenario-runs",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ScenarioRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "bundle.json#/$defs/ScenarioStart"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scenario-runs/{id}/stop": {
+      "post": {
+        "operationId": "post_scenario-runs_by_id_stop",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ScenarioRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/investigations": {
+      "post": {
+        "operationId": "post_investigations",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Accepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "bundle.json#/$defs/InvestigationCreate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/investigations/{id}": {
+      "get": {
+        "operationId": "get_investigations_by_id",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Investigation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/investigations/{id}/events": {
+      "get": {
+        "operationId": "get_investigations_by_id_events",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/SseEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "description": "UTF-8 SSE: id=cursor, event=event_type, data=JSON SseEvent; heartbeat comments every 15s. Retain 1000 events/5min, otherwise snapshot.required. Investigation reconnect fetches REST status first."
+      }
+    },
+    "/investigations/{id}/cancel": {
+      "post": {
+        "operationId": "post_investigations_by_id_cancel",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Investigation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "get_health",
+        "x-minimum-role": "Public",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Health"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "security": []
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "get_ready",
+        "x-minimum-role": "Public",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Health"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "security": []
+      }
+    },
+    "/events": {
+      "get": {
+        "operationId": "get_events",
+        "x-minimum-role": "Viewer",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/SseEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "description": "UTF-8 SSE: id=cursor, event=event_type, data=JSON SseEvent; heartbeat comments every 15s. Retain 1000 events/5min, otherwise snapshot.required. Investigation reconnect fetches REST status first."
+      }
+    },
+    "/internal/v1/control/transformers/{id}/policy": {
+      "patch": {
+        "operationId": "patch_internal_v1_control_transformers_by_id_policy",
+        "x-minimum-role": "Administrator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "X-Actor-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "X-Actor-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Role"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "traceparent",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/Policy"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "bundle.json#/$defs/PolicyWrite"
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "/"
+          }
+        ],
+        "security": [
+          {
+            "serviceIdentity": []
+          }
+        ]
+      }
+    },
+    "/internal/v1/scenario-runs": {
+      "post": {
+        "operationId": "post_internal_v1_scenario-runs",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "X-Actor-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "X-Actor-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Role"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "traceparent",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ScenarioRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "bundle.json#/$defs/ScenarioStart"
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "/"
+          }
+        ],
+        "security": [
+          {
+            "serviceIdentity": []
+          }
+        ]
+      }
+    },
+    "/internal/v1/scenario-runs/{id}/stop": {
+      "post": {
+        "operationId": "post_internal_v1_scenario-runs_by_id_stop",
+        "x-minimum-role": "Operator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "X-Actor-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "X-Actor-Role",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Role"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "bundle.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "traceparent",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/ScenarioRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "bundle.json#/$defs/HttpError"
+                }
+              }
+            }
+          }
+        },
+        "x-deadline-ms": 3000,
+        "servers": [
+          {
+            "url": "/"
+          }
+        ],
+        "security": [
+          {
+            "serviceIdentity": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oidc": {
+        "type": "openIdConnect",
+        "openIdConnectUrl": "http://keycloak.local/realms/smart-grid/.well-known/openid-configuration"
+      },
+      "serviceIdentity": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

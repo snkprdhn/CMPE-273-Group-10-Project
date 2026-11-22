@@ -1,0 +1,3679 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-grid.local/contracts/v1/bundle.json",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "Uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Freshness": {
+      "type": "string",
+      "enum": [
+        "FRESH",
+        "STALE",
+        "PARTIAL",
+        "UNKNOWN"
+      ]
+    },
+    "Completeness": {
+      "type": "string",
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "STALE"
+      ]
+    },
+    "DeviceType": {
+      "$comment": "Generated from registry.proto; UNSPECIFIED is not a valid registration.",
+      "type": "string",
+      "enum": [
+        "EV_CHARGER",
+        "SMART_METER",
+        "SOLAR"
+      ]
+    },
+    "Outcome": {
+      "type": "string",
+      "enum": [
+        "APPLIED",
+        "ALREADY_APPLIED",
+        "REJECTED",
+        "EXPIRED",
+        "FAILED"
+      ]
+    },
+    "ActionStatus": {
+      "type": "string",
+      "enum": [
+        "PLAN_CREATED",
+        "COMMANDS_DISPATCHED",
+        "ACKS_PENDING",
+        "REDUCTION_CONFIRMED",
+        "PARTIALLY_APPLIED",
+        "TIMED_OUT",
+        "RECOVERY_MONITORING",
+        "RESTORE_DISPATCHED",
+        "COMPLETED",
+        "NEEDS_OPERATOR_REVIEW"
+      ]
+    },
+    "InvestigationStatus": {
+      "type": "string",
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "COMPLETED",
+        "PARTIAL",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "Viewer",
+        "Operator",
+        "Administrator"
+      ]
+    },
+    "TimeRange": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "end": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "Policy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1
+        },
+        "warning_pct": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "percent",
+          "default": 80
+        },
+        "critical_pct": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "percent",
+          "default": 95
+        },
+        "recovery_pct": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "percent",
+          "default": 75
+        },
+        "cooldown_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "x-unit": "seconds",
+          "default": 30
+        },
+        "recovery_windows": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2
+        },
+        "command_ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "seconds",
+          "default": 10
+        },
+        "ack_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "x-unit": "seconds",
+          "default": 5
+        }
+      },
+      "required": [
+        "version",
+        "warning_pct",
+        "critical_pct",
+        "recovery_pct",
+        "cooldown_seconds",
+        "recovery_windows",
+        "command_ttl_seconds",
+        "ack_timeout_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "PolicyWrite": {
+      "type": "object",
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        }
+      },
+      "required": [
+        "expected_version",
+        "policy"
+      ],
+      "additionalProperties": false
+    },
+    "TelemetryPayload": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "device_type": {
+          "$ref": "#/$defs/DeviceType"
+        },
+        "boot_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "power_kw": {
+          "type": "number",
+          "x-unit": "kW"
+        },
+        "quality": {
+          "type": "string",
+          "enum": [
+            "GOOD",
+            "ESTIMATED",
+            "INVALID"
+          ]
+        },
+        "sequence_number": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "session_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "current_rate_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "minimum_rate_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "departure_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "device_id",
+        "transformer_id",
+        "device_type",
+        "boot_id",
+        "power_kw",
+        "quality",
+        "sequence_number"
+      ],
+      "additionalProperties": true
+    },
+    "LoadPayload": {
+      "type": "object",
+      "properties": {
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "window_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "window_start": {
+          "$ref": "#/$defs/Timestamp",
+          "pattern": ":[0-5][05]Z$"
+        },
+        "window_end": {
+          "$ref": "#/$defs/Timestamp",
+          "pattern": ":[0-5][05]Z$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topology_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "meter_demand_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "ev_demand_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "solar_generation_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "net_load_kw": {
+          "type": "number",
+          "x-unit": "kW"
+        },
+        "capacity_kw": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-unit": "kW"
+        },
+        "utilization_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-unit": "percent"
+        },
+        "expected_device_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "good_device_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_device_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_device_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quality_flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ESTIMATED",
+              "MISSING_DEVICES",
+              "MISSING_CAPACITY",
+              "OLD_RESULT"
+            ]
+          },
+          "maxItems": 200
+        },
+        "completeness": {
+          "$ref": "#/$defs/Completeness"
+        }
+      },
+      "required": [
+        "transformer_id",
+        "window_id",
+        "window_start",
+        "window_end",
+        "revision",
+        "topology_version",
+        "meter_demand_kw",
+        "ev_demand_kw",
+        "solar_generation_kw",
+        "net_load_kw",
+        "capacity_kw",
+        "utilization_pct",
+        "expected_device_count",
+        "good_device_count",
+        "estimated_device_count",
+        "missing_device_count",
+        "late_event_count",
+        "quality_flags",
+        "completeness"
+      ],
+      "additionalProperties": true
+    },
+    "AlertPayload": {
+      "type": "object",
+      "properties": {
+        "alert_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "WARNING",
+            "CRITICAL"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "ACKNOWLEDGED",
+            "RESOLVED"
+          ]
+        },
+        "load_window_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "load_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "opened_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "resolved_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "alert_id",
+        "transformer_id",
+        "severity",
+        "status",
+        "load_window_id",
+        "load_revision",
+        "message",
+        "opened_at"
+      ],
+      "additionalProperties": true
+    },
+    "ActionPayload": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "$ref": "#/$defs/ActionStatus"
+        },
+        "trigger_window_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "trigger_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "leader_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_reduction_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "expected_reduction_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "confirmed_reduction_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "selected_device_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "acknowledged_device_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "transition_time": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "action_id",
+        "transformer_id",
+        "status",
+        "trigger_window_id",
+        "trigger_revision",
+        "policy_version",
+        "leader_epoch",
+        "target_reduction_kw",
+        "expected_reduction_kw",
+        "confirmed_reduction_kw",
+        "selected_device_count",
+        "acknowledged_device_count",
+        "reason",
+        "transition_time"
+      ],
+      "additionalProperties": true
+    },
+    "CommandPayload": {
+      "type": "object",
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "action_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "device_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "command_type": {
+          "type": "string",
+          "enum": [
+            "THROTTLE",
+            "RESTORE"
+          ]
+        },
+        "target_rate_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "saga_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "leader_epoch": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "command_id",
+        "action_id",
+        "device_id",
+        "transformer_id",
+        "command_type",
+        "target_rate_kw",
+        "issued_at",
+        "expires_at",
+        "reason",
+        "policy_version",
+        "saga_version",
+        "leader_epoch"
+      ],
+      "additionalProperties": true
+    },
+    "ResultPayload": {
+      "type": "object",
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "action_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "device_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "previous_rate_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "applied_rate_kw": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "kW"
+        },
+        "result_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "command_id",
+        "action_id",
+        "device_id",
+        "outcome",
+        "previous_rate_kw",
+        "applied_rate_kw",
+        "result_time"
+      ],
+      "additionalProperties": true
+    },
+    "Telemetry": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "telemetry.reading"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/TelemetryPayload"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.telemetry.v1",
+      "x-partition-key": "transformer_id"
+    },
+    "Load": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "transformer.load"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/LoadPayload"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.transformer-load.v1",
+      "x-partition-key": "transformer_id"
+    },
+    "Alert": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "alert.transition"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/AlertPayload"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.alert.v1",
+      "x-partition-key": "transformer_id"
+    },
+    "Action": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "action.transition"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/ActionPayload"
+        },
+        "leader_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "saga_version": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload",
+        "leader_epoch",
+        "saga_version"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.action.v1",
+      "x-partition-key": "transformer_id"
+    },
+    "Command": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "charger.command"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/CommandPayload"
+        },
+        "leader_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "saga_version": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload",
+        "leader_epoch",
+        "saga_version"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.charger-command.v1",
+      "x-partition-key": "device_id"
+    },
+    "Result": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "command.result"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/ResultPayload"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.command-result.v1",
+      "x-partition-key": "device_id"
+    },
+    "LatePayload": {
+      "type": "object",
+      "properties": {
+        "original_event": {
+          "$ref": "#/$defs/Telemetry"
+        },
+        "original_partition": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "original_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "lateness_ms": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "milliseconds"
+        },
+        "audited_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "reason": {
+          "const": "BEYOND_ALLOWED_LATENESS"
+        }
+      },
+      "required": [
+        "original_event",
+        "window_id",
+        "lateness_ms",
+        "audited_at",
+        "reason"
+      ],
+      "additionalProperties": true
+    },
+    "DlqPayload": {
+      "type": "object",
+      "properties": {
+        "original_event": {},
+        "original_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failure_stage": {
+          "type": "string",
+          "enum": [
+            "DECODE",
+            "SCHEMA",
+            "DOMAIN",
+            "PROCESSING"
+          ]
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validation_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "minItems": 1,
+          "maxItems": 20
+        },
+        "original_partition": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "original_offset": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "original_event",
+        "original_key",
+        "failure_stage",
+        "attempt_count",
+        "validation_reasons"
+      ],
+      "additionalProperties": true
+    },
+    "Late": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "telemetry.late"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/LatePayload"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.telemetry.late.v1",
+      "x-partition-key": "original_event.payload.transformer_id"
+    },
+    "Dlq": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "event_type": {
+          "const": "telemetry.invalid"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/Id"
+        },
+        "event_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "ingested_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "causation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "$ref": "#/$defs/DlqPayload"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "source",
+        "event_time",
+        "ingested_at",
+        "correlation_id",
+        "causation_id",
+        "payload"
+      ],
+      "additionalProperties": true,
+      "x-topic": "grid.telemetry.dlq.v1",
+      "x-partition-key": "original_key"
+    },
+    "Topology": {
+      "type": "object",
+      "properties": {
+        "topology_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "transformers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "transformer_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "capacity_kw": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "x-unit": "kW"
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "device_id": {
+                      "$ref": "#/$defs/Id"
+                    },
+                    "device_type": {
+                      "$ref": "#/$defs/DeviceType"
+                    }
+                  },
+                  "required": [
+                    "device_id",
+                    "device_type"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 200
+              }
+            },
+            "required": [
+              "transformer_id",
+              "capacity_kw",
+              "devices"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "topology_version",
+        "transformers"
+      ],
+      "additionalProperties": false
+    },
+    "Transformer": {
+      "type": "object",
+      "properties": {
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "NORMAL",
+            "WARNING",
+            "CRITICAL",
+            "STALE"
+          ]
+        },
+        "load": {
+          "$ref": "#/$defs/LoadPayload"
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "data_age_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "x-unit": "seconds"
+        }
+      },
+      "required": [
+        "transformer_id",
+        "state",
+        "load",
+        "policy",
+        "freshness",
+        "data_age_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "Device": {
+      "$comment": "Generated from registry.proto by make bindings; do not edit.",
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "device_type": {
+          "$ref": "#/$defs/DeviceType"
+        },
+        "controllable": {
+          "type": "boolean"
+        },
+        "minimum_rate_kw": {
+          "type": "number",
+          "x-unit": "kW"
+        },
+        "maximum_rate_kw": {
+          "type": "number",
+          "x-unit": "kW"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "departure_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "capability_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "device_id",
+        "transformer_id",
+        "device_type",
+        "controllable",
+        "minimum_rate_kw",
+        "maximum_rate_kw",
+        "priority",
+        "capability_version",
+        "updated_at"
+      ],
+      "additionalProperties": false
+    },
+    "DeviceView": {
+      "type": "object",
+      "properties": {
+        "device": {
+          "$ref": "#/$defs/Device"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "latest_telemetry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TelemetryPayload"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "command_history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResultPayload"
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "device",
+        "freshness",
+        "latest_telemetry",
+        "command_history"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioStart": {
+      "type": "object",
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "evening_overload",
+            "late_correction",
+            "leader_failover"
+          ]
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duration_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "x-unit": "seconds"
+        }
+      },
+      "required": [
+        "scenario",
+        "scale",
+        "seed",
+        "duration_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioRun": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "STOPPED",
+            "COMPLETED",
+            "FAILED"
+          ]
+        },
+        "configuration": {
+          "$ref": "#/$defs/ScenarioStart"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "run_id",
+        "status",
+        "configuration",
+        "updated_at"
+      ],
+      "additionalProperties": false
+    },
+    "Accepted": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "id",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "Health": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "degraded",
+            "unavailable"
+          ]
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "status",
+        "observed_at"
+      ],
+      "additionalProperties": false
+    },
+    "HttpError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "INVALID_ARGUMENT",
+                "UNAUTHENTICATED",
+                "FORBIDDEN",
+                "NOT_FOUND",
+                "CONFLICT",
+                "DOMAIN_INVALID",
+                "RATE_LIMITED",
+                "DEPENDENCY_UNAVAILABLE",
+                "DEADLINE_EXCEEDED"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "request_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "details": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "field",
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "request_id",
+            "details"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ToolError": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_ARGUMENT",
+            "OUT_OF_SCOPE",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "STALE",
+            "RATE_LIMITED",
+            "DEADLINE_EXCEEDED",
+            "DEPENDENCY_UNAVAILABLE",
+            "RESULT_TOO_LARGE"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schema_version",
+        "code",
+        "message",
+        "retryable",
+        "observed_at"
+      ],
+      "additionalProperties": false
+    },
+    "ToolContext": {
+      "type": "object",
+      "properties": {
+        "investigation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "actor_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Role"
+          },
+          "maxItems": 3
+        },
+        "deadline": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "entity_scope": {
+          "type": "object",
+          "properties": {
+            "transformer_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Id"
+              },
+              "maxItems": 20
+            },
+            "action_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Id"
+              },
+              "maxItems": 20
+            },
+            "correlation_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Id"
+              },
+              "maxItems": 20
+            },
+            "trace_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "maxItems": 20
+            }
+          },
+          "required": [
+            "transformer_ids",
+            "action_ids",
+            "correlation_ids",
+            "trace_ids"
+          ],
+          "additionalProperties": false
+        },
+        "time_scope": {
+          "$ref": "#/$defs/TimeRange"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "trace_context": {
+          "type": "object",
+          "properties": {
+            "traceparent": {
+              "type": "string",
+              "pattern": "^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$"
+            }
+          },
+          "required": [
+            "traceparent"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "investigation_id",
+        "actor_id",
+        "roles",
+        "deadline",
+        "entity_scope",
+        "time_scope",
+        "max_items",
+        "trace_context"
+      ],
+      "additionalProperties": false
+    },
+    "ToolCall": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/get_transformer_snapshotCall"
+        },
+        {
+          "$ref": "#/$defs/get_load_historyCall"
+        },
+        {
+          "$ref": "#/$defs/get_action_timelineCall"
+        },
+        {
+          "$ref": "#/$defs/get_command_resultsCall"
+        },
+        {
+          "$ref": "#/$defs/get_stream_healthCall"
+        },
+        {
+          "$ref": "#/$defs/get_metric_windowCall"
+        },
+        {
+          "$ref": "#/$defs/get_trace_summaryCall"
+        }
+      ]
+    },
+    "Evidence": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/get_transformer_snapshotEvidence"
+        },
+        {
+          "$ref": "#/$defs/get_load_historyEvidence"
+        },
+        {
+          "$ref": "#/$defs/get_action_timelineEvidence"
+        },
+        {
+          "$ref": "#/$defs/get_command_resultsEvidence"
+        },
+        {
+          "$ref": "#/$defs/get_stream_healthEvidence"
+        },
+        {
+          "$ref": "#/$defs/get_metric_windowEvidence"
+        },
+        {
+          "$ref": "#/$defs/get_trace_summaryEvidence"
+        }
+      ]
+    },
+    "get_transformer_snapshotArguments": {
+      "type": "object",
+      "properties": {
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "transformer_id"
+      ],
+      "additionalProperties": false
+    },
+    "get_transformer_snapshotCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_transformer_snapshot"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_transformer_snapshotArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_transformer_snapshotEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_transformer_snapshot"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "$ref": "#/$defs/Transformer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "get_load_historyArguments": {
+      "type": "object",
+      "properties": {
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "start": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "end": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      "required": [
+        "transformer_id",
+        "start",
+        "end",
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "get_load_historyCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_load_history"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_load_historyArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_load_historyEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_load_history"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "windows": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LoadPayload"
+              },
+              "maxItems": 200
+            }
+          },
+          "required": [
+            "windows"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "get_action_timelineArguments": {
+      "type": "object",
+      "properties": {
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "start": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "end": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "transformer_id",
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "get_action_timelineCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_action_timeline"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_action_timelineArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_action_timelineEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_action_timeline"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Action"
+              },
+              "maxItems": 200
+            },
+            "alerts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Alert"
+              },
+              "maxItems": 200
+            }
+          },
+          "required": [
+            "actions",
+            "alerts"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "get_command_resultsArguments": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "action_id"
+      ],
+      "additionalProperties": false
+    },
+    "get_command_resultsCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_command_results"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_command_resultsArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_command_resultsEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_command_results"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "commands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "$ref": "#/$defs/CommandPayload"
+                  },
+                  "result": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/ResultPayload"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "command",
+                  "result"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 200
+            },
+            "confirmed_reduction_kw": {
+              "type": "number",
+              "minimum": 0,
+              "x-unit": "kW"
+            }
+          },
+          "required": [
+            "commands",
+            "confirmed_reduction_kw"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "get_stream_healthArguments": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "KAFKA",
+              "FLINK",
+              "ACTION",
+              "API",
+              "REGISTRY",
+              "DATABASE"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "components"
+      ],
+      "additionalProperties": false
+    },
+    "get_stream_healthCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_stream_health"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_stream_healthArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_stream_healthEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_stream_health"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "component": {
+                    "type": "string",
+                    "enum": [
+                      "KAFKA",
+                      "FLINK",
+                      "ACTION",
+                      "API",
+                      "REGISTRY",
+                      "DATABASE"
+                    ]
+                  },
+                  "lag": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "watermark_delay_seconds": {
+                    "type": "number",
+                    "minimum": 0,
+                    "x-unit": "seconds"
+                  },
+                  "checkpoint_age_seconds": {
+                    "type": "number",
+                    "minimum": 0,
+                    "x-unit": "seconds"
+                  },
+                  "ready": {
+                    "type": "boolean"
+                  },
+                  "restarts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "freshness": {
+                    "$ref": "#/$defs/Freshness"
+                  }
+                },
+                "required": [
+                  "component",
+                  "lag",
+                  "watermark_delay_seconds",
+                  "checkpoint_age_seconds",
+                  "ready",
+                  "restarts",
+                  "freshness"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 6
+            }
+          },
+          "required": [
+            "components"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "get_metric_windowArguments": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "string",
+          "enum": [
+            "INPUT_RATE",
+            "OUTPUT_RATE",
+            "KAFKA_LAG",
+            "WATERMARK_DELAY",
+            "CHECKPOINT_AGE",
+            "RESTARTS",
+            "DATA_AGE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "start": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "end": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "resolution_seconds": {
+          "enum": [
+            1,
+            5,
+            30,
+            60
+          ],
+          "x-unit": "seconds"
+        }
+      },
+      "required": [
+        "metric",
+        "start",
+        "end",
+        "resolution_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "get_metric_windowCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_metric_window"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_metric_windowArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_metric_windowEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_metric_window"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "time": {
+                    "$ref": "#/$defs/Timestamp"
+                  },
+                  "value": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "time",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 200
+            },
+            "unit": {
+              "type": "string",
+              "enum": [
+                "kW",
+                "percent",
+                "seconds",
+                "events_per_second",
+                "count"
+              ]
+            },
+            "threshold": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "missing_intervals": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TimeRange"
+              },
+              "maxItems": 200
+            },
+            "queried_at": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "points",
+            "unit",
+            "threshold",
+            "missing_intervals",
+            "queried_at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "get_trace_summaryArguments": {
+      "type": "object",
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "correlation_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "trace_id"
+          ],
+          "not": {
+            "required": [
+              "correlation_id"
+            ]
+          }
+        },
+        {
+          "required": [
+            "correlation_id"
+          ],
+          "not": {
+            "required": [
+              "trace_id"
+            ]
+          }
+        }
+      ]
+    },
+    "get_trace_summaryCall": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "tool": {
+          "const": "get_trace_summary"
+        },
+        "arguments": {
+          "$ref": "#/$defs/get_trace_summaryArguments"
+        }
+      },
+      "required": [
+        "schema_version",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "get_trace_summaryEvidence": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_type": {
+          "const": "get_trace_summary"
+        },
+        "source_version": {
+          "$ref": "#/$defs/Id"
+        },
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "TRANSFORMER",
+            "ACTION",
+            "STREAM",
+            "METRIC",
+            "TRACE"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "deep_link": {
+          "type": "string",
+          "pattern": "^/((transformers|actions|investigations)/[A-Za-z0-9._:-]+|system)$"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "spans": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "service": {
+                    "$ref": "#/$defs/Id"
+                  },
+                  "span": {
+                    "$ref": "#/$defs/Id"
+                  },
+                  "duration_ms": {
+                    "type": "number",
+                    "minimum": 0,
+                    "x-unit": "milliseconds"
+                  },
+                  "error_category": {
+                    "type": "string",
+                    "enum": [
+                      "NONE",
+                      "TIMEOUT",
+                      "DEPENDENCY",
+                      "VALIDATION",
+                      "FORBIDDEN"
+                    ]
+                  },
+                  "retry_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "start": {
+                    "$ref": "#/$defs/Timestamp"
+                  },
+                  "end": {
+                    "$ref": "#/$defs/Timestamp"
+                  }
+                },
+                "required": [
+                  "service",
+                  "span",
+                  "duration_ms",
+                  "error_category",
+                  "retry_count",
+                  "start",
+                  "end"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 200
+            }
+          },
+          "required": [
+            "spans"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "source_type",
+        "source_version",
+        "entity_type",
+        "entity_id",
+        "observed_at",
+        "freshness",
+        "truncated",
+        "deep_link",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "ToolResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              },
+              "minItems": 1,
+              "maxItems": 200
+            }
+          },
+          "required": [
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/ToolError"
+            }
+          },
+          "required": [
+            "error"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Claim": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "text",
+        "evidence_ids"
+      ],
+      "additionalProperties": false
+    },
+    "AgentDraft": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Claim"
+          },
+          "maxItems": 30
+        },
+        "hypotheses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Id"
+                },
+                "maxItems": 200
+              }
+            },
+            "required": [
+              "text",
+              "evidence_ids"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 30
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 30
+        },
+        "recommended_next_steps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 30
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "maxItems": 200,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "schema_version",
+        "summary",
+        "observations",
+        "hypotheses",
+        "unknowns",
+        "recommended_next_steps",
+        "evidence_ids"
+      ],
+      "additionalProperties": false
+    },
+    "InvestigationCreate": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "transformer_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "action_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "start": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "end": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "question"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "transformer_id"
+          ]
+        },
+        {
+          "required": [
+            "action_id"
+          ]
+        }
+      ]
+    },
+    "Investigation": {
+      "type": "object",
+      "properties": {
+        "investigation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "$ref": "#/$defs/InvestigationStatus"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentDraft"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 200
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "provider_mode": {
+          "const": "MOCK"
+        },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "tool_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "model_turns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "elapsed_ms": {
+              "type": "number",
+              "minimum": 0,
+              "x-unit": "milliseconds"
+            }
+          },
+          "required": [
+            "tool_calls",
+            "model_turns",
+            "elapsed_ms"
+          ],
+          "additionalProperties": false
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "investigation_id",
+        "status",
+        "result",
+        "evidence",
+        "freshness",
+        "provider_mode",
+        "usage",
+        "updated_at"
+      ],
+      "additionalProperties": false
+    },
+    "Overview": {
+      "type": "object",
+      "properties": {
+        "transformer_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_net_load_kw": {
+          "type": "number",
+          "x-unit": "kW"
+        },
+        "highest_risk": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Transformer"
+          },
+          "maxItems": 20
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "transformer_count",
+        "critical_count",
+        "total_net_load_kw",
+        "highest_risk",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "TransformerPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Transformer"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "DeviceViewPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeviceView"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "AlertPayloadPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AlertPayload"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "ActionPayloadPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionPayload"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "LoadPayloadPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LoadPayload"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioRunPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScenarioRun"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "freshness"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioCatalog": {
+      "type": "object",
+      "properties": {
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScenarioStart/properties/scenario"
+          },
+          "maxItems": 200
+        },
+        "active_run": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScenarioRun"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "scenarios",
+        "active_run"
+      ],
+      "additionalProperties": false
+    },
+    "SseEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "transformer.updated"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Transformer"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "alert.opened"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/AlertPayload"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "alert.updated"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/AlertPayload"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "action.updated"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/ActionPayload"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "device.updated"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/DeviceView"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "scenario.updated"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/ScenarioRun"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "system.health"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Health"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "snapshot.required"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Health"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.started"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.tool_started"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            },
+            "tool": {
+              "type": "string",
+              "enum": [
+                "get_transformer_snapshot",
+                "get_load_history",
+                "get_action_timeline",
+                "get_command_results",
+                "get_stream_health",
+                "get_metric_window",
+                "get_trace_summary"
+              ]
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload",
+            "tool"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.tool_completed"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            },
+            "tool": {
+              "type": "string",
+              "enum": [
+                "get_transformer_snapshot",
+                "get_load_history",
+                "get_action_timeline",
+                "get_command_results",
+                "get_stream_health",
+                "get_metric_window",
+                "get_trace_summary"
+              ]
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload",
+            "tool"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.partial"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.completed"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.failed"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "$ref": "#/$defs/Id"
+            },
+            "event_type": {
+              "const": "investigation.cancelled"
+            },
+            "entity_id": {
+              "$ref": "#/$defs/Id"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_time": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "payload": {
+              "$ref": "#/$defs/Investigation"
+            }
+          },
+          "required": [
+            "cursor",
+            "event_type",
+            "entity_id",
+            "version",
+            "event_time",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "x-events": {
+    "grid.telemetry.v1": "Telemetry",
+    "grid.transformer-load.v1": "Load",
+    "grid.alert.v1": "Alert",
+    "grid.action.v1": "Action",
+    "grid.charger-command.v1": "Command",
+    "grid.command-result.v1": "Result",
+    "grid.telemetry.late.v1": "Late",
+    "grid.telemetry.dlq.v1": "Dlq"
+  }
+}

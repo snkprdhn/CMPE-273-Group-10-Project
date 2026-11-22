@@ -1,0 +1,569 @@
+[
+  {
+    "name": "evidence grounded snapshot",
+    "call": {
+      "schema_version": 1,
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-001"
+      }
+    },
+    "context": {
+      "investigation_id": "tx-001",
+      "actor_id": "tx-001",
+      "roles": [
+        "Operator"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    },
+    "now": "2026-11-09T18:30:01Z",
+    "result": {
+      "evidence": [
+        {
+          "schema_version": 1,
+          "evidence_id": "evidence-001",
+          "source_type": "get_transformer_snapshot",
+          "source_version": "tx-001",
+          "entity_type": "TRANSFORMER",
+          "entity_id": "tx-001",
+          "observed_at": "2026-11-09T18:30:01Z",
+          "freshness": "FRESH",
+          "truncated": false,
+          "deep_link": "/system",
+          "data": {
+            "transformer_id": "tx-001",
+            "state": "NORMAL",
+            "load": {
+              "transformer_id": "tx-001",
+              "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+              "window_start": "2026-11-09T18:30:00Z",
+              "window_end": "2026-11-09T18:30:05Z",
+              "revision": 0,
+              "topology_version": "topology-001",
+              "meter_demand_kw": 10,
+              "ev_demand_kw": 7,
+              "solar_generation_kw": 2,
+              "net_load_kw": 15,
+              "capacity_kw": 100,
+              "utilization_pct": 15,
+              "expected_device_count": 3,
+              "good_device_count": 3,
+              "estimated_device_count": 0,
+              "missing_device_count": 0,
+              "late_event_count": 0,
+              "quality_flags": [],
+              "completeness": "COMPLETE"
+            },
+            "policy": {
+              "version": 1,
+              "warning_pct": 80,
+              "critical_pct": 95,
+              "recovery_pct": 75,
+              "cooldown_seconds": 30,
+              "recovery_windows": 2,
+              "command_ttl_seconds": 10,
+              "ack_timeout_seconds": 5
+            },
+            "freshness": "FRESH",
+            "data_age_seconds": 0
+          }
+        }
+      ]
+    },
+    "draft": {
+      "schema_version": 1,
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    },
+    "expected_arguments": {
+      "transformer_id": "tx-001"
+    }
+  },
+  {
+    "name": "unauthorized entity",
+    "call": {
+      "schema_version": 1,
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-999"
+      }
+    },
+    "context": {
+      "investigation_id": "tx-001",
+      "actor_id": "tx-001",
+      "roles": [
+        "Operator"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    },
+    "now": "2026-11-09T18:30:01Z",
+    "result": {
+      "evidence": [
+        {
+          "schema_version": 1,
+          "evidence_id": "evidence-001",
+          "source_type": "get_transformer_snapshot",
+          "source_version": "tx-001",
+          "entity_type": "TRANSFORMER",
+          "entity_id": "tx-001",
+          "observed_at": "2026-11-09T18:30:01Z",
+          "freshness": "FRESH",
+          "truncated": false,
+          "deep_link": "/system",
+          "data": {
+            "transformer_id": "tx-001",
+            "state": "NORMAL",
+            "load": {
+              "transformer_id": "tx-001",
+              "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+              "window_start": "2026-11-09T18:30:00Z",
+              "window_end": "2026-11-09T18:30:05Z",
+              "revision": 0,
+              "topology_version": "topology-001",
+              "meter_demand_kw": 10,
+              "ev_demand_kw": 7,
+              "solar_generation_kw": 2,
+              "net_load_kw": 15,
+              "capacity_kw": 100,
+              "utilization_pct": 15,
+              "expected_device_count": 3,
+              "good_device_count": 3,
+              "estimated_device_count": 0,
+              "missing_device_count": 0,
+              "late_event_count": 0,
+              "quality_flags": [],
+              "completeness": "COMPLETE"
+            },
+            "policy": {
+              "version": 1,
+              "warning_pct": 80,
+              "critical_pct": 95,
+              "recovery_pct": 75,
+              "cooldown_seconds": 30,
+              "recovery_windows": 2,
+              "command_ttl_seconds": 10,
+              "ack_timeout_seconds": 5
+            },
+            "freshness": "FRESH",
+            "data_age_seconds": 0
+          }
+        }
+      ]
+    },
+    "draft": {
+      "schema_version": 1,
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    },
+    "error": "OUT_OF_SCOPE"
+  },
+  {
+    "name": "viewer denied",
+    "call": {
+      "schema_version": 1,
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-001"
+      }
+    },
+    "context": {
+      "investigation_id": "tx-001",
+      "actor_id": "tx-001",
+      "roles": [
+        "Viewer"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    },
+    "now": "2026-11-09T18:30:01Z",
+    "result": {
+      "evidence": [
+        {
+          "schema_version": 1,
+          "evidence_id": "evidence-001",
+          "source_type": "get_transformer_snapshot",
+          "source_version": "tx-001",
+          "entity_type": "TRANSFORMER",
+          "entity_id": "tx-001",
+          "observed_at": "2026-11-09T18:30:01Z",
+          "freshness": "FRESH",
+          "truncated": false,
+          "deep_link": "/system",
+          "data": {
+            "transformer_id": "tx-001",
+            "state": "NORMAL",
+            "load": {
+              "transformer_id": "tx-001",
+              "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+              "window_start": "2026-11-09T18:30:00Z",
+              "window_end": "2026-11-09T18:30:05Z",
+              "revision": 0,
+              "topology_version": "topology-001",
+              "meter_demand_kw": 10,
+              "ev_demand_kw": 7,
+              "solar_generation_kw": 2,
+              "net_load_kw": 15,
+              "capacity_kw": 100,
+              "utilization_pct": 15,
+              "expected_device_count": 3,
+              "good_device_count": 3,
+              "estimated_device_count": 0,
+              "missing_device_count": 0,
+              "late_event_count": 0,
+              "quality_flags": [],
+              "completeness": "COMPLETE"
+            },
+            "policy": {
+              "version": 1,
+              "warning_pct": 80,
+              "critical_pct": 95,
+              "recovery_pct": 75,
+              "cooldown_seconds": 30,
+              "recovery_windows": 2,
+              "command_ttl_seconds": 10,
+              "ack_timeout_seconds": 5
+            },
+            "freshness": "FRESH",
+            "data_age_seconds": 0
+          }
+        }
+      ]
+    },
+    "draft": {
+      "schema_version": 1,
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    },
+    "error": "FORBIDDEN"
+  },
+  {
+    "name": "deadline boundary",
+    "call": {
+      "schema_version": 1,
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-001"
+      }
+    },
+    "context": {
+      "investigation_id": "tx-001",
+      "actor_id": "tx-001",
+      "roles": [
+        "Operator"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    },
+    "now": "2026-11-09T18:30:59Z",
+    "result": {
+      "evidence": [
+        {
+          "schema_version": 1,
+          "evidence_id": "evidence-001",
+          "source_type": "get_transformer_snapshot",
+          "source_version": "tx-001",
+          "entity_type": "TRANSFORMER",
+          "entity_id": "tx-001",
+          "observed_at": "2026-11-09T18:30:01Z",
+          "freshness": "FRESH",
+          "truncated": false,
+          "deep_link": "/system",
+          "data": {
+            "transformer_id": "tx-001",
+            "state": "NORMAL",
+            "load": {
+              "transformer_id": "tx-001",
+              "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+              "window_start": "2026-11-09T18:30:00Z",
+              "window_end": "2026-11-09T18:30:05Z",
+              "revision": 0,
+              "topology_version": "topology-001",
+              "meter_demand_kw": 10,
+              "ev_demand_kw": 7,
+              "solar_generation_kw": 2,
+              "net_load_kw": 15,
+              "capacity_kw": 100,
+              "utilization_pct": 15,
+              "expected_device_count": 3,
+              "good_device_count": 3,
+              "estimated_device_count": 0,
+              "missing_device_count": 0,
+              "late_event_count": 0,
+              "quality_flags": [],
+              "completeness": "COMPLETE"
+            },
+            "policy": {
+              "version": 1,
+              "warning_pct": 80,
+              "critical_pct": 95,
+              "recovery_pct": 75,
+              "cooldown_seconds": 30,
+              "recovery_windows": 2,
+              "command_ttl_seconds": 10,
+              "ack_timeout_seconds": 5
+            },
+            "freshness": "FRESH",
+            "data_age_seconds": 0
+          }
+        }
+      ]
+    },
+    "draft": {
+      "schema_version": 1,
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    },
+    "error": "DEADLINE_EXCEEDED"
+  },
+  {
+    "name": "trace not in evidence",
+    "call": {
+      "schema_version": 1,
+      "tool": "get_trace_summary",
+      "arguments": {
+        "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "context": {
+      "investigation_id": "tx-001",
+      "actor_id": "tx-001",
+      "roles": [
+        "Operator"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    },
+    "now": "2026-11-09T18:30:01Z",
+    "result": {
+      "evidence": [
+        {
+          "schema_version": 1,
+          "evidence_id": "evidence-001",
+          "source_type": "get_transformer_snapshot",
+          "source_version": "tx-001",
+          "entity_type": "TRANSFORMER",
+          "entity_id": "tx-001",
+          "observed_at": "2026-11-09T18:30:01Z",
+          "freshness": "FRESH",
+          "truncated": false,
+          "deep_link": "/system",
+          "data": {
+            "transformer_id": "tx-001",
+            "state": "NORMAL",
+            "load": {
+              "transformer_id": "tx-001",
+              "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+              "window_start": "2026-11-09T18:30:00Z",
+              "window_end": "2026-11-09T18:30:05Z",
+              "revision": 0,
+              "topology_version": "topology-001",
+              "meter_demand_kw": 10,
+              "ev_demand_kw": 7,
+              "solar_generation_kw": 2,
+              "net_load_kw": 15,
+              "capacity_kw": 100,
+              "utilization_pct": 15,
+              "expected_device_count": 3,
+              "good_device_count": 3,
+              "estimated_device_count": 0,
+              "missing_device_count": 0,
+              "late_event_count": 0,
+              "quality_flags": [],
+              "completeness": "COMPLETE"
+            },
+            "policy": {
+              "version": 1,
+              "warning_pct": 80,
+              "critical_pct": 95,
+              "recovery_pct": 75,
+              "cooldown_seconds": 30,
+              "recovery_windows": 2,
+              "command_ttl_seconds": 10,
+              "ack_timeout_seconds": 5
+            },
+            "freshness": "FRESH",
+            "data_age_seconds": 0
+          }
+        }
+      ]
+    },
+    "draft": {
+      "schema_version": 1,
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    },
+    "error": "OUT_OF_SCOPE"
+  }
+]

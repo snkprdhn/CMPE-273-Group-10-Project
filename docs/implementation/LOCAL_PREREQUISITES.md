@@ -136,3 +136,20 @@ The larger review profile requires changing Desktop settings to 8 CPUs/10 GiB an
 ## Deferred implementation gates
 
 This environment does not establish application behavior. PyFlink's native Linux ARM64 source build/import/checkpoint test remains pending; no host JDK is needed. Application/component venvs, full dependency locks, infrastructure charts/operators, policy-capable Calico networking, volume read/write/recovery, and the closed-loop system belong to later milestones. Default kind networking is not NetworkPolicy enforcement evidence.
+
+## Contract milestone tooling
+
+The latest read-only inventory confirms the same hardware/tool versions and running kind baseline; 258 GiB disk was available and the free-memory snapshot was 36%. Node.js is absent; Java's system launcher reports no installed runtime. They remain unnecessary. No system software/runtime configuration was changed during contract implementation.
+
+Install only the separate locked contract tooling with the existing project interpreter:
+
+```sh
+.venv/bin/python -m venv .tools/contracts-venv
+.tools/contracts-venv/bin/python -m pip install --cache-dir .tools/pip-cache --only-binary=:all: --require-hashes -r requirements-contracts.txt
+.tools/contracts-venv/bin/python -m pip check
+make contracts
+make bindings
+make contracts BASE_REF=HEAD
+```
+
+These commands have been executed locally. A clean second ignored venv also installed this lock offline from hash-verified wheels and passed. `make` is the existing macOS/standard-runner entry point; if unavailable, run `.tools/contracts-venv/bin/python tools/contracts.py` directly. Bindings/descriptors go to `.tools/generated`; two capability definitions in the bundle are generated from the canonical Protobuf. No global pip, host compiler/JDK, or application framework is needed. See [the executable bundle](../../schemas/README.md). Standard Ubuntu CI uses the same Python version and lock; Mac-only preparation checks are separate. The existing preparation lock remains platform-specific, while the contract lock includes the published wheel hashes needed by both selected validation platforms.

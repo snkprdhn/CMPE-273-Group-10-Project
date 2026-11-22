@@ -1,70 +1,51 @@
 # Implementation status
 
-Rechecked **2026-11-21 19:58 PST (America/Los_Angeles)** after the user-authorized Docker Desktop/virtual-environment setup. One computer implements all workstreams; Member_1 through Member_4 ownership is preserved.
+Updated **2026-11-21 (America/Los_Angeles)** after the executable-contract milestone. Member_1 through Member_4 ownership is preserved. No application services have been scaffolded.
 
 ## Completed milestones
 
-| Milestone | Verified result | Commands/evidence |
+| Milestone | Result | Evidence |
 |---|---|---|
-| Repository preparation and decisions | Python application/containerized infrastructure boundary, accepted matrix, ADRs, prerequisites, root AGENTS.md; no application scaffold | [ADRs](../decisions/README.md), [matrix](VERSION_MATRIX.md), documentation checks |
-| Local prerequisites and empty development environment | Docker Desktop reused/started/configured, built-in Kubernetes disabled; isolated Python 3.12.9 venv and locked preparation packages; verified native tools; empty local kind 1.34.0 cluster | Exact commands/results/digests in [PREPARATION_VERIFICATION.md](PREPARATION_VERIFICATION.md); commands below |
+| Repository/machine preparation | Accepted small Python/container stack, ADRs, manual prerequisites, resource profiles and root conventions | [Matrix](VERSION_MATRIX.md), [prerequisites](LOCAL_PREREQUISITES.md), [preparation evidence](PREPARATION_VERIFICATION.md) |
+| Existing local prerequisites/empty cluster | Managed Python 3.12.9, isolated preparation venv, pinned native tools, Docker Desktop with built-in Kubernetes disabled, empty kind Kubernetes 1.34.0 | Read-only inventory reconfirmed below; earlier setup commands/digests retained in preparation evidence |
+| Executable contract bundle v1 | Eight Kafka events; canonical topology, REST/internal/SSE and seven agent-tool/evidence/output schemas; Registry proto; versioned examples and fixed golden scenarios; compatibility tests and Ubuntu CI workflow | [Bundle](../../schemas/README.md), [ADR-025](../decisions/ADR-025-executable-contract-freeze.md), `make contracts` |
 
-## Current verified checklist
+## Current milestone and verification
 
-- [x] Existing Git 2.54.0 and Docker Desktop 4.99.0 verified. Engine 29.9.3 / CLI 29.8.0 API 1.56 communicate on `desktop-linux`, Linux ARM64.
-- [x] Desktop development settings: 4 CPUs, 6144 MiB configured RAM; engine reports 6,210,510,848 usable guest bytes. Built-in Kubernetes **disabled**. Colima stays stopped.
-- [x] Managed CPython **3.12.9** downloaded to ignored `.tools/python`; project `.venv` has isolated prefix and ARM64 interpreter. No global Python packages installed.
-- [x] kind **0.30.0**, kubectl **1.34.0**, Helm **3.19.0** installed into `.venv/bin` from official checksum-verified artifacts; activation selects these versions. Bundled Kustomize **5.7.1** verified.
-- [x] pytest **8.3.5**, jsonschema **4.23.0**, and eight transitive distributions installed only in `.venv`. [requirements-dev.txt](../../requirements-dev.txt) pins all ten versions/wheel hashes; hash-checked download and `pip check` pass.
-- [x] Network-isolated pinned Python 3.12.9 ARM64 Docker diagnostic container runs and is automatically removed. Locally tagged `smart-grid/prerequisite-smoke:3.12.9` loads into kind successfully; node image-store inspection confirms it is present.
-- [x] Empty **smart-grid-dev** kind cluster created from pinned 1.34.0 image. `kind-smart-grid-dev` API `/readyz` returns `ok`; one control-plane node Ready; all nine system pods Running with zero restarts at verification.
-- [x] Default `standard` StorageClass/local-path provisioner registered. This does **not** verify PVC read/write or recovery.
-- [x] Ten local documentation/environment tests pass; `git diff --check` and venv `pip check` pass. `.venv` and `.tools` are ignored.
-- [ ] PVC provision/read/write/recovery; workload DNS and enforced NetworkPolicy allow-deny tests. Current kind cluster uses default networking.
-- [ ] Infrastructure chart/operator installs, project overlays, application/component environments, PyFlink native ARM64 source build/import/checkpoint tests, and closed-loop behavior.
-- [ ] Larger 8-CPU/10-GiB review-profile resource fit and all performance claims.
+**Requested preparation and executable-contract work is complete locally.** No system software was installed, Docker settings/cluster resources were not changed, and no cloud resources or external model calls were made. Contract authoring made no commits or pushes; the user subsequently authorized verification, committing and pushing these changes to main. Only pinned Python contract tools were installed into ignored component venvs. The existing `.venv` preparation tools remain intact.
 
-## Latest prerequisite recheck
+Executed evidence:
 
-All 15 read-only tool/runtime/capacity probes exited 0. The cached, network-isolated Python diagnostic container and the existing kind image-store check also passed. Installed native payloads match the previously checksum-verified releases; all ten preparation distributions match the lock, reside inside the venv, and have matching cached wheel hashes (**14 offline integrity checks passed**). System site-packages are disabled. Ten tests, `pip check`, and `git diff --check` pass. No version change or repair was needed in the tested prerequisite layer.
+| Exact command / check | Result |
+|---|---|
+| `uname -m`; `sysctl -n hw.memsize hw.ncpu machdep.cpu.brand_string`; `df -h .`; `memory_pressure` | ARM64 Apple M5, 10 cores, 17,179,869,184 bytes RAM; 258 GiB disk available; 36% free-memory snapshot. sysctl required approved host access after sandbox denial. |
+| `git --version`; `.venv/bin/python --version`; `.venv/bin/kind version`; `.venv/bin/kubectl version --client`; `.venv/bin/helm version --short` | Git 2.54.0; CPython 3.12.9; kind 0.30.0; kubectl 1.34.0/Kustomize 5.7.1; Helm 3.19.0 |
+| `python3 --version`; `command -v node`; `node --version`; `command -v java`; `java -version`; `colima version`; `colima status` | Global Python 3.14.7 preserved; Node absent; Java launcher present but no runtime; Colima 0.10.3 installed/stopped. Node/Java/Colima are not selected prerequisites. |
+| `docker version`; `docker info --format '{{.Architecture}} {{.NCPU}} {{.MemTotal}}'`; `docker desktop kubernetes status`; `.venv/bin/kubectl --context kind-smart-grid-dev get nodes` | Desktop 4.99.0, CLI 29.8.0, Engine 29.9.3; Linux ARM64, 4 CPUs, 6,210,510,848 usable guest bytes; built-in Kubernetes disabled; existing project node Ready/v1.34.0. Docker socket checks required approved host access after sandbox denial. |
+| `.tools/contracts-venv/bin/python -m pip download --cache-dir .tools/pip-cache --only-binary=:all: --require-hashes -r requirements-contracts.txt --dest .tools/contract-wheels-macos` | All 27 locked distributions have hash-verified compatible wheels |
+| Same download with `--dest .tools/contract-wheels-linux --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64 --platform manylinux2014_x86_64 --implementation cp --python-version 3.12 --abi cp312 --abi abi3 --abi none` | All 27 Linux x86_64 wheel artifacts resolved and verified; not a Linux execution claim |
+| `.venv/bin/python -m venv .tools/contracts-lock-check`; `.tools/contracts-lock-check/bin/python -m pip install --no-index --find-links .tools/contract-wheels-macos --only-binary=:all: --require-hashes -r requirements-contracts.txt`; `.tools/contracts-lock-check/bin/python -m pip check`; `.tools/contracts-lock-check/bin/python tools/contracts.py` | Clean offline hash-checked installation and pip check passed; full contract suite passed at that checkpoint (195 checks before final additional cases) |
+| `make contracts`; `make bindings`; `make contracts BASE_REF=HEAD` | Final suite: **212 checks pass**; OpenAPI/schema validation, Protobuf compilation and generated capability consistency pass. Git HEAD has no executable v1 baseline: explicitly reported as initial freeze; deliberate incompatible JSON, OpenAPI and Protobuf changes are detected. |
+| `.tools/contracts-venv/bin/python -m pip check` | No broken requirements |
+| `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py`; `git diff --check` | **10 checks pass**; whitespace check passes |
 
-Current capacity snapshot: **258 GiB available disk**, **32% macOS free-memory metric**, 16 GiB total RAM. These observations are not review-profile or performance evidence. Application dependency metadata was not re-fetched, and no pending application/infrastructure gate was marked complete. [Exact rerun commands/results](PREPARATION_VERIFICATION.md#prerequisite-recheck--2026-11-21-1958-pst-latest).
+The bundle contains **77 valid JSON examples, 76 invalid JSON examples with precise expected failure reasons, six valid/four invalid Registry examples, 17 stream/control golden scenarios and five agent authorization/evidence scenarios**. It covers stable UUID identities, UTC times, kW signs, partition keys, duplicates, out-of-order samples, exact window/watermark/lateness/freshness/completeness boundaries, corrected histories, checkpoint-output replay, stale/missing capacity, expiry, epochs, scoped read-only tools and evidence grounding. The reference replay is an executable specification, not production aggregation/control code.
 
-## Current milestone
+## Decisions and limitations
 
-**Requested local environment setup is complete at the prerequisite/empty-cluster level.** Docker Desktop and `smart-grid-dev` are left running for local inspection. No application services, operator stacks, cloud resources, or paid API calls were created. The user subsequently authorized committing and pushing the verified preparation changes; publication state is recorded by Git history and the remote branch. Existing global tools, Colima profile, Docker data, and earlier uncommitted repository work were preserved.
+- [ADR-002](../decisions/ADR-002-python-stream-processing.md), [ADR-004](../decisions/ADR-004-python-dashboard.md), [ADR-006](../decisions/ADR-006-local-kind.md) and [ADR-024](../decisions/ADR-024-pinned-local-baseline.md) remain accepted: PyFlink 2.2.1/Python 3.12.9, NiceGUI, container-only JVMs, Docker Desktop/local kind. Upstream Flink/Helm compatibility was rechecked; full application metadata was not re-resolved. No host Java/Maven/Node/npm is required.
+- [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) fixes Registry pagination/errors/deadlines, stable window/load UUIDs, corrected-window semantics, command expiry/fencing, control policy defaults, OIDC realm/client/role names, REST/internal errors/idempotency, SSE replay, and agent scope/budgets. The system-design recovery proposal is now accepted at **75% for two fresh COMPLETE windows**. No blocking choice remains in this contract milestone.
+- The new independent compiler/validator environment has a portable hashed lock. Application packages remain independently scoped; no PyFlink/Beam dependencies were merged into it.
+- CI workflow is authored for standard GitHub Ubuntu runners and its local command sequence passes. Hosted CI results are tracked by GitHub Actions for the published commit; local checks are not a hosted-run claim. The compatibility gate deliberately rejects some safe changes and cannot detect arbitrary changes in business meaning; producer/consumer review remains required.
+- PyFlink native Linux ARM64 source build/import/checkpoint proof, real Kafka ordering/recovery, persistent device effects/fencing, actual Registry/OIDC authorization, SSE delivery, policy state machines, full-stack behavior, CNI allow/deny tests and PVC I/O/recovery remain unverified. The empty cluster does not establish them.
+- Lightweight development remains 4 CPUs/6 GiB VM; staged review remains 8 CPUs/10 GiB on this 16 GiB host. Larger-profile fit, performance, security scans and application/chart/image artifact gates remain unmeasured. Licensing remains the owner's decision before public release.
 
-Use a virtual environment for all Python work. Start each terminal with:
+## Next milestone
 
-```sh
-source .venv/bin/activate
-export PIP_REQUIRE_VIRTUALENV=true
-export PIP_CACHE_DIR="$PWD/.tools/pip-cache"
-python -m pip check
-python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py
-kubectl --context kind-smart-grid-dev get nodes
-```
+**Repository foundation and component packaging**, starting with native ARM64 PyFlink build/import/checkpoint proof and independently locked component environments. Add only the owning component's required dependencies, configuration, CI and fixtures; keep cloud and external model integrations deferred. Later components must run the frozen fixtures against real implementations. This does not claim the master guide's entire Phase 0/foundation or an application deployment complete.
 
-Docker/Kubernetes commands may need approved host access from Codex's sandbox; a socket-permission denial is distinct from a runtime failure. Full activation/recreation instructions are in [LOCAL_PREREQUISITES.md](LOCAL_PREREQUISITES.md).
+## Prepublication verification — 2026-11-21
 
-## Decisions and resolved contradictions
+The user authorized verification and a normal push to `main`. `git fetch origin main` succeeded and `git rev-list --left-right --count origin/main...HEAD` returned `0 0` before creating the contract commit. Review found and fixed two validator edge cases: compatibility now compares JSON value types recursively (including booleans inside arrays), and load/unit checks enforce the documented absolute 1e-9 tolerance without relative tolerance. Four regression cases failed before the fixes and pass afterward.
 
-- [ADR-006](../decisions/ADR-006-local-kind.md): **Docker Desktop supersedes Colima** by explicit user choice. kind remains the project target, Desktop Kubernetes stays off, cloud is deferred, and deterministic model mocks are required.
-- [ADR-024](../decisions/ADR-024-pinned-local-baseline.md): always use venvs; native tool binaries are colocated in `.venv/bin` because they are not pip packages. uv 0.9.11 was used only in an ephemeral bootstrap venv to download exact Python without system installation. `.python-version` and hashed preparation requirements record the baseline.
-- [ADR-002](../decisions/ADR-002-python-stream-processing.md): PyFlink 2.2.1/Python 3.12.9, no authored Java or host JDK; native Linux ARM64 source build remains a future packaging gate.
-- [ADR-004](../decisions/ADR-004-python-dashboard.md): NiceGUI 3.19.0 replaces React/TypeScript. Compatible selected metadata pins: FastAPI 0.165.0, Starlette 1.10.0, Pydantic 2.14.4/core 2.50.5. Those application libraries are **not installed or fully resolved** here. API SSE remains canonical; UI bridges to NiceGUI's built-in browser transport.
-- Member_1 through Member_4 remain ownership boundaries. Preserve independent component venvs/tests/stores when application implementation starts.
-- Stream semantics remain five-second windows, ten-second watermarks, and thirty-second inclusive correction limits. The conflicting old eight-second latency target was withdrawn pending measurement. Large-scale targets and larger review settings remain unmeasured.
-- OTel Collector uses its direct Helm chart; no OTel Operator/cert-manager/database operator added. Future security profile requires Calico with default CNI disabled.
-
-## Known limitations
-
-The empty cluster is not an application implementation or a full infrastructure deployment. Default storage registration is not persistence/recovery proof. No application schemas were implemented, no model/provider integration exists, and no full-stack load/resource/security claims are verified. The PyFlink Linux ARM64 wheel is absent upstream; source build is selected but untested. NiceGUI sessions require sticky routing/reconnect tests before multi-replica UI claims. Repository license remains an owner decision before public release.
-
-Docker Desktop disk-image capacity was preserved; 40/80-GiB figures are project disk-use budgets, not a disk resize. Resource review uses one Desktop VM with changed limits, not concurrent Colima/Desktop VMs. Existing settings were backed up in ignored `.tools` before applying targeted resource/Kubernetes changes.
-
-## Next recommended milestone
-
-**Contract freeze and executable schemas/fixtures**, runnable inside a Python venv without application services: JSON Schema/events including DLQ/late cases, topology fixtures, Protobuf, OpenAPI/SSE, and agent tool/evidence contracts with valid/invalid golden cases and compatibility tests. Resolve detailed Action/auth defaults there. Keep PyFlink image/source-build proof before calling the aggregation slice runnable. This does not complete the master guide's entire Phase 0.
-
-Ownership: Member_1 device/topology/gRPC fixtures; Member_2 telemetry/load/stream semantics; Member_3 command/control/saga fixtures; Member_4 API/SSE/auth/UI/agent fixtures.
+Executed `make contracts BASE_REF=origin/main` (**212 passed**), `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py` (**10 passed**), `.tools/contracts-venv/bin/python -m pip check` (no broken requirements), and `git diff --check` (passed). Publication state is recorded in Git history and GitHub Actions; no force push is authorized or needed.

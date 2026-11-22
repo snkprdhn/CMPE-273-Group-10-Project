@@ -1,6 +1,8 @@
 # Event Contracts
 
-This document is the canonical human-readable Kafka contract. Machine-readable JSON Schemas and examples will be versioned under `schemas/` and validated in CI during implementation. A runtime schema registry is intentionally excluded. Protocol Buffers remain limited to the gRPC interface.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+
+This document describes the Kafka contract. Canonical machine-readable JSON Schemas and examples are versioned under `schemas/v1/` and checked by contract CI. A runtime schema registry is intentionally excluded. Protocol Buffers remain limited to the gRPC interface.
 
 ## Common envelope
 

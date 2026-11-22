@@ -1,0 +1,3586 @@
+[
+  {
+    "name": "normal meter EV solar",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "duplicate event id",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 1,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "out of order latest per device",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "233f9525-24aa-5ac5-bd3c-44c8bdf3432a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:04Z",
+          "ingested_at": "2026-11-09T18:30:04Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 9,
+            "quality": "GOOD",
+            "sequence_number": 2
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "8d542453-e9f1-5ca1-8f2e-0c2a477f1d3a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:05Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 4,
+            "quality": "GOOD",
+            "sequence_number": 3
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 9,
+            "solar_generation_kw": 2,
+            "net_load_kw": 17,
+            "capacity_kw": 100,
+            "utilization_pct": 17,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "estimated reading",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cd356799-f74f-5af4-85ba-b12e53987800",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "ESTIMATED",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 2,
+            "estimated_device_count": 1,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [
+              "ESTIMATED"
+            ],
+            "completeness": "PARTIAL"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "missing readings stale",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 0,
+            "net_load_kw": 17,
+            "capacity_kw": 100,
+            "utilization_pct": 17,
+            "expected_device_count": 3,
+            "good_device_count": 2,
+            "estimated_device_count": 0,
+            "missing_device_count": 1,
+            "late_event_count": 0,
+            "quality_flags": [
+              "MISSING_DEVICES"
+            ],
+            "completeness": "STALE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "invalid quality DLQ",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "5a77ee84-2762-5cf4-9eb8-44947f2b27c0",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:04Z",
+          "ingested_at": "2026-11-09T18:30:04Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "INVALID",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.telemetry.dlq.v1",
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 1,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "exact window end belongs next",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "63a5a081-5b0c-5856-8088-312fccdefd1b",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:05Z",
+          "ingested_at": "2026-11-09T18:30:05Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 99,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "inclusive correction at end plus thirty",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "233f9525-24aa-5ac5-bd3c-44c8bdf3432a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:04Z",
+          "ingested_at": "2026-11-09T18:30:35Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 9,
+            "quality": "GOOD",
+            "sequence_number": 2
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:35Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1",
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        {
+          "event_id": "9f7327be-c232-5424-8509-1dcad71ebd5f",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 1,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 9,
+            "solar_generation_kw": 2,
+            "net_load_kw": 17,
+            "capacity_kw": 100,
+            "utilization_pct": 17,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 1,
+            "quality_flags": [
+              "OLD_RESULT"
+            ],
+            "completeness": "STALE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 1
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "beyond correction audit",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "233f9525-24aa-5ac5-bd3c-44c8bdf3432a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:04Z",
+          "ingested_at": "2026-11-09T18:30:36Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 9,
+            "quality": "GOOD",
+            "sequence_number": 2
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:36Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1",
+        "grid.telemetry.late.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 1,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "missing capacity",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": null,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": null,
+            "utilization_pct": null,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [
+              "MISSING_CAPACITY"
+            ],
+            "completeness": "STALE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "old load never controls",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:21Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [
+              "OLD_RESULT"
+            ],
+            "completeness": "STALE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "exact freshness fifteen remains fresh",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:20Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "checkpoint committed replay stable identity",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ebd1fbb1-41dd-5272-8454-fbef94e09589",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:02Z",
+          "ingested_at": "2026-11-09T18:30:02Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "064f4f78-8cf5-5128-9f76-8bb3f38c9b29",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:03Z",
+          "ingested_at": "2026-11-09T18:30:03Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "solar-001",
+            "transformer_id": "tx-001",
+            "device_type": "SOLAR",
+            "boot_id": "boot-001",
+            "power_kw": -2,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      },
+      {
+        "op": "checkpoint_replay",
+        "index": 0
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1",
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        },
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 10,
+            "ev_demand_kw": 7,
+            "solar_generation_kw": 2,
+            "net_load_kw": 15,
+            "capacity_kw": 100,
+            "utilization_pct": 15,
+            "expected_device_count": 3,
+            "good_device_count": 3,
+            "estimated_device_count": 0,
+            "missing_device_count": 0,
+            "late_event_count": 0,
+            "quality_flags": [],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "projection keeps highest correction",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "project",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        }
+      },
+      {
+        "op": "project",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 2,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        }
+      },
+      {
+        "op": "project",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 1,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        }
+      },
+      {
+        "op": "project",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 2,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        }
+      },
+      {
+        "op": "project",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        }
+      }
+    ],
+    "expected": {
+      "topics": [],
+      "loads": [],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {
+        "ad582803-c030-5a73-bcbe-ab851bd1a4f3": 2
+      },
+      "epochs": {}
+    }
+  },
+  {
+    "name": "fencing duplicate expiry and lost response",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "ev-001",
+              "device_type": "EV_CHARGER"
+            },
+            {
+              "device_id": "solar-001",
+              "device_type": "SOLAR"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "command",
+        "event": {
+          "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+          "event_type": "charger.command",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "command_id": "c-1",
+            "action_id": "action-001",
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "command_type": "THROTTLE",
+            "target_rate_kw": 3,
+            "issued_at": "2026-11-09T18:30:01Z",
+            "expires_at": "2026-11-09T18:30:11Z",
+            "reason": "overload",
+            "policy_version": 1,
+            "saga_version": 1,
+            "leader_epoch": 42
+          },
+          "leader_epoch": 42,
+          "saga_version": 1
+        },
+        "now": "2026-11-09T18:30:02Z"
+      },
+      {
+        "op": "command",
+        "event": {
+          "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+          "event_type": "charger.command",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "command_id": "c-1",
+            "action_id": "action-001",
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "command_type": "THROTTLE",
+            "target_rate_kw": 3,
+            "issued_at": "2026-11-09T18:30:01Z",
+            "expires_at": "2026-11-09T18:30:11Z",
+            "reason": "overload",
+            "policy_version": 1,
+            "saga_version": 1,
+            "leader_epoch": 42
+          },
+          "leader_epoch": 42,
+          "saga_version": 1
+        },
+        "now": "2026-11-09T18:30:20Z"
+      },
+      {
+        "op": "command",
+        "event": {
+          "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+          "event_type": "charger.command",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "command_id": "c-2",
+            "action_id": "action-001",
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "command_type": "THROTTLE",
+            "target_rate_kw": 3,
+            "issued_at": "2026-11-09T18:30:01Z",
+            "expires_at": "2026-11-09T18:30:11Z",
+            "reason": "overload",
+            "policy_version": 1,
+            "saga_version": 1,
+            "leader_epoch": 41
+          },
+          "leader_epoch": 41,
+          "saga_version": 1
+        },
+        "now": "2026-11-09T18:30:03Z"
+      },
+      {
+        "op": "command",
+        "event": {
+          "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+          "event_type": "charger.command",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "command_id": "c-3",
+            "action_id": "action-001",
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "command_type": "THROTTLE",
+            "target_rate_kw": 3,
+            "issued_at": "2026-11-09T18:30:01Z",
+            "expires_at": "2026-11-09T18:30:11Z",
+            "reason": "overload",
+            "policy_version": 1,
+            "saga_version": 1,
+            "leader_epoch": 43
+          },
+          "leader_epoch": 43,
+          "saga_version": 1
+        },
+        "now": "2026-11-09T18:30:11Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.command-result.v1",
+        "grid.command-result.v1",
+        "grid.command-result.v1",
+        "grid.command-result.v1"
+      ],
+      "loads": [],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [
+        {
+          "command_id": "c-1",
+          "outcome": "APPLIED",
+          "applied_rate_kw": 3
+        },
+        {
+          "command_id": "c-1",
+          "outcome": "ALREADY_APPLIED",
+          "applied_rate_kw": 3
+        },
+        {
+          "command_id": "c-2",
+          "outcome": "REJECTED",
+          "applied_rate_kw": 3
+        },
+        {
+          "command_id": "c-3",
+          "outcome": "EXPIRED",
+          "applied_rate_kw": 3
+        }
+      ],
+      "projection": {},
+      "epochs": {
+        "ev-001": 42
+      }
+    }
+  },
+  {
+    "name": "exact seventy percent partial",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-000",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-002",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-003",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-004",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-005",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-006",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-007",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-008",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-009",
+              "device_type": "SMART_METER"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "bb232bd4-0dca-57f1-a2ac-24b96b6290fe",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-000",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "3af3c372-b241-5641-889e-991ae54f3d44",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-002",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "1e6eff55-0ccd-5718-a50d-df8cbf11b0d5",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-003",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "e7ff0a4d-1e98-5505-88ec-b51e96215b0a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-004",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "99ead211-47d3-5251-b78d-a8a3a9f9c285",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-005",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "fc7d8416-c3c0-5304-817a-35ee67811264",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-006",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 7,
+            "ev_demand_kw": 0,
+            "solar_generation_kw": 0,
+            "net_load_kw": 7,
+            "capacity_kw": 100,
+            "utilization_pct": 7,
+            "expected_device_count": 10,
+            "good_device_count": 7,
+            "estimated_device_count": 0,
+            "missing_device_count": 3,
+            "late_event_count": 0,
+            "quality_flags": [
+              "MISSING_DEVICES"
+            ],
+            "completeness": "PARTIAL"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  },
+  {
+    "name": "exact ninety five percent complete",
+    "topology": {
+      "topology_version": "topology-001",
+      "transformers": [
+        {
+          "transformer_id": "tx-001",
+          "capacity_kw": 100,
+          "devices": [
+            {
+              "device_id": "meter-000",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-001",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-002",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-003",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-004",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-005",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-006",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-007",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-008",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-009",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-010",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-011",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-012",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-013",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-014",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-015",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-016",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-017",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-018",
+              "device_type": "SMART_METER"
+            },
+            {
+              "device_id": "meter-019",
+              "device_type": "SMART_METER"
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "bb232bd4-0dca-57f1-a2ac-24b96b6290fe",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-000",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c930e88-80b9-5175-ad1e-e63c7d1209f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "3af3c372-b241-5641-889e-991ae54f3d44",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-002",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "1e6eff55-0ccd-5718-a50d-df8cbf11b0d5",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-003",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "e7ff0a4d-1e98-5505-88ec-b51e96215b0a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-004",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "99ead211-47d3-5251-b78d-a8a3a9f9c285",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-005",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "fc7d8416-c3c0-5304-817a-35ee67811264",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-006",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "baeee88c-8a8d-523e-9a0a-40fdeb72a3f8",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-007",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "66891bca-ca5c-5e3b-996e-d644fc57a200",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-008",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "b8f7856e-283a-5baa-aedf-ba686380e65e",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-009",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "923bbd67-381d-5e61-84ea-b8008098a038",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-010",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "387893a3-7c64-5122-b58c-736b25c355c6",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-011",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "1fa2d6a3-d698-5879-816d-8c2289acc384",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-012",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2c110791-1543-5d7d-ad01-cd068a2b9f30",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-013",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "9c649ab7-e217-5e86-92eb-ec79f22f0d10",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-014",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "98b704b8-6294-5fa1-a280-7305432cab5a",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-015",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "2e565aa5-b5ad-58c8-9447-1ac41994002b",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-016",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "ac490472-3b83-510e-89ce-7a2139dd46c0",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-017",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "e7115fe8-449d-52e4-bab1-617dd5f2bd1f",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:01Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-018",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 1,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "reading",
+        "key": "tx-001",
+        "event": {
+          "event_id": "cb06bb47-91cf-50c1-b031-25960d54aeea",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:15Z",
+          "ingested_at": "2026-11-09T18:30:15Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "meter-001",
+            "transformer_id": "tx-001",
+            "device_type": "SMART_METER",
+            "boot_id": "boot-001",
+            "power_kw": 10,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        }
+      },
+      {
+        "op": "evaluate",
+        "now": "2026-11-09T18:30:15Z"
+      }
+    ],
+    "expected": {
+      "topics": [
+        "grid.transformer-load.v1"
+      ],
+      "loads": [
+        {
+          "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+          "payload": {
+            "transformer_id": "tx-001",
+            "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+            "window_start": "2026-11-09T18:30:00Z",
+            "window_end": "2026-11-09T18:30:05Z",
+            "revision": 0,
+            "topology_version": "topology-001",
+            "meter_demand_kw": 19,
+            "ev_demand_kw": 0,
+            "solar_generation_kw": 0,
+            "net_load_kw": 19,
+            "capacity_kw": 100,
+            "utilization_pct": 19,
+            "expected_device_count": 20,
+            "good_device_count": 19,
+            "estimated_device_count": 0,
+            "missing_device_count": 1,
+            "late_event_count": 0,
+            "quality_flags": [
+              "MISSING_DEVICES"
+            ],
+            "completeness": "COMPLETE"
+          }
+        }
+      ],
+      "metrics": {
+        "duplicates": 0,
+        "dlq": 0,
+        "very_late": 0,
+        "corrections": 0
+      },
+      "commands": [],
+      "projection": {},
+      "epochs": {}
+    }
+  }
+]

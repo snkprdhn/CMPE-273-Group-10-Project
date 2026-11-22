@@ -1,5 +1,7 @@
 # HTTP and Live-Update API Contracts
 
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+
 Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List endpoints use `limit` and opaque `cursor`. Errors use `{ "error": { "code", "message", "request_id", "details" } }`.
 
 The API runs as multiple Kubernetes replicas behind a Service. It reads and writes only its `projection` logical store. Configuration changes use optimistic versions and a typed internal Action control endpoint owned by Member_3 rather than direct access to `control` tables. Scenario operations similarly call the Member_1-owned scenario boundary. Responses include data freshness where it affects operator interpretation, and trace context plus authenticated role are preserved across internal calls.
@@ -69,4 +71,4 @@ Internal calls have fixed OpenAPI examples, deadlines, idempotency, service iden
 - Tool authorization is enforced using the authenticated caller and requested scope; model output cannot widen access.
 - Cancelling an investigation does not undo already completed model/tool requests and never affects grid processing.
 - Health endpoints do not expose credentials or sensitive configuration.
-- Exact examples and OpenAPI output will be added when implementation begins.
+- Exact examples and OpenAPI are implemented in `schemas/v1/`; validate with `make contracts`.

@@ -1,0 +1,33 @@
+name: contracts
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.9'
+      - name: Isolated contract tooling
+        run: |
+          python -m venv .tools/contracts-venv
+          .tools/contracts-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r requirements-contracts.txt
+          .tools/contracts-venv/bin/python -m pip check
+      - name: Examples, golden scenarios and mutation checks
+        run: make contracts
+      - name: Compare pull request base
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: make contracts BASE_REF="$BASE_REF"
+      - name: Compare previous push
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BASE_REF: ${{ github.event.before }}
+        run: make contracts BASE_REF="$BASE_REF"

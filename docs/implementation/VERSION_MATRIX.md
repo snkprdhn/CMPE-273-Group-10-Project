@@ -68,7 +68,7 @@ Install application libraries only when the owning implementation milestone begi
 | Kafka client | confluent-kafka 2.8.2 | Member_1/Member_3/Member_4 |
 | Database | psycopg[binary] 3.2.9 | Member_1/Member_3/Member_4 |
 | gRPC generation/runtime | grpcio 1.71.0, grpcio-tools 1.71.0 | Member_1; independently generated clients |
-| Schemas | jsonschema 4.23.0; JSON Schema Draft 2020-12 | All; executable compatibility fixtures next milestone |
+| Schemas | jsonschema 4.23.0; JSON Schema Draft 2020-12 | All; executable fixtures and compatibility checks verified under ADR-025 |
 | Correctness tests | pytest 8.3.5; Testcontainers Python 4.10.0 | All |
 | Browser tests | Playwright Python 1.51.0, pytest-playwright 0.7.0 | Member_4 |
 | Load tests | Locust 2.33.2 | Member_1 |
@@ -82,3 +82,19 @@ The NiceGUI [recheck amendment](../decisions/ADR-004-python-dashboard.md#prerequ
 **Not verified:** actual PVC provisioning/read/write/recovery, workload DNS/NetworkPolicy allow-deny behavior, review-profile resource fit, infrastructure Helm releases/project overlays, application dependency locks/imports/startup, PyFlink source wheel build/checkpoint recovery, and full-stack behavior. StorageClass presence does not prove storage recovery; default kind networking does not prove policy enforcement. Only preparation Python dependencies are installed/locked. Each future chart/JAR/image/sidecar still needs pinned integrity metadata and its owning runtime gate.
 
 Environment setup scaffolded no application service, created no cloud resource, and made no paid API call. Commit/push requires explicit user authorization, which was provided after verification. Docker Desktop was reused, not reinstalled. Colima remains an unselected alternative.
+
+## Executable contract tooling — accepted 2026-11-21
+
+[ADR-025](../decisions/ADR-025-executable-contract-freeze.md) adds an independent `.tools/contracts-venv` using the existing CPython **3.12.9**. The preparation venv and all application/infrastructure pins above are preserved. No system software was installed for this milestone.
+
+| Direct tool / selected compiler runtime | Pin | Verification |
+|---|---|---|
+| JSON Schema | jsonschema 4.23.0 | Draft 2020-12 schemas, formats and domain checks pass |
+| Tests | pytest 8.3.5 | Contract suite passes locally on macOS ARM64 |
+| Protobuf compiler/binding generator | grpcio-tools 1.71.0 | Compiles all four RPCs and six messages; generated Python messages parse/binary-round-trip fixtures |
+| Compiler runtime | grpcio 1.85.3; protobuf 5.29.6 | Satisfy installed compiler metadata; `pip check` and generation pass; isolated from PyFlink |
+| OpenAPI | openapi-spec-validator 0.7.2 | OpenAPI 3.1.1 document and local canonical references validate offline |
+
+[requirements-contracts.txt](../../requirements-contracts.txt) pins all 27 distributions and wheel hashes. Hash-checked downloads succeeded for macOS ARM64 and Linux x86_64 CPython 3.12; a clean Mac venv installed offline from those wheels and passed the suite. Linux wheel resolution is verified; hosted GitHub CI execution remains pending. No host `protoc`, JDK, Maven, Node.js or npm is needed. Wire standards are JSON Schema Draft 2020-12, Protobuf proto3, and OpenAPI 3.1.1. Official sources: [gRPC compiler release metadata](https://pypi.org/pypi/grpcio-tools/1.71.0/json), [Protobuf](https://protobuf.dev/programming-guides/proto3/), [OpenAPI](https://spec.openapis.org/oas/v3.1.1.html).
+
+Read-only inventory during the contract milestone confirmed Apple M5/ARM64, 10 CPU cores, 16 GiB RAM, 258 GiB available disk, and 36% macOS free-memory snapshot. Git 2.54.0, project Python 3.12.9, kind 0.30.0, kubectl 1.34.0/Kustomize 5.7.1, Helm 3.19.0, Docker Desktop 4.99.0/Engine 29.9.3/CLI 29.8.0, and the Kubernetes 1.34.0 Ready node match the accepted baseline. Docker still has four CPUs/6,210,510,848 usable guest bytes; built-in Kubernetes is disabled. Colima 0.10.3 is stopped. Global Python is 3.14.7, Node.js is absent, and `/usr/bin/java` is only a launcher with no installed Java runtime. None was changed. The [official Flink 2.2 installation guide](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/python/installation/) still specifies Python 3.9–3.12; the [Helm table](https://helm.sh/docs/v3/topics/version_skew/) still pairs 3.19.x with Kubernetes 1.31–1.34. Those compatibility checks do not prove the future ARM64 PyFlink image or full stack runnable.

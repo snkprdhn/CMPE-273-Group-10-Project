@@ -1,0 +1,1628 @@
+[
+  {
+    "name": "TimeRange missing start",
+    "schema": "TimeRange",
+    "value": {
+      "end": "2026-11-09T18:30:59Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Policy missing version",
+    "schema": "Policy",
+    "value": {
+      "warning_pct": 80,
+      "critical_pct": 95,
+      "recovery_pct": 75,
+      "cooldown_seconds": 30,
+      "recovery_windows": 2,
+      "command_ttl_seconds": 10,
+      "ack_timeout_seconds": 5
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "PolicyWrite missing expected_version",
+    "schema": "PolicyWrite",
+    "value": {
+      "policy": {
+        "version": 1,
+        "warning_pct": 80,
+        "critical_pct": 95,
+        "recovery_pct": 75,
+        "cooldown_seconds": 30,
+        "recovery_windows": 2,
+        "command_ttl_seconds": 10,
+        "ack_timeout_seconds": 5
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "TelemetryPayload missing device_id",
+    "schema": "TelemetryPayload",
+    "value": {
+      "transformer_id": "tx-001",
+      "device_type": "EV_CHARGER",
+      "boot_id": "boot-001",
+      "power_kw": 7,
+      "quality": "GOOD",
+      "sequence_number": 1
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "LoadPayload missing transformer_id",
+    "schema": "LoadPayload",
+    "value": {
+      "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+      "window_start": "2026-11-09T18:30:00Z",
+      "window_end": "2026-11-09T18:30:05Z",
+      "revision": 0,
+      "topology_version": "topology-001",
+      "meter_demand_kw": 10,
+      "ev_demand_kw": 7,
+      "solar_generation_kw": 2,
+      "net_load_kw": 15,
+      "capacity_kw": 100,
+      "utilization_pct": 15,
+      "expected_device_count": 3,
+      "good_device_count": 3,
+      "estimated_device_count": 0,
+      "missing_device_count": 0,
+      "late_event_count": 0,
+      "quality_flags": [],
+      "completeness": "COMPLETE"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "AlertPayload missing alert_id",
+    "schema": "AlertPayload",
+    "value": {
+      "transformer_id": "tx-001",
+      "severity": "WARNING",
+      "status": "OPEN",
+      "load_window_id": "tx-001",
+      "load_revision": 0,
+      "message": "sample",
+      "opened_at": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ActionPayload missing action_id",
+    "schema": "ActionPayload",
+    "value": {
+      "transformer_id": "tx-001",
+      "status": "PLAN_CREATED",
+      "trigger_window_id": "tx-001",
+      "trigger_revision": 0,
+      "policy_version": 0,
+      "leader_epoch": 0,
+      "target_reduction_kw": 0,
+      "expected_reduction_kw": 0,
+      "confirmed_reduction_kw": 0,
+      "selected_device_count": 0,
+      "acknowledged_device_count": 0,
+      "reason": "sample",
+      "transition_time": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "CommandPayload missing command_id",
+    "schema": "CommandPayload",
+    "value": {
+      "action_id": "action-001",
+      "device_id": "ev-001",
+      "transformer_id": "tx-001",
+      "command_type": "THROTTLE",
+      "target_rate_kw": 3,
+      "issued_at": "2026-11-09T18:30:01Z",
+      "expires_at": "2026-11-09T18:30:11Z",
+      "reason": "overload",
+      "policy_version": 1,
+      "saga_version": 1,
+      "leader_epoch": 42
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ResultPayload missing command_id",
+    "schema": "ResultPayload",
+    "value": {
+      "action_id": "tx-001",
+      "device_id": "tx-001",
+      "outcome": "APPLIED",
+      "previous_rate_kw": 0,
+      "applied_rate_kw": 0,
+      "result_time": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Telemetry missing event_id",
+    "schema": "Telemetry",
+    "value": {
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Load missing event_id",
+    "schema": "Load",
+    "value": {
+      "event_type": "transformer.load",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 15,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Alert missing event_id",
+    "schema": "Alert",
+    "value": {
+      "event_type": "alert.transition",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "alert_id": "tx-001",
+        "transformer_id": "tx-001",
+        "severity": "WARNING",
+        "status": "OPEN",
+        "load_window_id": "tx-001",
+        "load_revision": 0,
+        "message": "sample",
+        "opened_at": "2026-11-09T18:30:01Z"
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Action missing event_id",
+    "schema": "Action",
+    "value": {
+      "event_type": "action.transition",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "action_id": "tx-001",
+        "transformer_id": "tx-001",
+        "status": "PLAN_CREATED",
+        "trigger_window_id": "tx-001",
+        "trigger_revision": 0,
+        "policy_version": 0,
+        "leader_epoch": 0,
+        "target_reduction_kw": 0,
+        "expected_reduction_kw": 0,
+        "confirmed_reduction_kw": 0,
+        "selected_device_count": 0,
+        "acknowledged_device_count": 0,
+        "reason": "sample",
+        "transition_time": "2026-11-09T18:30:01Z"
+      },
+      "leader_epoch": 0,
+      "saga_version": 1
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Command missing event_id",
+    "schema": "Command",
+    "value": {
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "command_id": "command-001",
+        "action_id": "action-001",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-09T18:30:01Z",
+        "expires_at": "2026-11-09T18:30:11Z",
+        "reason": "overload",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "key": "ev-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Result missing event_id",
+    "schema": "Result",
+    "value": {
+      "event_type": "command.result",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "command_id": "tx-001",
+        "action_id": "tx-001",
+        "device_id": "tx-001",
+        "outcome": "APPLIED",
+        "previous_rate_kw": 0,
+        "applied_rate_kw": 0,
+        "result_time": "2026-11-09T18:30:01Z"
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "LatePayload missing original_event",
+    "schema": "LatePayload",
+    "value": {
+      "window_id": "tx-001",
+      "lateness_ms": 0,
+      "audited_at": "2026-11-09T18:30:01Z",
+      "reason": "BEYOND_ALLOWED_LATENESS"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "DlqPayload missing original_event",
+    "schema": "DlqPayload",
+    "value": {
+      "original_key": "sample",
+      "failure_stage": "DECODE",
+      "attempt_count": 1,
+      "validation_reasons": [
+        "sample"
+      ]
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Late missing event_id",
+    "schema": "Late",
+    "value": {
+      "event_type": "telemetry.late",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "original_event": {
+          "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+          "event_type": "telemetry.reading",
+          "schema_version": 1,
+          "source": "tx-001",
+          "event_time": "2026-11-09T18:30:01Z",
+          "ingested_at": "2026-11-09T18:30:36Z",
+          "correlation_id": "tx-001",
+          "causation_id": "tx-001",
+          "payload": {
+            "device_id": "ev-001",
+            "transformer_id": "tx-001",
+            "device_type": "EV_CHARGER",
+            "boot_id": "boot-001",
+            "power_kw": 7,
+            "quality": "GOOD",
+            "sequence_number": 1
+          }
+        },
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "lateness_ms": 31000,
+        "audited_at": "2026-11-09T18:30:01Z",
+        "reason": "BEYOND_ALLOWED_LATENESS"
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Dlq missing event_id",
+    "schema": "Dlq",
+    "value": {
+      "event_type": "telemetry.invalid",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "original_event": {},
+        "original_key": "sample",
+        "failure_stage": "DECODE",
+        "attempt_count": 1,
+        "validation_reasons": [
+          "sample"
+        ]
+      }
+    },
+    "key": "sample",
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Topology missing topology_version",
+    "schema": "Topology",
+    "value": {
+      "transformers": []
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Transformer missing transformer_id",
+    "schema": "Transformer",
+    "value": {
+      "state": "NORMAL",
+      "load": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 15,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      },
+      "policy": {
+        "version": 1,
+        "warning_pct": 80,
+        "critical_pct": 95,
+        "recovery_pct": 75,
+        "cooldown_seconds": 30,
+        "recovery_windows": 2,
+        "command_ttl_seconds": 10,
+        "ack_timeout_seconds": 5
+      },
+      "freshness": "FRESH",
+      "data_age_seconds": 0
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Device missing device_id",
+    "schema": "Device",
+    "value": {
+      "transformer_id": "tx-001",
+      "device_type": "EV_CHARGER",
+      "controllable": false,
+      "minimum_rate_kw": 0,
+      "maximum_rate_kw": 0,
+      "priority": 0,
+      "departure_time": "2026-11-09T18:30:01Z",
+      "capability_version": 1,
+      "updated_at": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "DeviceView missing device",
+    "schema": "DeviceView",
+    "value": {
+      "freshness": "FRESH",
+      "latest_telemetry": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      },
+      "command_history": []
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ScenarioStart missing scenario",
+    "schema": "ScenarioStart",
+    "value": {
+      "scale": 1,
+      "seed": 0,
+      "duration_seconds": 1
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ScenarioRun missing run_id",
+    "schema": "ScenarioRun",
+    "value": {
+      "status": "RUNNING",
+      "configuration": {
+        "scenario": "normal",
+        "scale": 1,
+        "seed": 0,
+        "duration_seconds": 1
+      },
+      "updated_at": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Accepted missing id",
+    "schema": "Accepted",
+    "value": {
+      "status": "sample"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Health missing status",
+    "schema": "Health",
+    "value": {
+      "observed_at": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "HttpError missing error",
+    "schema": "HttpError",
+    "value": {},
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ToolError missing schema_version",
+    "schema": "ToolError",
+    "value": {
+      "code": "INVALID_ARGUMENT",
+      "message": "sample",
+      "retryable": false,
+      "observed_at": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ToolContext missing investigation_id",
+    "schema": "ToolContext",
+    "value": {
+      "actor_id": "tx-001",
+      "roles": [
+        "Operator"
+      ],
+      "deadline": "2026-11-09T18:30:59Z",
+      "entity_scope": {
+        "transformer_ids": [
+          "tx-001"
+        ],
+        "action_ids": [
+          "action-001"
+        ],
+        "correlation_ids": [
+          "scenario-001"
+        ],
+        "trace_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "time_scope": {
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      },
+      "max_items": 1,
+      "trace_context": {
+        "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_transformer_snapshotArguments missing transformer_id",
+    "schema": "get_transformer_snapshotArguments",
+    "value": {},
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_transformer_snapshotCall missing schema_version",
+    "schema": "get_transformer_snapshotCall",
+    "value": {
+      "tool": "get_transformer_snapshot",
+      "arguments": {
+        "transformer_id": "tx-001"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_transformer_snapshotEvidence missing schema_version",
+    "schema": "get_transformer_snapshotEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_transformer_snapshot",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "transformer_id": "tx-001",
+        "state": "NORMAL",
+        "load": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 10,
+          "ev_demand_kw": 7,
+          "solar_generation_kw": 2,
+          "net_load_kw": 15,
+          "capacity_kw": 100,
+          "utilization_pct": 15,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        },
+        "policy": {
+          "version": 1,
+          "warning_pct": 80,
+          "critical_pct": 95,
+          "recovery_pct": 75,
+          "cooldown_seconds": 30,
+          "recovery_windows": 2,
+          "command_ttl_seconds": 10,
+          "ack_timeout_seconds": 5
+        },
+        "freshness": "FRESH",
+        "data_age_seconds": 0
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_load_historyArguments missing transformer_id",
+    "schema": "get_load_historyArguments",
+    "value": {
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z",
+      "limit": 1
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_load_historyCall missing schema_version",
+    "schema": "get_load_historyCall",
+    "value": {
+      "tool": "get_load_history",
+      "arguments": {
+        "transformer_id": "tx-001",
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z",
+        "limit": 1
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_load_historyEvidence missing schema_version",
+    "schema": "get_load_historyEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_load_history",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "windows": []
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_action_timelineArguments missing transformer_id",
+    "schema": "get_action_timelineArguments",
+    "value": {
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_action_timelineCall missing schema_version",
+    "schema": "get_action_timelineCall",
+    "value": {
+      "tool": "get_action_timeline",
+      "arguments": {
+        "transformer_id": "tx-001",
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_action_timelineEvidence missing schema_version",
+    "schema": "get_action_timelineEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_action_timeline",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "actions": [],
+        "alerts": []
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_command_resultsArguments missing action_id",
+    "schema": "get_command_resultsArguments",
+    "value": {},
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_command_resultsCall missing schema_version",
+    "schema": "get_command_resultsCall",
+    "value": {
+      "tool": "get_command_results",
+      "arguments": {
+        "action_id": "tx-001"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_command_resultsEvidence missing schema_version",
+    "schema": "get_command_resultsEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_command_results",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "commands": [],
+        "confirmed_reduction_kw": 0
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_stream_healthArguments missing components",
+    "schema": "get_stream_healthArguments",
+    "value": {},
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_stream_healthCall missing schema_version",
+    "schema": "get_stream_healthCall",
+    "value": {
+      "tool": "get_stream_health",
+      "arguments": {
+        "components": [
+          "KAFKA"
+        ]
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_stream_healthEvidence missing schema_version",
+    "schema": "get_stream_healthEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_stream_health",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "components": []
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_metric_windowArguments missing metric",
+    "schema": "get_metric_windowArguments",
+    "value": {
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z",
+      "resolution_seconds": 1
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_metric_windowCall missing schema_version",
+    "schema": "get_metric_windowCall",
+    "value": {
+      "tool": "get_metric_window",
+      "arguments": {
+        "metric": "INPUT_RATE",
+        "start": "2026-11-09T18:30:00Z",
+        "end": "2026-11-09T18:30:59Z",
+        "resolution_seconds": 1
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_metric_windowEvidence missing schema_version",
+    "schema": "get_metric_windowEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_metric_window",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "points": [],
+        "unit": "kW",
+        "threshold": 0,
+        "missing_intervals": [],
+        "queried_at": "2026-11-09T18:30:01Z"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_trace_summaryCall missing schema_version",
+    "schema": "get_trace_summaryCall",
+    "value": {
+      "tool": "get_trace_summary",
+      "arguments": {
+        "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "get_trace_summaryEvidence missing schema_version",
+    "schema": "get_trace_summaryEvidence",
+    "value": {
+      "evidence_id": "evidence-001",
+      "source_type": "get_trace_summary",
+      "source_version": "tx-001",
+      "entity_type": "TRANSFORMER",
+      "entity_id": "tx-001",
+      "observed_at": "2026-11-09T18:30:01Z",
+      "freshness": "FRESH",
+      "truncated": false,
+      "deep_link": "/system",
+      "data": {
+        "spans": []
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Claim missing text",
+    "schema": "Claim",
+    "value": {
+      "evidence_ids": [
+        "tx-001"
+      ]
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "AgentDraft missing schema_version",
+    "schema": "AgentDraft",
+    "value": {
+      "summary": "sample",
+      "observations": [
+        {
+          "text": "Load is visible",
+          "evidence_ids": [
+            "evidence-001"
+          ]
+        }
+      ],
+      "hypotheses": [],
+      "unknowns": [],
+      "recommended_next_steps": [],
+      "evidence_ids": [
+        "evidence-001"
+      ]
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "InvestigationCreate missing question",
+    "schema": "InvestigationCreate",
+    "value": {
+      "transformer_id": "tx-001",
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Investigation missing investigation_id",
+    "schema": "Investigation",
+    "value": {
+      "status": "QUEUED",
+      "result": {
+        "schema_version": 1,
+        "summary": "sample",
+        "observations": [],
+        "hypotheses": [],
+        "unknowns": [],
+        "recommended_next_steps": [],
+        "evidence_ids": []
+      },
+      "evidence": [],
+      "freshness": "FRESH",
+      "provider_mode": "MOCK",
+      "usage": {
+        "tool_calls": 0,
+        "model_turns": 0,
+        "elapsed_ms": 0
+      },
+      "updated_at": "2026-11-09T18:30:01Z"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "Overview missing transformer_count",
+    "schema": "Overview",
+    "value": {
+      "critical_count": 0,
+      "total_net_load_kw": 0,
+      "highest_risk": [],
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "TransformerPage missing items",
+    "schema": "TransformerPage",
+    "value": {
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "DeviceViewPage missing items",
+    "schema": "DeviceViewPage",
+    "value": {
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "AlertPayloadPage missing items",
+    "schema": "AlertPayloadPage",
+    "value": {
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ActionPayloadPage missing items",
+    "schema": "ActionPayloadPage",
+    "value": {
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "LoadPayloadPage missing items",
+    "schema": "LoadPayloadPage",
+    "value": {
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ScenarioRunPage missing items",
+    "schema": "ScenarioRunPage",
+    "value": {
+      "next_cursor": "sample",
+      "freshness": "FRESH"
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "ScenarioCatalog missing scenarios",
+    "schema": "ScenarioCatalog",
+    "value": {
+      "active_run": {
+        "run_id": "tx-001",
+        "status": "RUNNING",
+        "configuration": {
+          "scenario": "normal",
+          "scale": 1,
+          "seed": 0,
+          "duration_seconds": 1
+        },
+        "updated_at": "2026-11-09T18:30:01Z"
+      }
+    },
+    "error": {
+      "validator": "required",
+      "path": []
+    }
+  },
+  {
+    "name": "POWER_SIGN",
+    "schema": "Telemetry",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": -1,
+        "quality": "GOOD",
+        "sequence_number": 1
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "code": "POWER_SIGN"
+    }
+  },
+  {
+    "name": "INVALID_QUALITY",
+    "schema": "Telemetry",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "INVALID",
+        "sequence_number": 1
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "code": "INVALID_QUALITY"
+    }
+  },
+  {
+    "name": "LOAD_TOTAL",
+    "schema": "Load",
+    "value": {
+      "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+      "event_type": "transformer.load",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 999,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "code": "LOAD_TOTAL"
+    }
+  },
+  {
+    "name": "DEVICE_COUNTS",
+    "schema": "Load",
+    "value": {
+      "event_id": "89685e86-721c-552e-95c3-bd7a4fc9649c",
+      "event_type": "transformer.load",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 15,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 99,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "code": "DEVICE_COUNTS"
+    }
+  },
+  {
+    "name": "COMMAND_TIME",
+    "schema": "Command",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "command_id": "command-001",
+        "action_id": "action-001",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-09T18:30:01Z",
+        "expires_at": "2026-11-09T18:30:00Z",
+        "reason": "overload",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "key": "ev-001",
+    "error": {
+      "code": "COMMAND_TIME"
+    }
+  },
+  {
+    "name": "future",
+    "schema": "Telemetry",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:07Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "code": "FUTURE_EVENT"
+    }
+  },
+  {
+    "name": "wrong key",
+    "schema": "Telemetry",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      }
+    },
+    "key": "ev-001",
+    "error": {
+      "code": "PARTITION_KEY"
+    }
+  },
+  {
+    "name": "bad time",
+    "schema": "Telemetry",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "telemetry.reading",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-99-01T00:00:00Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "device_type": "EV_CHARGER",
+        "boot_id": "boot-001",
+        "power_kw": 7,
+        "quality": "GOOD",
+        "sequence_number": 1
+      }
+    },
+    "key": "tx-001",
+    "error": {
+      "validator": "format",
+      "path": [
+        "event_time"
+      ]
+    }
+  },
+  {
+    "name": "raw query",
+    "schema": "get_metric_windowArguments",
+    "value": {
+      "metric": "SELECT secret",
+      "start": "2026-11-09T18:30:00Z",
+      "end": "2026-11-09T18:30:59Z",
+      "resolution_seconds": 1
+    },
+    "error": {
+      "validator": "enum",
+      "path": [
+        "metric"
+      ]
+    }
+  },
+  {
+    "name": "model overrides context",
+    "schema": "get_transformer_snapshotArguments",
+    "value": {
+      "transformer_id": "tx-001",
+      "actor_id": "admin"
+    },
+    "error": {
+      "validator": "additionalProperties",
+      "path": []
+    }
+  },
+  {
+    "name": "EPOCH_MISMATCH",
+    "schema": "Action",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "action.transition",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "action_id": "tx-001",
+        "transformer_id": "tx-001",
+        "status": "PLAN_CREATED",
+        "trigger_window_id": "tx-001",
+        "trigger_revision": 0,
+        "policy_version": 0,
+        "leader_epoch": 0,
+        "target_reduction_kw": 0,
+        "expected_reduction_kw": 0,
+        "confirmed_reduction_kw": 0,
+        "selected_device_count": 0,
+        "acknowledged_device_count": 0,
+        "reason": "sample",
+        "transition_time": "2026-11-09T18:30:01Z"
+      },
+      "leader_epoch": 999,
+      "saga_version": 1
+    },
+    "error": {
+      "code": "EPOCH_MISMATCH"
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "SAGA_MISMATCH",
+    "schema": "Command",
+    "value": {
+      "event_id": "2a4b25cc-497d-4dc7-b53f-e88d46f1573c",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "command_id": "command-001",
+        "action_id": "action-001",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-09T18:30:01Z",
+        "expires_at": "2026-11-09T18:30:11Z",
+        "reason": "overload",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 999
+    },
+    "error": {
+      "code": "SAGA_MISMATCH"
+    },
+    "key": "ev-001"
+  },
+  {
+    "name": "LOAD_EVENT_ID",
+    "schema": "Load",
+    "value": {
+      "event_id": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "event_type": "transformer.load",
+      "schema_version": 1,
+      "source": "tx-001",
+      "event_time": "2026-11-09T18:30:01Z",
+      "ingested_at": "2026-11-09T18:30:01Z",
+      "correlation_id": "tx-001",
+      "causation_id": "tx-001",
+      "payload": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 10,
+        "ev_demand_kw": 7,
+        "solar_generation_kw": 2,
+        "net_load_kw": 15,
+        "capacity_kw": 100,
+        "utilization_pct": 15,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      }
+    },
+    "error": {
+      "code": "LOAD_EVENT_ID"
+    },
+    "key": "tx-001"
+  },
+  {
+    "name": "POLICY_THRESHOLDS",
+    "schema": "Policy",
+    "value": {
+      "version": 1,
+      "warning_pct": 80,
+      "critical_pct": 95,
+      "recovery_pct": 99,
+      "cooldown_seconds": 30,
+      "recovery_windows": 2,
+      "command_ttl_seconds": 10,
+      "ack_timeout_seconds": 5
+    },
+    "error": {
+      "code": "POLICY_THRESHOLDS"
+    }
+  }
+]

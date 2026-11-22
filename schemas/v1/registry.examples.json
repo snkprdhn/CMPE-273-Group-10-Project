@@ -1,0 +1,126 @@
+{
+  "valid": [
+    {
+      "message": "Device",
+      "value": {
+        "deviceId": "ev-001",
+        "transformerId": "tx-001",
+        "deviceType": "EV_CHARGER",
+        "controllable": true,
+        "minimumRateKw": 1,
+        "maximumRateKw": 7.2,
+        "priority": 1,
+        "capabilityVersion": "1",
+        "updatedAt": "2026-11-09T18:30:00Z"
+      }
+    },
+    {
+      "message": "RegisterDeviceRequest",
+      "value": {
+        "operationId": "op-001",
+        "device": {
+          "deviceId": "ev-001",
+          "transformerId": "tx-001",
+          "deviceType": "EV_CHARGER",
+          "controllable": true,
+          "minimumRateKw": 1,
+          "maximumRateKw": 7.2,
+          "priority": 1,
+          "capabilityVersion": "1",
+          "updatedAt": "2026-11-09T18:30:00Z"
+        }
+      }
+    },
+    {
+      "message": "HeartbeatRequest",
+      "value": {
+        "operationId": "op-002",
+        "deviceId": "ev-001",
+        "capabilityVersion": "1",
+        "observedAt": "2026-11-09T18:30:01Z"
+      }
+    },
+    {
+      "message": "GetDeviceRequest",
+      "value": {
+        "deviceId": "ev-001"
+      }
+    },
+    {
+      "message": "ListEligibleChargersRequest",
+      "value": {
+        "transformerId": "tx-001",
+        "policyVersion": "1",
+        "limit": 50,
+        "evaluatedAt": "2026-11-09T18:30:01Z"
+      }
+    },
+    {
+      "message": "ChargerPage",
+      "value": {
+        "devices": [
+          {
+            "deviceId": "ev-001",
+            "transformerId": "tx-001",
+            "deviceType": "EV_CHARGER",
+            "controllable": true,
+            "minimumRateKw": 1,
+            "maximumRateKw": 7.2,
+            "priority": 1,
+            "capabilityVersion": "1",
+            "updatedAt": "2026-11-09T18:30:00Z"
+          }
+        ],
+        "nextCursor": "",
+        "observedAt": "2026-11-09T18:30:01Z"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "message": "Device",
+      "value": {
+        "deviceId": "ev-001",
+        "transformerId": "tx-001",
+        "deviceType": "DEVICE_TYPE_UNSPECIFIED",
+        "controllable": true,
+        "minimumRateKw": 1,
+        "maximumRateKw": 7.2,
+        "priority": 1,
+        "capabilityVersion": "1",
+        "updatedAt": "2026-11-09T18:30:00Z"
+      },
+      "error": "REGISTRY_REQUIRED"
+    },
+    {
+      "message": "Device",
+      "value": {
+        "deviceId": "ev-001",
+        "transformerId": "tx-001",
+        "deviceType": "EV_CHARGER",
+        "controllable": true,
+        "minimumRateKw": 8,
+        "maximumRateKw": 7.2,
+        "priority": 1,
+        "capabilityVersion": "1",
+        "updatedAt": "2026-11-09T18:30:00Z"
+      },
+      "error": "REGISTRY_CAPABILITY"
+    },
+    {
+      "message": "GetDeviceRequest",
+      "value": {},
+      "error": "REGISTRY_REQUIRED"
+    },
+    {
+      "message": "ListEligibleChargersRequest",
+      "value": {
+        "transformerId": "tx-001",
+        "policyVersion": "1",
+        "limit": 201,
+        "evaluatedAt": "2026-11-09T18:30:01Z"
+      },
+      "error": "REGISTRY_REQUIRED"
+    }
+  ]
+}
