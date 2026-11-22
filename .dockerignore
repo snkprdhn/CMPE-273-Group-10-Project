@@ -1,0 +1,11 @@
+**
+!member1/
+!member1/**
+member1/**/__pycache__/
+!schemas/
+!schemas/v1/
+!schemas/v1/bundle.json
+!.tools/
+!.tools/generated/
+!.tools/generated/registry_pb2.py
+!.tools/generated/registry_pb2_grpc.py

@@ -67,7 +67,7 @@ Install application libraries only when the owning implementation milestone begi
 | Dashboard | NiceGUI 3.19.0, built-in ECharts | Member_4 |
 | Kafka client | confluent-kafka 2.8.2 | Member_1/Member_3/Member_4 |
 | Database | psycopg[binary] 3.2.9 | Member_1/Member_3/Member_4 |
-| gRPC generation/runtime | grpcio 1.71.0, grpcio-tools 1.71.0 | Member_1; independently generated clients |
+| gRPC generation/runtime | grpcio 1.85.3, grpcio-tools 1.71.0 (ADR-025 runtime amendment) | Member_1; independently generated clients |
 | Schemas | jsonschema 4.23.0; JSON Schema Draft 2020-12 | All; executable fixtures and compatibility checks verified under ADR-025 |
 | Correctness tests | pytest 8.3.5; Testcontainers Python 4.10.0 | All |
 | Browser tests | Playwright Python 1.51.0, pytest-playwright 0.7.0 | Member_4 |
@@ -123,3 +123,18 @@ It copies only repository configuration and prepares Kafka's non-root directorie
 No image is pushed; `up --build` uses the build cache and reflects configuration edits.
 Runtime host bind mounts are omitted after diagnostics found a Docker Desktop
 FSEvents watcher deadlock during VolumeShare.Add; named data volumes are retained.
+
+
+## Member_1 standalone application locks — 2026-11-22
+
+[ADR-026](../decisions/ADR-026-member1-standalone-state.md) resolves the old runtime
+row in favor of ADR-025's grpcio **1.85.3**, grpcio-tools **1.71.0**, protobuf
+**5.29.6**. Kafka **2.8.2**, psycopg/binary **3.2.9**, jsonschema **4.23.0**, and
+pytest **8.3.5** retain their selected pins. Separate [Registry](../../member1/requirements-registry.txt)
+and [simulator](../../member1/requirements-simulator.txt) hash locks/venvs isolate
+runtime dependencies; the [combined test lock](../../member1/requirements.txt)
+is Member_1-only. macOS ARM64 clean offline installs and Linux ARM64 image
+build/start pass. Linux x86_64 wheel resolution/hash verification is separate
+from hosted CI execution. These application results supersede only Member_1's
+previously unimplemented dependency/startup claims; other application gates
+remain unverified. Exact commands/results are in implementation status.

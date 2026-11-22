@@ -40,3 +40,5 @@ Preparation choices are resolved in the accepted ADRs and [version matrix](../im
 - **Deferred:** cloud provider/region/budget/registry and external model/provider/credentials. Neither is a local prerequisite.
 
 Each accepted ADR should record context, decision, alternatives, consequences, date, and approvers in a separate `ADR-NNN-title.md` file.
+
+- [ADR-026 — Member_1 standalone state and acceptance boundary](ADR-026-member1-standalone-state.md) — accepted.

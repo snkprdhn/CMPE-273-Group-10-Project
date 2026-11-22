@@ -1,6 +1,6 @@
 # Stream Semantics v1
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_1 telemetry/command runtime is implemented for the standalone profile; aggregation/control/projection runtime remains a later milestone. See [implementation status](../implementation/IMPLEMENTATION_STATUS.md).
 
 ## Status and purpose
 

@@ -1,5 +1,13 @@
-# Device Simulators
+# Device simulators — Member_1
 
-**Status: design only; implementation not started.**
+Implemented standalone deterministic EV, meter and solar simulation, normal /
+overload / recovery scenarios, bounded Kafka publication, durable charger command
+handling and results. The small owning package and complete runbook are in
+[member1](../member1/README.md); its independent simulator runtime lock excludes
+PostgreSQL/gRPC. Use `make member1-test`, `make member1-live`, `make member1-up`.
 
-Planned home of EV charger, smart meter, solar, and scenario simulators. This component publishes `grid.telemetry.v1`, consumes `grid.charger-command.v1`, and publishes `grid.command-result.v1`. It owns partition-aware producers, retries, bounded buffering, reproducible seeds, delays, duplicates, outages, command deduplication, and the shared scenario/load/fault runner. Command fixtures and local Kafka make the edge profile independently testable. See the [event contract](../docs/contracts/EVENT_CONTRACTS.md), [independent testing plan](../docs/testing/INDEPENDENT_COMPONENT_TESTING.md), and [Member_1's work plan](../docs/team/01_MEMBER_1_INGESTION.md).
+The topology and command fixtures are versioned under `member1/fixtures` and
+validate against the shared executable contracts. SQLite persistence retains
+command-ID deduplication, effects, greatest accepted epoch and pending results
+across process/container restart; a new boot ID scopes new telemetry sequences.
+This is one standalone shard, not a horizontally scaled fleet acceptance claim.

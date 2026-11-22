@@ -4,7 +4,15 @@
 
 Member_1 owns the distributed edge and reusable test orchestration: concurrent device simulators, the typed gRPC Device Registry, partition-aware Kafka producers, charger command consumers, deterministic fault scenarios, shared contract fixtures, and the CI scenario/load/fault runner. This covers synchronous deadlines as well as producer reliability, backpressure, retry behavior, ordering limits, consumer idempotency, and reproducible integration inputs.
 
-## Planned responsibilities
+## Standalone implementation status
+
+The requested deterministic three-device standalone slice is implemented; see the
+[runbook](../../member1/README.md), [state decision](../decisions/ADR-026-member1-standalone-state.md)
+and [verification status](../implementation/IMPLEMENTATION_STATUS.md). Broader
+scale/sharding, Kubernetes, collection and orchestration responsibilities below
+remain planned and are not acceptance claims for this slice.
+
+## Responsibilities and later gates
 
 1. Model EV chargers, smart meters, and solar systems distributed across multiple transformers and publish the versioned topology/capacity fixture used by all standalone profiles.
 2. Run thousands of concurrent producers with configurable sampling, batching, and pacing.

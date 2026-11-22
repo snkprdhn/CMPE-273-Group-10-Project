@@ -1,6 +1,6 @@
 # Master Implementation Guide
 
-**Status:** Lightweight local dependency infrastructure passes full local acceptance (see [Compose runbook](../../infra/compose/README.md) and current verification status); repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; application services, application dependency locks, and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
+**Status:** Lightweight local dependency infrastructure passes full local acceptance (see [Compose runbook](../../infra/compose/README.md) and current verification status); repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; Member_1 standalone simulation/Registry, independent locks, container startup and restart safety are implemented; other application services and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
 
 ## 1. Purpose
 
@@ -71,7 +71,7 @@ Preparation decisions are accepted in [ADR-002](../decisions/ADR-002-python-stre
 
 The **contract/schema milestone is complete** under [ADR-025](../decisions/ADR-025-executable-contract-freeze.md): canonical JSON Schema/Protobuf/OpenAPI, versioned examples, deterministic golden cases, compatibility checks and contract CI are implemented. Action defaults and local identity names/roles are fixed there. Run `make contracts`; see [schemas](../../schemas/README.md). The requested minimum local infrastructure slice uses Compose for Kafka/PostgreSQL and optional Toxiproxy; it does not implement all of Phase 1. After that slice, the next recommended milestone remains repository foundation/component packaging, including native ARM64 PyFlink build/import/checkpoint evidence before an aggregation slice is called runnable. Repository licensing remains an owner/public-release decision. Cloud and external-provider choices remain deferred.
 
-No application service scaffolding is part of preparation.
+No application service scaffolding was part of preparation. The subsequent requested Member_1 standalone milestone is implemented under [ADR-026](../decisions/ADR-026-member1-standalone-state.md); it does not claim full Phase 0/1/2 completion.
 
 ## 7. Planned repository additions
 
@@ -84,7 +84,8 @@ The implementation should converge on this structure. Names may change through a
 ├── .github/workflows/             # Contract, component, image, and deployment CI
 ├── config/                        # Non-secret defaults and scenario definitions
 ├── schemas/                       # JSON Schema, Protobuf, and OpenAPI sources
-├── simulators/                    # Member_1 implementation
+├── member1/                       # Member_1 standalone Python package/locks/images (ADR-026)
+├── simulators/                    # Member_1 simulator entry documentation
 ├── services/
 │   ├── registry/                  # Member_1
 │   ├── aggregation/               # Member_2

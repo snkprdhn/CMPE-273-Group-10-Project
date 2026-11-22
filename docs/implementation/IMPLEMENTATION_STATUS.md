@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** after full acceptance of minimum local development infrastructure. Member_1 through Member_4 ownership is preserved. No application services have been scaffolded.
+Updated **2026-11-22 (America/Los_Angeles)** for Member_1 standalone acceptance. Member_1 simulation/Registry is implemented; Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot retain their ownership. Historical infrastructure/preparation evidence is preserved below.
 
 ## Completed milestones
 
@@ -10,8 +10,21 @@ Updated **2026-11-22 (America/Los_Angeles)** after full acceptance of minimum lo
 | Existing local prerequisites/empty cluster | Managed Python 3.12.9, isolated preparation venv, pinned native tools, Docker Desktop with built-in Kubernetes disabled, empty kind Kubernetes 1.34.0 | Read-only inventory reconfirmed below; earlier setup commands/digests retained in preparation evidence |
 | Minimum local development infrastructure | One Kafka broker, PostgreSQL primary, on-demand Toxiproxy; isolated stores, real smoke checks, restart persistence, guarded reset | [Compose runbook](../../infra/compose/README.md), executed acceptance below |
 | Executable contract bundle v1 | Eight Kafka events; canonical topology, REST/internal/SSE and seven agent-tool/evidence/output schemas; Registry proto; versioned examples and fixed golden scenarios; compatibility tests and Ubuntu CI workflow | [Bundle](../../schemas/README.md), [ADR-025](../decisions/ADR-025-executable-contract-freeze.md), `make contracts` |
+| Member_1 standalone edge and Registry | Deterministic three-device scenario; Kafka telemetry/commands/results; durable simulated effects/dedup/fences; PostgreSQL gRPC Registry; operational endpoints and independent ARM64 images | [Runbook](../../member1/README.md), [ADR-026](../decisions/ADR-026-member1-standalone-state.md), executed evidence below |
 
 ## Current milestone and verification
+
+**Member_1 standalone slice is complete locally.** Deterministic EV/meter/solar
+scenarios, telemetry validation and routing, bounded Kafka delivery, durable
+command deduplication/fencing/results, all Registry RPCs, operational endpoints,
+independent locks, images and restart tests pass. See the [runbook](../../member1/README.md),
+[ADR-026](../decisions/ADR-026-member1-standalone-state.md), and the exact executed
+Member_1 evidence at the end of this file. No Member_2/3/4 application, full
+Kubernetes deployment, paid/cloud resource, or model call was added. No commit or
+push was made. Scope limitations are explicit; there is no remaining blocker for
+this requested standalone milestone.
+
+## Historical minimum-infrastructure verification
 
 **Minimum local development infrastructure is complete and accepted locally.** Clean startup, Kafka publish/consume, four-store persistence/authentication/isolation, container-recreation retention, Toxiproxy outage/recovery, shutdown and disposable reset all pass. No blocker remains in this milestone. See [local dependency runbook](../../infra/compose/README.md). The preparation and executable-contract work is complete locally. No system software was installed, Docker settings/cluster resources were not changed, and no cloud resources or external model calls were made. Contract authoring made no commits or pushes; the user subsequently authorized verification, committing and pushing these changes to main. Only pinned Python contract tools were installed into ignored component venvs. The existing `.venv` preparation tools remain intact.
 
@@ -38,12 +51,12 @@ The bundle contains **77 valid JSON examples, 76 invalid JSON examples with prec
 - [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) fixes Registry pagination/errors/deadlines, stable window/load UUIDs, corrected-window semantics, command expiry/fencing, control policy defaults, OIDC realm/client/role names, REST/internal errors/idempotency, SSE replay, and agent scope/budgets. The system-design recovery proposal is now accepted at **75% for two fresh COMPLETE windows**. No blocking choice remains in this contract milestone.
 - The new independent compiler/validator environment has a portable hashed lock. Application packages remain independently scoped; no PyFlink/Beam dependencies were merged into it.
 - CI workflow is authored for standard GitHub Ubuntu runners and its local command sequence passes. Hosted CI results are tracked by GitHub Actions for the published commit; local checks are not a hosted-run claim. The compatibility gate deliberately rejects some safe changes and cannot detect arbitrary changes in business meaning; producer/consumer review remains required.
-- PyFlink native Linux ARM64 source build/import/checkpoint proof, real Kafka ordering/recovery, persistent device effects/fencing, actual Registry/OIDC authorization, SSE delivery, policy state machines, full-stack behavior, CNI allow/deny tests and PVC I/O/recovery remain unverified. The empty cluster does not establish them.
+- Member_1 standalone Kafka routing, durable simulated effects/fencing, Registry local-token authorization and process/container restart proofs now pass (evidence below). PyFlink ARM64 import/checkpoint proof, replicated Kafka recovery, Registry mTLS/production identity, OIDC, SSE, policy state machines, full-stack behavior, CNI allow/deny and Kubernetes PVC I/O/recovery remain unverified. The empty cluster does not establish them.
 - Lightweight development remains 4 CPUs/6 GiB VM; staged review remains 8 CPUs/10 GiB on this 16 GiB host. Larger-profile fit, performance, security scans and application/chart/image artifact gates remain unmeasured. Licensing remains the owner's decision before public release.
 
 ## Next milestone
 
-**Repository foundation and component packaging**, starting with native ARM64 PyFlink build/import/checkpoint proof and independently locked component environments. Add only the owning component's required dependencies, configuration, CI and fixtures; keep cloud and external model integrations deferred. Later components must run the frozen fixtures against real implementations. This does not claim the master guide's entire Phase 0/foundation or an application deployment complete.
+**Member_2 foundation/component packaging and standalone aggregation**, starting with native ARM64 PyFlink build/import/checkpoint proof and its independently locked environment. Member_1 standalone packaging is complete under ADR-026. Add only the owning component's required dependencies, configuration, CI and fixtures; keep cloud and external model integrations deferred. Later components must run the frozen fixtures against real implementations. This does not claim the master guide's entire Phase 0/foundation or an application deployment complete.
 
 ## Prepublication verification — 2026-11-21
 
@@ -129,3 +142,115 @@ returned `0 0` before the infrastructure commit. Final publication checks:
 (passed). Full live acceptance evidence above remains valid; these checks did not
 restart dependencies or alter retained volumes. Publication results are recorded in
 Git history; no force push is required.
+
+
+## Member_1 standalone acceptance — 2026-11-22
+
+### What is implemented
+
+Member_1 owns `member1/`, simulator/Registry images, fixture clients and standalone
+tests. Member_2/3/4 applications remain untouched. This is one 20 kW transformer
+with one EV, meter and solar device, one owning simulator shard and the existing
+local Kafka/PostgreSQL dependencies. Fixed seed/start/run/config reproduce exact
+offline JSON and event IDs; live runs use fresh boot IDs and actual UTC. Sampling
+defaults to one second, with normal/overload/recovery thirds. The finite waveform
+ends after 30 ticks by default; the fixture command consumer stays running.
+
+The edge SQLite WAL/FULL transaction owns the simulated effect, greatest accepted
+epoch, command payload/result, and durable result/follow-up outbox. IDs are kept
+for the state volume's lifetime. New boots never clear dedup/fencing/rates.
+Applied duplicates return ALREADY_APPLIED even after expiry/new leadership;
+expired/stale/conflicting/invalid commands cannot repeat an effect. Output replay
+retains event IDs and trace headers. Kafka offsets follow acknowledged output;
+publication failure leaves pending outputs and offsets replayable. At-least-once
+outputs still require downstream event deduplication. Wiping/rolling back the
+edge volume voids the restart-safety claim; this is not real-hardware atomicity.
+
+The Registry persists capabilities/registrations, monotonic heartbeats and
+operation-ID responses in its own PostgreSQL database. All four generated gRPC
+RPCs enforce validation/version conflicts, bounded pagination, freshness,
+departure eligibility and service permissions. Client deadlines/retries share a
+two-second budget; database/lock waits are bounded. No read returns fabricated
+capabilities on dependency failure. The simulator and Registry have separate
+runtime locks/venvs and Docker targets; tests have a combined Member_1-only lock.
+
+### Executed commands and results
+
+All commands below were executed in this repository on the existing Python
+3.12.9/macOS ARM64/Docker Desktop local profile. Loopback/Docker/network checks
+used approved sandbox access; no host software was installed.
+
+| Exact command / check | Result |
+|---|---|
+| `git status --short`; `pwd`; repository instruction/design/contract/ADR reads | Initially clean working tree; existing contracts take precedence; no unrelated changes present |
+| `.venv/bin/python -m venv .tools/member1-venv`; `.tools/member1-venv/bin/python -m pip install --cache-dir .tools/pip-cache 'confluent-kafka==2.8.2' 'psycopg[binary]==3.2.9' 'grpcio==1.85.3' 'protobuf==5.29.6' 'jsonschema==4.23.0' 'pytest==8.3.5' --report .tools/member1-install.json` | Pinned selected libraries resolved/installed only in ignored Member_1 venv; transitive portable locks recorded |
+| `.tools/member1-venv/bin/python -m pip download --cache-dir .tools/pip-cache --only-binary=:all: -r member1/requirements.txt --dest .tools/member1-wheels-macos` | All 15 distributions downloaded before lock hash authoring |
+| `.tools/member1-venv/bin/python -m pip download --cache-dir .tools/pip-cache --only-binary=:all: -r member1/requirements.txt --dest .tools/member1-wheels-linux-arm64 --platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64 --platform manylinux_2_17_aarch64 --implementation cp --python-version 3.12 --abi cp312 --abi abi3 --abi none` | Linux ARM64 wheels resolved; these hashes are in all relevant final locks |
+| `.venv/bin/python -m venv .tools/registry-venv`; `.tools/registry-venv/bin/python -m pip install --no-index --find-links .tools/member1-wheels-macos --only-binary=:all: --require-hashes -r member1/requirements-registry.txt`; `.tools/registry-venv/bin/python -m pip check` | Clean isolated Registry installation; no Kafka dependency; pip check passes |
+| `.venv/bin/python -m venv .tools/simulator-venv`; `.tools/simulator-venv/bin/python -m pip install --no-index --find-links .tools/member1-wheels-macos --only-binary=:all: --require-hashes -r member1/requirements-simulator.txt`; `.tools/simulator-venv/bin/python -m pip check` | Clean isolated simulator installation; no PostgreSQL/gRPC dependency; pip check passes |
+| `.venv/bin/python -m venv .tools/member1-lock-check`; `.tools/member1-lock-check/bin/python -m pip install --no-index --find-links .tools/member1-wheels-macos --only-binary=:all: --require-hashes -r member1/requirements.txt`; `.tools/member1-lock-check/bin/python -m pip check` | Clean combined test installation, all hashes verified, no broken requirements |
+| `.tools/member1-venv/bin/python -m pip download --no-index --find-links .tools/member1-wheels-linux-amd64 --only-binary=:all: --require-hashes -r member1/requirements.txt --dest .tools/member1-hash-check-linux-amd64 --platform manylinux2014_x86_64 --platform manylinux_2_28_x86_64 --platform manylinux_2_17_x86_64 --implementation cp --python-version 3.12 --abi cp312 --abi abi3 --abi none` | All 15 Linux x86_64 wheels hash-verified; this is resolution, not execution on that architecture |
+| `make bindings`; `make contracts BASE_REF=HEAD` | **213 passed**; unchanged executable v1 definitions; new test validates real Member_1 telemetry/results/command fixtures with the frozen semantic validator |
+| `make infra-up` | Existing Kafka/PostgreSQL healthy, eight canonical topics and all four database logins/queries pass; other stores/resources preserved |
+| `make member1-test` | **14 passed** at this checkpoint; later event-ID and transaction-rollback checks are included in the final 23-test live run |
+| `make member1-live MEMBER1_PYTHON=.tools/member1-lock-check/bin/python` | Final complete suite **23 passed**: deterministic scenarios, partition routing, output ACK/offset order, abrupt process exit, rollback on result-store failure, restart dedup/epochs, malformed/expired/conflicting/stale commands, Registry RPC/auth/version/pagination/deadline/concurrency/outage behavior and health/metrics |
+| `make member1-build`; `make member1-up` | Separate ARM64 simulator/Registry images build from digest-pinned Python; hash-checked runtime installation; both containers healthy, UID 10001, read-only root filesystems, no host binds |
+| `.tools/member1-venv/bin/python -m tests.member1.container_smoke` | All four Registry RPCs; real command/results and caused telemetry; container recreation retains Registry data and edge dedup/fence; duplicate, stale, expired and explicit restore outcomes pass; boot changes and both health/metrics endpoints verified |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py` | **21 passed**; previous preparation/dependency behavior preserved |
+| `git diff --check` | Passed |
+
+### Resolved issues, decisions and limitations
+
+- First sandboxed package/socket attempts were denied; approved isolated installs
+  and local-network checks succeeded. No system/global pip was used.
+- Host port 50051 was already occupied. Registry uses **127.0.0.1:15051** externally
+  and 50051 inside its container; the unrelated listener was not stopped.
+- A concurrently running demo produced indistinguishable extra results in the
+  initial live test. Tests now own uniquely prefixed disposable topics and delete
+  them in fixture teardown. A subsequent fresh-topic leader-metadata race was
+  fixed with a bounded metadata wait. Three topics from the failed setup were
+  removed explicitly. Final passing results supersede those earlier failures.
+- The preliminary macOS/ARM64-only lock correctly rejected x86_64 wheels. Their
+  exact versioned wheel hashes were added and the final cross-platform lock was
+  verified offline. No library version was loosened.
+- ADR-026 resolves the package layout and durable simulator boundary. The matrix's
+  old gRPC runtime row now follows ADR-025's already accepted 1.85.3 runtime,
+  keeping the compiler at 1.71.0. No executable contract was weakened.
+- One simulator owns the fixture fleet. Horizontal scaling/device partition
+  assignment, thousands-of-devices load, replicated Kafka availability,
+  Kubernetes deployment/PVC/CNI gates, mTLS/production identity, Registry backup
+  acceptance, shared monitoring/OTel exporters, scans/SBOMs and hosted CI execution
+  remain later gates. Local-token authorization is tested; it is not mTLS.
+- Telemetry has bounded native buffering/retries and visible delivery failure,
+  not a durable telemetry spool. Result history is durable and not pruned; disk
+  sizing/retention reconciliation is a later operational gate. No performance or
+  full-platform acceptance claim is made.
+
+Next recommended milestone: **Member_2's native ARM64 PyFlink packaging proof and
+standalone aggregation slice**, using the frozen Member_1 topology/telemetry
+fixtures. Keep Member_3 and Member_4 independent. Do not broaden this change into
+full platform deployment or monitoring-stack installation.
+
+
+Final local state: Kafka, PostgreSQL, Registry and simulator are healthy and left
+running for inspection; dependency volumes and `smart-grid-local-dev_member1-edge`
+are retained. No disposable `local-dev.member1-test.*` topics remain. Stop the
+applications with `make member1-down`, then dependencies with `make infra-down`.
+The previously occupied host port and existing kind cluster were not modified.
+
+Final `docker inspect` assertions confirm health, UID `10001:10001`, read-only
+root filesystems and absence of bind mounts. Running image IDs:
+
+- Registry: `sha256:f0b35236fae7c3b571ca30932d098733f1a12398f66b3a1f7e5eb50fb51a9849`
+- Simulator: `sha256:223d6006914a8ae9823dc1f8d1648d40957ad4aa9fa87d590964b0df1b3f7c54`
+
+## Member_1 publication verification — 2026-11-22
+
+The user explicitly authorized committing and pushing this milestone to `main`.
+`git fetch origin main` succeeded; `git rev-list --left-right --count origin/main...HEAD`
+returned `0 0`. Before publication, `make contracts BASE_REF=HEAD` passed **213**
+checks, `make member1-live MEMBER1_PYTHON=.tools/member1-lock-check/bin/python`
+passed **23** tests, and `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py`
+passed **21** tests. `git diff --check` passed. These reruns do not claim hosted
+CI execution. The normal push result is recorded in Git history; no force push
+is authorized or required.
