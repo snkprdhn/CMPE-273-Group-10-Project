@@ -50,7 +50,10 @@ Key: `transformer_id`. Payload: `action_id`, `transformer_id`, `status`, `trigge
 
 ## `grid.charger-command.v1`
 
-Key: `device_id`. Payload: `command_id`, `action_id`, `device_id`, `transformer_id`, `command_type` (`THROTTLE`, `RESTORE`), `target_rate_kw`, `issued_at`, `expires_at`, `reason`, `policy_version`, `saga_version`, and `leader_epoch`. `command_id` is the idempotency key; a device rejects an epoch older than its greatest accepted epoch.
+Key: `device_id`. Payload: `command_id`, `action_id`, `device_id`, `transformer_id`, `command_type` (`THROTTLE`, `RESTORE`), `target_rate_kw`, `issued_at`, `expires_at`, `reason`, `policy_version`, `saga_version`, and `leader_epoch`. `command_id` is the idempotency key; a device rejects an epoch older than its greatest accepted epoch. The distributed
+gateway additionally checks current durable authority before an unseen effect
+([ADR-029](../decisions/ADR-029-outbox-and-fencing.md)); greatest-seen state alone
+cannot fence a device before its first new-leader command.
 
 ## `grid.command-result.v1`
 
@@ -69,3 +72,10 @@ Key: original telemetry key. Payload: original valid telemetry event, original p
 - Producers add optional fields before requiring consumers to use them.
 - Breaking changes require a new topic/schema major version and a migration window.
 - CI validates examples against their JSON Schemas and checks the agreed backward-compatibility rule before deployment.
+
+## CDC transport identity
+
+Debezium routes the stored canonical topic/key and unwrapped JSON envelope.
+Its `id` header is the physical outbox row ID. Consumer deduplication uses the
+immutable JSON `event_id` and command effects use `command_id`. Retry rows have
+distinct physical IDs and identical logical envelopes; no v1 wire shape changes.

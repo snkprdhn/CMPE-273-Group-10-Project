@@ -84,7 +84,11 @@ def main():
         publisher.drain()
         return
     Path(args.state).parent.mkdir(parents=True, exist_ok=True)
-    state = EdgeState(args.state, devices(utc())[0])
+    if os.getenv('EDGE_DSN'):
+        from member1.fencing import FencedEdgeState
+        state = FencedEdgeState(os.environ['EDGE_DSN'], devices(utc())[0])
+    else:
+        state = EdgeState(args.state, devices(utc())[0])
     receiver = consumer(args.bootstrap, args.prefix, args.group)
     health = monitor(args.metrics_port or 8002, publisher.ready, args.bind)
     stopped = threading.Event()

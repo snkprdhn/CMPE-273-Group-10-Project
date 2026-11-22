@@ -9,8 +9,10 @@ Member_3 owns the distributed action processor, Kubernetes leader lease and fenc
 [Member_3 runbook](../../member3/README.md) and
 [ADR-028](../decisions/ADR-028-member3-action-domain.md) cover the fixture-driven
 PostgreSQL domain/saga, transactional inbox/outbox, versions and recovery.
-Live Kafka/CDC, distributed leadership, operator compensation API and operational
-deployment remain later gates. The domain profile needs only PostgreSQL plus
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md) and the
+[delivery runbook](../../infra/member3/README.md) complete local CDC and durable
+Lease fencing. Live observation acquisition, operator compensation API and full
+operational deployment remain later gates. The domain profile needs only PostgreSQL plus
 load/result fixtures and a fake Registry with explicit charger observations.
 
 ## Responsibilities (remaining integration gates included)

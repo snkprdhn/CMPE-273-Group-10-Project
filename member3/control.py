@@ -15,23 +15,36 @@ class Conflict(ValueError):
 
 
 class Control:
-    def __init__(self, dsn, registry, leader_epoch=1):
+    def __init__(self, dsn, registry, leader_epoch=1, leadership=None):
         if isinstance(leader_epoch, bool) or not isinstance(leader_epoch, int) or leader_epoch < 1:
             raise ValueError('positive leader epoch required')
         self.dsn, self.registry, self.epoch = dsn, registry, leader_epoch
+        self.leadership = leadership
 
     @contextmanager
-    def transaction(self):
+    def transaction(self, migration=False):
         with psycopg.connect(self.dsn, connect_timeout=2) as db:
             db.execute("SET LOCAL statement_timeout = '5s'")
+            db.execute("SET LOCAL idle_in_transaction_session_timeout = '5s'")
             db.execute("SET LOCAL lock_timeout = '4s'")
             # ponytail: serialize the small standalone control store; shard this
             # lock by transformer when measured throughput requires it.
             db.execute('SELECT pg_advisory_xact_lock(273003)')
+            if not migration:
+                if self.leadership:
+                    if self.epoch != self.leadership.epoch:
+                        raise Conflict('STALE_EPOCH')
+                    self.leadership.check(db)
+                elif db.execute('SELECT EXISTS(SELECT 1 FROM action_authority)').fetchone()[0]:
+                    raise Conflict('LEADERSHIP_REQUIRED')
             yield db
+            if not migration and self.leadership:
+                self.leadership.check(db)
 
     def migrate(self):
-        with self.transaction() as db:
+        with self.transaction(migration=True) as db:
+            # SECURITY DEFINER functions must search the owned schema before temp.
+            db.execute("SELECT set_config('search_path', current_setting('search_path') || ',pg_temp', true)")
             db.execute((Path(__file__).with_name('state.sql')).read_text())
 
     def transformer(self, db, tx):
@@ -338,6 +351,23 @@ class Control:
                         status = 'PARTIALLY_APPLIED' if any(c['status'] == 'APPLIED' for c in self.commands(db, a['id'], kind)) else 'TIMED_OUT'
                         self.review(db, a, now, status, 'acknowledgement deadline exhausted; outcome unknown')
                         state['health'] = 'SAFE_HOLD'
+                self.save_transformer(db, a['tx'], version, state)
+
+    def reconcile(self, now):
+        """New ownership holds all unfinished old-epoch work, retaining evidence."""
+        with self.transaction() as db:
+            for (a,) in db.execute('SELECT state FROM action_plans WHERE active ORDER BY id').fetchall():
+                if a['epoch'] == self.epoch:
+                    continue
+                version, state = self.transformer(db, a['tx'])
+                for kind in ('THROTTLE', 'RESTORE'):
+                    for c in self.commands(db, a['id'], kind):
+                        if c['status'] == 'PENDING':
+                            c['status'] = 'TIMED_OUT'
+                            self.save_command(db, c)
+                self.transition(db, a, 'NEEDS_OPERATOR_REVIEW', now,
+                                'leadership changed; reconcile effects before further commands')
+                state['health'], state['recovery'], state['recovery_end'] = 'SAFE_HOLD', 0, None
                 self.save_transformer(db, a['tx'], version, state)
 
     def inspect(self):

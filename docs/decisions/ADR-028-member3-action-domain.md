@@ -51,3 +51,7 @@ No success-returning publisher/lease/operator stub is supplied. Live Registry
 observation acquisition, Kafka consumers, CDC, distributed leader allocation,
 operator compensation API, kind packaging and operational gates remain explicit
 future work. No model is required for deterministic control.
+
+The later requested CDC/leadership gate is now implemented in
+[ADR-029](ADR-029-outbox-and-fencing.md); the future-work list above records the
+original standalone milestone boundary.

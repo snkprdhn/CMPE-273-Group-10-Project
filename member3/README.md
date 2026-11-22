@@ -1,10 +1,13 @@
-# Member_3 standalone Action domain
+# Member_3 Action domain and distributed delivery
 
 Implemented: deterministic policy/allocation and the PostgreSQL durable saga using
 versioned [load/result scenarios](fixtures/scenarios.json) and a [fake Registry](fixtures.py).
 Member_1 retains simulation/Registry/observability; Member_2 Kafka/PyFlink;
 Member_3 control/PostgreSQL/Debezium; Member_4 projection/API/UI/identity/Copilot.
-No live simulator, aggregation job, Kafka, model or Registry is required.
+The standalone domain profile requires no live simulator, aggregation job, Kafka,
+model or Registry. The completed outbox/fencing profile additionally uses local
+Kafka Connect and the kind API; see the [delivery runbook](../infra/member3/README.md)
+and [ADR-029](../docs/decisions/ADR-029-outbox-and-fencing.md).
 
 ## Run and inspect
 
@@ -84,9 +87,10 @@ skips database acceptance; that result is insufficient to accept this milestone.
   PostgreSQL advisory lock; optimistic versions and uniqueness remain enforced.
   Registry failure or any write failure rolls the transaction back for safe replay.
 - `COMMANDS_DISPATCHED` means committed to the outbox, **delivery unconfirmed**.
-  No broker publication is claimed. Router columns are `id`, `aggregatetype`
+  Publication is provided by the separate CDC profile. Router columns are `id`, `aggregatetype`
   (canonical topic), `aggregateid` (transformer/device key), `type`, `payload`.
-  Future Debezium routing must use the stored topic/key and unwrapped payload.
+  Debezium uses that stored topic/key and unwrapped payload; its header ID is
+  physical, while payload event_id is the stable logical identity.
 - There is at most **one retransmission** (two attempts total) within the original
   TTL, only while results are unknown and the command epoch matches. A retry has
   a new physical outbox delivery ID but the exact same logical event/command,
@@ -112,12 +116,15 @@ hold, extreme finite loads and separate-process recovery. The reviewed suite has
 42 passing tests against real PostgreSQL. See the exact executed
 results in [implementation status](../docs/implementation/IMPLEMENTATION_STATUS.md).
 
-This slice stores/compares supplied positive leader epochs and refuses older
-work. It does not acquire Kubernetes Leases or allocate cluster fencing epochs.
-A changed epoch holds pending commands instead of rewriting their identities.
-Kafka consumers/offsets, Debezium publication/duplicate-delivery proof, live
-observation acquisition, authenticated operator reconciliation/compensation API,
-kind packaging, metrics, backup/export and database-server crash testing remain
-future milestones. Reviewed sagas deliberately remain held until that explicit
-operator workflow exists. No polling relay, cloud resources or external model
-calls are included.
+The distributed profile now acquires Kubernetes Leases, allocates durable epochs,
+checks authority before/after every control transaction and holds old active
+sagas on restart. Once authority exists, supplied-epoch standalone callers cannot
+bypass it. Debezium publishes committed outbox rows; the fenced Member_1 gateway
+commits authorization/effect/dedup/result outbox in one PostgreSQL transaction.
+See [delivery runbook](../infra/member3/README.md) for executed failure checks and
+local commands. The SQLite standalone simulator retains its narrower guarantee.
+
+Live observation acquisition, authenticated operator reconciliation/compensation,
+full kind workload packaging, metrics, backup/export and database-server restart
+acceptance remain future milestones. Reviewed sagas deliberately remain held
+until that explicit operator workflow exists. No cloud/model calls are needed.

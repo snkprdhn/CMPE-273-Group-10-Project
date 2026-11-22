@@ -190,3 +190,14 @@ Separate runtime locks/venvs keep Registry independent of Kafka libraries and
 simulation independent of PostgreSQL/gRPC. The combined test lock is not a
 Member_2/3/4 environment. Linux ARM64 images execute locally; Linux x86_64 wheels
 resolve for CI, which is authored but not claimed executed on GitHub.
+
+## Distributed command fencing profile
+
+[ADR-029](../docs/decisions/ADR-029-outbox-and-fencing.md) adds an opt-in PostgreSQL
+simulated gateway selected by `EDGE_DSN`, with its own Member_1 schema/role. Its
+rate effect, dedup and result outbox share the typed Control authorization
+transaction; unseen old-leader commands are rejected without waiting to observe a
+new device command. The SQLite profile above remains independently runnable and
+uses greatest-seen epochs. Distributed acceptance uses the PostgreSQL profile,
+never a PostgreSQL/SQLite dual write. See the [local runbook](../infra/member3/README.md)
+for setup, role isolation, tests and explicit integration limitations.

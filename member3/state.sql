@@ -29,3 +29,23 @@ CREATE TABLE IF NOT EXISTS action_outbox (
     id UUID PRIMARY KEY, aggregatetype TEXT NOT NULL, aggregateid TEXT NOT NULL,
     type TEXT NOT NULL, payload JSONB NOT NULL
 );
+-- One local control shard. Never truncate/reset while command history survives.
+CREATE TABLE IF NOT EXISTS action_authority (
+    shard INTEGER PRIMARY KEY CHECK (shard=1), epoch BIGINT NOT NULL CHECK (epoch>0),
+    lease_uid TEXT NOT NULL, generation BIGINT NOT NULL, holder TEXT NOT NULL,
+    valid_until TIMESTAMPTZ NOT NULL
+);
+-- Narrow gateway service interface. Grant EXECUTE to a gateway role, never
+-- SELECT on Control tables. Search path is pinned to the installing schema.
+CREATE OR REPLACE FUNCTION authorize_command(command_id UUID, requested_epoch BIGINT, envelope JSONB)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path FROM CURRENT AS $$
+BEGIN
+    PERFORM pg_advisory_xact_lock_shared(273003);
+    RETURN EXISTS (
+        SELECT 1 FROM action_authority a, action_commands c
+        WHERE a.shard=1 AND a.epoch=requested_epoch AND a.valid_until > clock_timestamp()
+          AND c.id=command_id AND c.state->'event'=envelope
+    );
+END;
+$$;
+REVOKE ALL ON FUNCTION authorize_command(UUID,BIGINT,JSONB) FROM PUBLIC;

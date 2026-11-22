@@ -42,7 +42,7 @@ The saga is orchestration-based: one durable owner decides transitions. Compensa
 
 ## Acceptance failures
 
-Restart after plan commit but before publish; publish then crash before marking the outbox; redeliver the load event; apply a device command but lose the response; restart during partial acknowledgement; and replay all topics through a fresh audit group. Every experiment must preserve the invariants and reconstruct an explainable outcome.
+Restart after plan commit but before publish; publish then crash before Connect persists its source offset; redeliver the load event; apply a device command but lose the response; restart during partial acknowledgement; and replay all topics through a fresh audit group. Every experiment must preserve the invariants and reconstruct an explainable outcome.
 
 ## Standalone implementation boundary
 
@@ -63,3 +63,16 @@ must supply equally fresh evidence. Restore needs two distinct consecutive
 post-confirmation COMPLETE windows, verified current rates/capabilities and
 projected restored load below critical. Missing/stale state cannot satisfy any
 of those conditions. Automatic restore never releases a reviewed unknown outcome.
+
+## Completed delivery and fencing boundary
+
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md) implements the previously
+separate CDC/Lease gate. There is no application outbox published flag: Connect
+source offsets can lag publication, so repeats are safe by payload event/command
+identity. Physical retry row IDs remain distinct. The Lease CAS, durable SQL epoch,
+domain outbox transaction, Connect publication/offset, and simulated device effect
+are separate boundaries except for typed SQL authorization + simulated effect,
+which deliberately share one PostgreSQL transaction under isolated roles/schemas.
+A gateway/database crash rolls back uncommitted effects; a lost result replays
+without repeating an effect. Epoch advancement serializes against effect commits.
+The [runbook](../../infra/member3/README.md) documents exact commands and limits.

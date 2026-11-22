@@ -39,7 +39,11 @@ erDiagram
 
 ## 3. Logical store ownership
 
-One PostgreSQL primary is shared only to fit student hardware; services do not share tables or credentials.
+One PostgreSQL primary is shared only to fit student hardware; services do not share tables or credentials. The fenced simulated gateway
+adds the narrow same-database isolated-schema boundary in
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md): Member_1 owns
+`member1_gateway` in the control database and calls only a typed authorization
+function, so its simulated effect and epoch check can commit atomically.
 
 | Logical store | Owner | Records | Rebuildability |
 |---|---|---|---|

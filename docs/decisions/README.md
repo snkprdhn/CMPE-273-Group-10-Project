@@ -46,3 +46,5 @@ Each accepted ADR should record context, decision, alternatives, consequences, d
 - [ADR-027 — Member_2 standalone aggregation and recovery](ADR-027-member2-standalone-aggregation.md) — accepted; native ARM64 build and TaskManager checkpoint/replay verified, kind/rescaling remain future gates.
 
 - [ADR-028 — Member_3 Action domain and durable saga](ADR-028-member3-action-domain.md) — accepted; PostgreSQL fixture/restart acceptance, CDC/leadership remain later gates.
+
+- [ADR-029 — Outbox delivery and durable fencing](ADR-029-outbox-and-fencing.md) — accepted; local CDC, kind Lease and atomic simulated gateway effect boundaries.

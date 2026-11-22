@@ -171,3 +171,17 @@ tests pass. No gRPC/Kafka/PyFlink/model dependency is introduced for this domain
 slice. PostgreSQL reuses the existing pinned 17.4 local container. Linux runtime,
 CDC, distributed leadership and kind packaging remain separate gates under
 [ADR-028](../decisions/ADR-028-member3-action-domain.md).
+
+## Outbox/fencing runtime — 2026-11-22
+
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md) uses the already selected
+Strimzi Kafka/Connect **0.45.2 / 3.9.2** immutable base above and PostgreSQL **17.4**.
+The upstream Debezium PostgreSQL **3.0.8.Final** plugin tarball has SHA-256
+`600806875b810abb96b3774f789d9ed33dbe4ac687d3ed9454bc0caa76b7279c`;
+[Dockerfile](../../infra/member3/Dockerfile.connect) verifies it before extraction.
+The independent Member_3 lock adds only the previously selected **confluent-kafka
+2.8.2** artifact hashes. The Member_1 simulator lock adds the existing **psycopg /
+psycopg-binary 3.2.9** pins for the optional PostgreSQL effect profile. No Kubernetes
+SDK or new version selection is introduced; the local runner invokes the pinned
+kubectl. Real local CDC and kind Lease failure evidence is in implementation
+status. Full kind workload/security/operations packaging remains unverified.

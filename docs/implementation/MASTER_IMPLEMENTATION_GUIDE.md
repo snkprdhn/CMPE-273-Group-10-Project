@@ -1,6 +1,12 @@
 # Master Implementation Guide
 
-**Status:** Lightweight local dependency infrastructure passes full local acceptance (see [Compose runbook](../../infra/compose/README.md) and current verification status); repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; Member_1 standalone simulation/Registry, independent locks, container startup and restart safety are implemented; Member_2 standalone aggregation and native ARM64 checkpoint/replay acceptance now pass under [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md); Member_3/4 applications and platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
+**Status:** Lightweight local dependency infrastructure passes full local acceptance (see [Compose runbook](../../infra/compose/README.md) and current verification status); repository preparation and executable contract milestones complete; an empty local kind cluster and locked preparation venv are verified; Member_1 standalone simulation/Registry, independent locks, container startup and restart safety are implemented; Member_2 standalone aggregation and native ARM64 checkpoint/replay acceptance now pass under [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md); Member_3 Action domain, local CDC publication and durable Lease fencing are implemented under [ADR-028](../decisions/ADR-028-member3-action-domain.md) and [ADR-029](../decisions/ADR-029-outbox-and-fencing.md); Member_4 applications and full platform deployment remain unimplemented/unverified. See [implementation status](IMPLEMENTATION_STATUS.md), [accepted versions](VERSION_MATRIX.md), and [manual prerequisites](LOCAL_PREREQUISITES.md).
+
+The requested outbox/fencing gate is implemented under
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md): local Kafka Connect/Debezium,
+kind Lease leadership, durable epochs and atomic PostgreSQL simulated gateway
+effects. See the [delivery runbook](../../infra/member3/README.md). This does not
+claim full Phase 3/4 integration or live charger observation acquisition.
 
 ## 1. Purpose
 

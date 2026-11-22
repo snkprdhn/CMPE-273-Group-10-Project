@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for Member_3 Action domain acceptance. Member_1 simulation/Registry, Member_2 aggregation and the Member_3 standalone Action domain are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for outbox delivery and fencing acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain and the local CDC/Lease/fenced gateway boundary are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
@@ -13,27 +13,138 @@ Updated **2026-11-22 (America/Los_Angeles)** for Member_3 Action domain acceptan
 | Member_1 standalone edge and Registry | Deterministic three-device scenario; Kafka telemetry/commands/results; durable simulated effects/dedup/fences; PostgreSQL gRPC Registry; operational endpoints and independent ARM64 images | [Runbook](../../member1/README.md), [ADR-026](../decisions/ADR-026-member1-standalone-state.md), executed evidence below |
 
 | Member_2 standalone Kafka/PyFlink aggregation | Native ARM64 source-built runtime, 56-package hash lock; fixed golden telemetry, transactional load/DLQ/late output; checkpoint/replay proof with an open transaction at TaskManager crash | [Runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md), evidence below |
+| Outbox delivery and fencing | Real Debezium CDC, kind Lease and durable epochs, atomic fenced simulated gateway | [ADR-029](../decisions/ADR-029-outbox-and-fencing.md), [runbook](../../infra/member3/README.md), failure evidence below |
 | Member_3 Action domain and durable saga | PostgreSQL transactional state/inbox/outbox, deterministic fixture allocation, retry/timeout/hold/restore, optimistic versions and restart recovery | [Runbook](../../member3/README.md), [ADR-028](../decisions/ADR-028-member3-action-domain.md), 42 PostgreSQL tests and demo below |
 
 ## Current milestone and verification
 
-**Member_3 Action domain logic and durable state machine are complete locally.**
-Real PostgreSQL acceptance covers threshold/hysteresis/cooldown/freshness,
-deterministic allocation, stable identities, optimistic versions, transactional
-inbox/outbox, partial/timeout review, safe hold, restore and restart recovery.
-All 14 load/result scenarios assert fixed durable transition sequences, command
-targets and outbox records without duplicate logical plans. The separate-process
-demo reads back COMPLETED, four commands and 13 canonical-valid outbox rows.
-See [Member_3 runbook](../../member3/README.md) and
-[ADR-028](../decisions/ADR-028-member3-action-domain.md).
+**Outbox delivery and fencing are complete in the small local profile.**
+Member_3 owns Connect/Debezium, the PostgreSQL authority and kind Lease client;
+Member_1 owns the fenced simulated gateway. Member_2 Kafka/PyFlink and Member_4
+projection/API/UI/identity/Copilot ownership is preserved. See
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md) and the
+[local delivery runbook](../../infra/member3/README.md).
 
-No blocker remains for this requested fixture-driven domain slice. Live charger
-observation acquisition, Kafka/CDC publication, Kubernetes Lease/epoch allocation,
-operator compensation API and full platform deployment remain later gates.
-Member_1/2 services were already running and were neither required nor modified.
-No system installations or cloud/model calls were performed. The initial domain
-implementation made no commits or pushes; the user subsequently authorized review,
-fixes, and a normal commit/push to main (review evidence below).
+Committed rows are captured by real Debezium and eventually published after
+Connect SIGKILL/restart. Physical retries preserve logical event/command IDs;
+duplicate delivery and lost result publication do not repeat effects. Kind tests
+kill a real leader process and reject its delayed acquisition/work. The actual
+worker process is restarted twice and reconciles pending work to review. The
+fenced gateway's authorization, effect, dedup and output share one PostgreSQL
+transaction, so process/session death cannot leave a cross-store stale effect.
+A typed function and separate schema/login preserve table ownership/isolation.
+
+No blocker remains for this requested boundary. Live Registry/charger observations,
+operator compensation API, full kind workload/security/observability packaging,
+backup/restore and database-server restart remain subsequent gates. This is not a
+full closed-loop platform deployment. Existing Member_1/2 containers/data were
+preserved; only the new Connect container was killed/restarted. No system software,
+cloud resources or model calls were used. Initial implementation made no commits
+or pushes; the subsequent user-authorized review and publication are recorded below.
+
+## Outbox prepublication review — 2026-11-22
+
+The user authorized correctness/failure review, fixes, commit and a normal push
+to `main`. Review found and fixed four boundary issues:
+
+- A Lease GET/renew response could cross the previous local deadline and revive
+  the same incarnation. Check the prior deadline after GET and after CAS; an
+  uncertain/late successful renewal still loses local authority.
+- Falsy empty Kafka records could bypass parsing and later be skipped by a higher
+  committed offset. Handle every non-None message; malformed inputs stop visibly
+  without committing an offset.
+- Graceful shutdown could close the consumer before revoking authority; failure
+  to revoke could skip consumer cleanup. Revoke first and always close the
+  consumer in a nested finally, including database failures.
+- The gateway evaluated expiry using arrival time before database waits. Count
+  monotonic elapsed work, and recheck command expiry and SQL authorization after
+  effect/output writes. If either budget expires, the entire effect/dedup/output
+  transaction rolls back. Already-applied duplicates still cause no new effect.
+
+Seven regression cases failed before their fixes (two Lease, three worker, two
+gateway wait cases). Two additional cases cover final authorization latency and
+server-clock authority expiry. Final verification:
+
+| Exact command | Result |
+|---|---|
+| `git fetch origin main`; `git rev-list --left-right --count origin/main...HEAD` | Fetch succeeded; `0 0` before publication |
+| `.tools/member3-venv/bin/python -m pytest -q tests/member3/test_lease.py tests/member3/test_worker.py` | **5 failed before fixes**, then **5 passed** |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m pytest -q tests/member3/test_delivery.py -k expiry_counts_database_waits` | **2 failed before fixes**; covered by final expanded suite |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control MEMBER3_CDC_TEST=1 MEMBER3_KIND_TEST=1 make member3-test` | **67 passed in 40.20s**, no skips; real CDC crashes, kind leader death, worker restarts and PostgreSQL effects |
+| `make contracts BASE_REF=origin/main` | **214 passed**; frozen contracts unchanged |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
+| `.tools/member1-venv/bin/python -m pytest -q tests/member1/test_edge.py tests/member1/test_operations.py` | **16 passed** |
+| `.tools/member3-venv/bin/python -m pip check`; `.tools/member3-venv/bin/python -m compileall -q member1/fencing.py member3 tests/member3 tools/member3_setup.py`; `git diff --check` | Passed; no broken requirements or compilation/whitespace errors |
+
+Only the requested outbox/fencing files and review fixes are included. Existing
+Member_1/2 containers and data remain intact. No blocker remains for this scope;
+limits and next milestone above remain unchanged. Git history and remote state
+record publication; hosted CI is a separate, unclaimed result.
+
+## Outbox delivery and fencing — executed 2026-11-22
+
+Use the environment values in the runbook; all passwords below are disposable
+local fixtures. Docker, loopback PostgreSQL/Kafka and kind access required sandbox
+escalation after the initial read-only checks were denied. Those initial denials
+were environment restrictions, not passing verification.
+
+| Exact command / check | Result |
+|---|---|
+| `git status --short`; `rg --files`; reads of root AGENTS, master/status/version matrix, relevant design/contracts and ADR-025/026/028 | Initially clean worktree; existing implementation traced before edits |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml ps --all`; `.venv/bin/kubectl --context kind-smart-grid-dev get nodes` | Existing dependencies healthy; existing kind node Ready; unrelated services preserved |
+| `curl -fL --max-time 60 -o .tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz https://repo.maven.apache.org/maven2/io/debezium/debezium-connector-postgres/3.0.8.Final/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz`; `shasum -a 256 .tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz` | Selected plugin downloaded to ignored cache; SHA-256 `600806875b810abb96b3774f789d9ed33dbe4ac687d3ed9454bc0caa76b7279c`; build enforces checksum |
+| `.tools/member3-venv/bin/python -m pip install --no-index --find-links .tools/member1-wheels-macos --require-hashes -r member3/requirements.txt` | Existing selected confluent-kafka 2.8.2 installed offline; other locked packages reused |
+| `MEMBER3_ADMIN_DSN=postgresql://local_admin:local_admin_disposable@127.0.0.1:15432/local_dev_control CONTROL_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m tools.member3_setup` | Isolated schema/publication, restricted CDC/gateway roles and isolated local-m3 topics created; repeated setup passes |
+| `docker compose -p smart-grid-local-dev -f infra/compose/compose.yaml -f infra/compose/member3.yaml up -d --build connect` | ARM64 pinned Connect/plugin image builds and starts; no unrelated services restarted |
+| `.tools/member3-venv/bin/python -m member3.cdc configure`; `.tools/member3-venv/bin/python -m member3.cdc status` | Real task 0 RUNNING after configuration settles; canonical unwrapped payload routing |
+| `.venv/bin/kubectl --context kind-smart-grid-dev apply -f infra/member3/lease.yaml` | Scoped namespace, precreated Lease, ServiceAccount and get/update-only Role/Binding applied |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control .tools/member3-venv/bin/python -m pytest -q tests/member3` | Original **42 passed**; expanded pre-live run **48 passed, 1 explicit kind skip**; not the final acceptance command |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control MEMBER3_CDC_TEST=1 MEMBER3_KIND_TEST=1 make member3-test` | **58 passed in 40.44s**, no skips; real PostgreSQL, Kafka Connect and kind |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control MEMBER3_CDC_TEST=1 MEMBER3_KIND_TEST=1 .tools/member3-venv/bin/python -m pytest -q tests/member3/test_cdc_live.py` | **2 passed in 29.45s** after unused trial metadata cleanup; final-schema CDC and worker restart reverified |
+| `make contracts BASE_REF=HEAD` | **214 passed**; no executable wire shape changes |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
+| `.tools/member1-venv/bin/python -m pytest -q tests/member1/test_edge.py tests/member1/test_operations.py` | **16 passed** |
+| `.venv/bin/kubectl --context kind-smart-grid-dev -n smart-grid-control auth can-i get lease/action --as=system:serviceaccount:smart-grid-control:action`; same command with `delete` | `yes` for get; `no` for delete (expected exit 1) |
+| `.tools/member3-venv/bin/python` inline gateway-role connection with `search_path=member1_gateway,member3_delivery`, `FencedEdgeState` creation/current read, and attempted SELECT of `member3_delivery.action_commands` | Own gateway state/interface works; Control table SELECT denied |
+| `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py` | **10 passed** after documentation updates |
+| `.tools/member3-venv/bin/python -m pip check`; `.tools/member3-venv/bin/python -m compileall -q member3 member1/fencing.py tests/member3 tools/member3_setup.py`; `git diff --check` | No broken requirements; compilation and whitespace pass |
+
+Initial live CDC testing failed because pgoutput 17 omits generated columns.
+Resolved by retaining the existing physical row `id` in the router header and
+using immutable payload `event_id`/`command_id` for logical dedup. No slot or
+Connect-offset reset was used. Unused trial column/trigger metadata was removed
+without removing any outbox payloads; the final schema matches the checked-in SQL. A subsequent assertion incorrectly expected no
+batch duplicates; it now waits for all unique expected events and verifies exact
+payloads. Setup's empty topic-creation list was also corrected. The paused-session test
+initially expected the generic OperationalError; PostgreSQL reports its specific
+IdleInTransactionSessionTimeout class, now asserted explicitly. These failures
+are not counted as passing evidence; final acceptance exercises the fixes.
+
+### Current decisions, limits and next milestone
+
+- Lease acquisition and SQL authority are separate transactions. Before serving,
+  reverify Lease ownership and commit a monotonically increasing epoch. Domain
+  transactions recheck leadership before and after work. Graceful stop revokes
+  authority before releasing the Lease. Paused SQL sessions are bounded by idle
+  transaction timeout; session loss rolls back simulated effects and frees locks.
+- PostgreSQL owns the fenced gateway simulated rate, not a mirror of SQLite.
+  Own schema/login plus typed authorization prevents shared-table access. Shared
+  effect locks and exclusive epoch locks give a single durable ordering. Physical
+  hardware effects remain outside this simulator guarantee.
+- Restart holds every old active saga, retains partial results and unknown effects,
+  and never rewrites command IDs/epochs/expiry. First authority activation fences
+  historical standalone epochs; supplied-epoch callers cannot bypass authority.
+- One local control shard, one broker and one PostgreSQL primary; no replicated
+  broker availability claim. Local host workers use explicit kind kubeconfig;
+  in-pod image/deployment and ServiceAccount credential integration are unverified.
+  Lease deletion/recreation fails closed and requires operator recovery.
+- Run the CDC failure gate serially: it kills only Member_3 Connect and retains
+  synthetic outbox evidence. All test schemas/temporary Leases are removed.
+  Static observation fixtures are explicit and become stale; they are not live
+  charger observations. Slot/WAL retention and backups require operational work.
+- **Next recommended milestone:** live observation adapter and the Member_2 →
+  Member_3 → Member_1 pairwise closed loop, using this fenced delivery boundary,
+  before full kind packaging and the Member_4 projection/API/UI/identity slice.
 
 ## Member_3 Action domain — executed 2026-11-22
 
@@ -74,6 +185,7 @@ Inspection now reads one consistent, read-only PostgreSQL snapshot.
 | `make contracts BASE_REF=origin/main` | **214 passed**; canonical schemas, inputs and compatibility verified |
 | `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
 | `.tools/member1-venv/bin/python -m pytest -q tests/member1/test_edge.py tests/member1/test_operations.py` | **16 passed** with localhost permission; initial sandbox run had 15 pass/1 socket-bind permission failure, resolved by rerunning with host access |
+| `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py` | **10 passed** after documentation updates |
 | `.tools/member3-venv/bin/python -m pip check`; `.tools/member3-venv/bin/python -m compileall -q member3 tests/member3`; `git diff --check` | All pass; no broken requirements or compilation/whitespace errors |
 
 Only Action milestone files and related documentation/test-target changes are
@@ -82,6 +194,9 @@ Publication result is recorded by Git history/remote state; hosted CI is a
 separate check, not claimed by these local results.
 
 ### Member_3 decisions and limitations
+
+Historical standalone checkpoint; ADR-029 above supersedes its CDC/Lease
+future-work items. Other integration/operations limits still apply.
 
 - PostgreSQL is authoritative; inbox, domain state, commands, saga progress and
   outbox commit atomically. A bounded global advisory lock serializes the small

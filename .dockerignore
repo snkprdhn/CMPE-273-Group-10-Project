@@ -17,3 +17,8 @@ member2/**/__pycache__/
 !tests/member2/**
 tests/member2/**/__pycache__/
 !schemas/v1/golden.scenarios.json
+!infra/
+!infra/member3/
+!infra/member3/**
+!.tools/downloads/
+!.tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz
