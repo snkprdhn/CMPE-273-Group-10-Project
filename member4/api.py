@@ -1,4 +1,4 @@
-"""Standalone REST/SSE operations boundary. Identity is an explicit local mock."""
+"""Standalone REST/SSE operations boundary with server-side authorization."""
 import asyncio
 import json
 import re
@@ -26,16 +26,19 @@ def frame(event):
     return f"id: {event['cursor']}\nevent: {event['event_type']}\ndata: {json.dumps(event, allow_nan=False)}\n\n"
 
 
-def create_app(store, identities, mocks=None):
-    if not identities:
-        raise ValueError('Explicit local mock identities are required')
-    for token, actor in identities.items():
+def create_app(store, identities=None, mocks=None, oidc=None):
+    if identities is None and oidc is None:
+        from identity.auth import OIDC
+        oidc = OIDC()
+    if identities is not None and (not identities or oidc is not None):
+        raise ValueError('Choose OIDC or explicit nonempty mock identities')
+    for token, actor in (identities or {}).items():
         if not token or len(token) < 16:
             raise ValueError('Mock tokens must have at least 16 characters')
         validate('Id', actor['actor'])
         validate('Role', actor['role'])
     mocks = mocks or ContractMocks()
-    app = FastAPI(title='Member_4 standalone operations (mock identity)', docs_url=None,
+    app = FastAPI(title='Member_4 operations', docs_url=None,
                   redoc_url=None, openapi_url=None)
 
     @app.middleware('http')
@@ -43,6 +46,7 @@ def create_app(store, identities, mocks=None):
         request.state.request_id = uuid4().hex
         response = await call_next(request)
         response.headers['X-Request-ID'] = request.state.request_id
+        response.headers['Cache-Control'] = 'no-store'
         return response
 
     @app.exception_handler(ApiError)
@@ -67,6 +71,12 @@ def create_app(store, identities, mocks=None):
     def authorize(request, minimum):
         authorization = request.headers.get('authorization', '')
         token = authorization[7:] if authorization.startswith('Bearer ') else ''
+        if oidc is not None:
+            from identity.auth import Denied, require
+            try:
+                return require(oidc.authenticate(token), minimum)
+            except Denied as exc:
+                raise ApiError(exc.status, exc.message) from exc
         actor = next((value for key, value in identities.items() if secrets.compare_digest(key.encode('utf-8'), token.encode('utf-8'))), None)
         if not actor:
             raise ApiError(401, 'Local mock bearer identity required')
@@ -186,6 +196,7 @@ def create_app(store, identities, mocks=None):
         if traceparent is not None and not re.fullmatch(r'00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]', traceparent):
             raise ApiError(400, 'Invalid trace context')
         context = dict(actor, idempotency_key=key, request_id=request.state.request_id,
+                       authorized_at=stamp(utc()),
                        traceparent=traceparent or ('00-' + uuid4().hex + '-' + uuid4().hex[:16] + '-01'),
                        service_identity='member4.api.mock', deadline_ms=3000)
         with store.transaction() as db:
@@ -248,7 +259,7 @@ def create_app(store, identities, mocks=None):
 
     @app.get('/api/v1/events')
     async def events(request: Request):
-        authorize(request, 'Viewer')
+        actor = await anyio.to_thread.run_sync(authorize, request, 'Viewer')
         cursor = request.headers.get('last-event-id')
         if cursor is not None:
             validate('Id', cursor)
@@ -257,6 +268,8 @@ def create_app(store, identities, mocks=None):
             nonlocal cursor, batch
             heartbeat = time.monotonic()
             while not await request.is_disconnected():
+                if time.time() >= actor.get('expires_at', float('inf')):
+                    return  # Reconnect with a renewed bearer; expiry applies to open streams too.
                 for event in batch:
                     yield frame(event)
                     cursor = event['cursor']
@@ -281,6 +294,8 @@ def create_app(store, identities, mocks=None):
 
     def mutation_route(template, method, schema):
         async def handler(request: Request, id: str = None):
+            await anyio.to_thread.run_sync(authorize, request,
+                OPENAPI['paths'][template][method.lower()]['x-minimum-role'])
             if id is not None:
                 validate('Id', id)
             body = await bounded_body(request, schema)

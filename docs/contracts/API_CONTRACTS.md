@@ -1,6 +1,6 @@
 # HTTP and Live-Update API Contracts
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_4 standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); investigations, live identity/internal adapters and kind deployment remain later gates.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_4 standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); local OIDC is implemented under [ADR-032](../decisions/ADR-032-member4-local-identity.md); investigations, live internal adapters and kind deployment remain later gates.
 
 Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List endpoints use `limit` and opaque `cursor`. Errors use `{ "error": { "code", "message", "request_id", "details" } }`.
 
@@ -14,8 +14,8 @@ limits when the API cannot provide full history, metrics or investigations.
 ## Endpoint contract
 
 All routes below except investigation routes are implemented in the standalone
-[Member_4 backend](../../member4/README.md), with explicit mock identity and
-scenario/policy adapters. Investigation routes remain planned.
+[Member_4 backend](../../member4/README.md), with OIDC by default, optional explicit mock identity, and
+scenario/policy contract-mock adapters. Investigation routes remain planned.
 
 | Method and path | Role | Purpose |
 |---|---|---|

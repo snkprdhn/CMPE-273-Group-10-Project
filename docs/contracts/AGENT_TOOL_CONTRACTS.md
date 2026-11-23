@@ -1,6 +1,8 @@
 # Agent Tool and Evidence Contracts
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. The local identity slice implements the Operator/allowlist guard in
+`identity.auth.authorize_tool` under [ADR-032](../decisions/ADR-032-member4-local-identity.md).
+Scoped tool dispatch, execution, service authentication and Copilot remain unimplemented.
 
 ## Boundary
 

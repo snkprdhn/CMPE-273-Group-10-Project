@@ -20,12 +20,16 @@ Use the managed Python 3.12.9 and an independent venv:
 export PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection
 .tools/member4-venv/bin/python -m member4 migrate
 .tools/member4-venv/bin/python -m member4 replay
+export MEMBER4_AUTH_MODE=mock
 export MEMBER4_MOCK_IDENTITIES='{"local-admin-token":{"actor":"local-admin","role":"Administrator"}}'
 .tools/member4-venv/bin/python -m member4 serve
 ```
 
-This explicitly configured mock bearer identity is for loopback development only.
-The CLI always binds 127.0.0.1. No OIDC/TLS, Gateway, UI, Copilot, external model,
+The example above explicitly selects fixture authentication. For real browser
+login and server-side OIDC use the [identity runbook](../identity/README.md);
+OIDC is the default when `MEMBER4_AUTH_MODE` is absent.
+This configured mock bearer identity is for loopback development only.
+The CLI always binds 127.0.0.1. No TLS, Gateway, Copilot, external model,
 or full kind workload deployment is claimed by this milestone. The existing kind
 on Docker Desktop target remains required for the later integration gate.
 The hash lock is verified for CPython 3.12/macOS ARM64; Linux image packaging and
@@ -169,8 +173,8 @@ Alert acknowledgements are owned operator annotations, durably audited separatel
 from domain events. They overlay OPEN as ACKNOWLEDGED; they never reopen RESOLVED
 alerts or change control behavior, and survive view rebuild. All mutation keys
 are scoped to actor across operations; reusing a key with different input returns
-409. Operator/Administrator role enforcement uses the explicit mock identities;
-Keycloak integration is still separate.
+409. Role enforcement uses validated Keycloak identities by default, or explicit
+mock identities in selected test mode; see [identity](../identity/README.md).
 
 ## Verify
 
@@ -193,7 +197,8 @@ heartbeat, cross-replica replay/pages/mutations, rollback and safe outages.
 | Setting | Type/default | Allowed values / classification |
 |---|---|---|
 | `PROJECTION_DSN` | Required PostgreSQL connection string | Owned projection store only; secret; never logged |
-| `MEMBER4_MOCK_IDENTITIES` | Required JSON token-to-actor/role mapping for `serve` | Nonempty, tokens ≥16 characters, contract IDs/roles; secret; local mock only |
+| `MEMBER4_AUTH_MODE` | Default OIDC; `mock` explicitly selects test identities | Local development only |
+| `MEMBER4_MOCK_IDENTITIES` | Required JSON token-to-actor/role mapping in mock mode | Nonempty, tokens ≥16 characters, contract IDs/roles; secret; local mock only |
 | `KAFKA_BOOTSTRAP` | String, `127.0.0.1:19092` | Local broker address, bound to the store on first consumer run; nonsecret |
 | `KAFKA_PREFIX` | String, empty | Existing local topic namespace, immutable for a store; nonsecret |
 | `PROJECTION_GROUP` | String, `member4.projection.v1` | Kafka consumer group; use the same group for consumer replicas; nonsecret |

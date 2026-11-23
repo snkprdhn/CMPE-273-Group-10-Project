@@ -36,21 +36,25 @@ restores service. Disconnect SSE and Reset cursor exercise recovery without
 navigation changes. Data is synthetic and controlled; fixture scenario start/stop
 records a run, while the toolbar independently advances the demonstration.
 
-For the existing backend, start/replay it using the [Member_4 runbook](../member4/README.md).
+For real per-user Keycloak login, follow the [identity runbook](../identity/README.md).
+OIDC is the normal runtime; logout and renewal run on the Python server.
+
+For explicit mock mode with the existing backend, start/replay it using the [Member_4 runbook](../member4/README.md).
 Set `DASHBOARD_API_TOKEN` to one of its explicitly configured mock bearer tokens
 in your shell (never commit it), then:
 
 ```sh
-DASHBOARD_API_URL=http://127.0.0.1:18084/api/v1 make dashboard
+MEMBER4_AUTH_MODE=mock DASHBOARD_API_URL=http://127.0.0.1:18084/api/v1 make dashboard
 ```
 
 UI defaults to loopback `18086`; `--port` and `--api-url` override local ports.
 The API default is loopback `18084/api/v1`; fixture mode uses `18085/api/v1`.
 URLs must use HTTP and a loopback host. These non-secret settings are owned by
-Member_4. `DASHBOARD_API_TOKEN` is required/secret in live mode and remains on the
+Member_4. `DASHBOARD_API_TOKEN` is required/secret in explicit mock mode and remains on the
 UI server. The local fixture mode uses an explicit disposable Operator token.
 A separate UI process can use a backend Viewer token to inspect denied operations.
-There is one configured identity per local process; this is not a login service.
+Explicit mock mode has one configured identity per process. OIDC mode instead
+uses isolated browser sessions and ignores `DASHBOARD_API_TOKEN`.
 Stop the UI and fixture terminals with Ctrl-C; there is no persisted fixture state.
 
 Verification:
@@ -91,5 +95,5 @@ Known API limits are displayed rather than invented: the trend is one explicitly
 named transformer; candidate lists/full command envelopes, complete historical
 saga transitions, telemetry arrival timestamps and component metrics are absent
 from v1. Scenario effects are backend contract mocks. The investigator reports
-unavailable; Copilot execution/evidence, Keycloak, kind packaging, Linux locks,
+unavailable; Copilot execution/evidence, kind packaging, Linux locks,
 full live context feeds and end-to-end platform acceptance remain later gates.

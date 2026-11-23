@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for Member_4 operator dashboard acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for Member_4 local Keycloak/OIDC identity acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
@@ -14,10 +14,135 @@ Updated **2026-11-22 (America/Los_Angeles)** for Member_4 operator dashboard acc
 | Member_2 standalone Kafka/PyFlink aggregation | Native ARM64 source-built runtime, 56-package hash lock; fixed golden telemetry, transactional load/DLQ/late output; checkpoint/replay proof with an open transaction at TaskManager crash | [Runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md), evidence below |
 | Outbox delivery and fencing | Real Debezium CDC, kind Lease and durable epochs, atomic fenced simulated gateway | [ADR-029](../decisions/ADR-029-outbox-and-fencing.md), [runbook](../../infra/member3/README.md), failure evidence below |
 | Member_3 Action domain and durable saga | PostgreSQL transactional state/inbox/outbox, deterministic fixture allocation, retry/timeout/hold/restore, optimistic versions and restart recovery | [Runbook](../../member3/README.md), [ADR-028](../decisions/ADR-028-member3-action-domain.md), 42 PostgreSQL tests and demo below |
+| Member_4 local OIDC / authorization | Keycloak bootstrap/recreation, PKCE browser sessions/renewal/logout, API/tool role checks and audit | [Identity runbook](../../identity/README.md), [ADR-032](../decisions/ADR-032-member4-local-identity.md), executed evidence below |
 | Member_4 operator dashboard | Responsive NiceGUI REST/SSE console, contract-checked fixture mode, accessible states, confirmations and scoped investigation entry points | [Runbook](../../dashboard/README.md), [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md), executed acceptance below |
 | Member_4 projections and API | Replay-safe Kafka/SQL projections, migrations/rebuild, REST snapshots/filters/pages, durable cross-replica SSE/reset, freshness and internal contract mocks | [Runbook](../../member4/README.md), [ADR-030](../decisions/ADR-030-member4-projections-api.md), executed evidence below |
 
 ## Current milestone and verification
+
+**Member_4 local Keycloak/OIDC identity and application authorization are implemented
+in the standalone local profile.** See [ADR-032](../decisions/ADR-032-member4-local-identity.md)
+and the [identity runbook](../../identity/README.md). Member_1 retains simulation/
+Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium,
+and Member_4 projection/API/UI/identity/Copilot. Initial Git status was clean;
+no commit/push, cloud resource, paid call, system software or external model was used.
+
+- Reproducible pinned ARM64 Keycloak realm/client/audience/subject/role bootstrap,
+  random safe local users, own database/login in the existing PostgreSQL primary,
+  ignored mode-0600 import/config/password files and scoped identity reset.
+- Normal API/UI runtime selects OIDC; explicit fixture/mock mode stays independent.
+  RS256 signature/JWKS, exact issuer/audience, expiry/issued-at/subject, token type,
+  authorized client and signed realm-role mapping fail closed. Spoofed actor/role
+  headers and direct browser-bypassing requests cannot grant access.
+- Browser code+PKCE S256 with state/nonce; opaque HttpOnly SameSite sessions;
+  server-held tokens, serialized renewal/rotation and logout/session invalidation.
+  API SSE closes at expiry. Callback access logging is disabled and pages use
+  no-store/no-referrer. Successful changes atomically audit subject, role,
+  authorization timestamp, request/trace/idempotency context without credentials.
+- Executable contracts retain Viewer reads, Operator scenarios/acknowledgements,
+  **Administrator policy writes**. The tested tool guard revalidates Operator and
+  accepts only seven frozen read-only names. No tool executor or Copilot stub was
+  added; scoped dispatch/evidence/service identity belong to the next milestone.
+- No new LAN/public broker/database/admin binding. Existing local developer ports
+  remain loopback-only; no unrelated container, volume or service data was removed.
+
+### Identity executed verification — 2026-11-22
+
+| Exact command | Result |
+|---|---|
+| `.tools/member4-venv/bin/python -m pip index versions PyJWT`; `.tools/member4-venv/bin/python -m pip index versions cryptography` | Selected available 2.15.1 / 50.0.2; existing libraries had no JWT verifier |
+| `.tools/member4-venv/bin/python -m pip --cache-dir .tools/pip-cache install --report .tools/identity-install.json 'PyJWT[crypto]==2.15.1' 'cryptography==50.0.2'` | Installed four pinned distributions in independent API venv; report hashes generated identity lock |
+| `.tools/dashboard-test-venv/bin/python -m pip --cache-dir .tools/pip-cache install --require-hashes -r identity/requirements.txt`; `.tools/dashboard-venv/bin/python -m pip --cache-dir .tools/pip-cache install --require-hashes -r identity/requirements.txt` | Both isolated dashboard environments installed the four exact hashes |
+| `.tools/member4-venv/bin/python -m identity.bootstrap`; `docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml config --quiet` | Own Keycloak role/database and ignored random config created; merged config valid |
+| `docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml up -d --build --no-deps keycloak` | Selected ARM64 Keycloak 26.1.4 built/started; PostgreSQL realm import succeeds |
+| `docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml stop keycloak`; `.tools/member4-venv/bin/python -m identity.bootstrap --reset`; `docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml up -d --build --no-deps keycloak` | Recreated only identity database and imported users/client/roles; unrelated state preserved |
+| `curl -fsS http://127.0.0.1:18080/realms/smart-grid/.well-known/openid-configuration -o .tools/identity/discovery.json` | Real discovery succeeds with exact loopback issuer |
+| `make identity-test` | **16 passed**: claims/signature/role failures, tool role denial, direct API bypass, state/nonce/replay/expiry, logout CSRF, serialized refresh/failure and API bearer renewal hook |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_api.py tests/member4/test_oidc.py tests/member4/test_review.py tests/member4/test_projection.py tests/member4/test_dashboard_boundary.py` | **36 passed**, no skips: disposable real PostgreSQL, API authorization/audit, expiry of open SSE and existing regression boundaries |
+| `make identity-live-test` | **1 passed**, no skips: real Chromium and Keycloak for all three roles, PKCE login/logout, real refresh, tool-role enforcement, then a subprocess direct API suite with actual Keycloak JWTs and disposable SQL schema (**1 passed**); transient test token file removed |
+| `make dashboard-test` | **29 passed**, no skips; existing fixture/client/Chromium suite preserved |
+| `make contracts BASE_REF=HEAD` | **214 passed**; no executable v1 changes |
+| `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py tests/test_local_infra.py` | **21 passed** |
+| `.tools/member4-venv/bin/python -m pip check`; `.tools/dashboard-test-venv/bin/python -m pip check`; `.tools/dashboard-venv/bin/python -m pip check` | No broken requirements; sandbox pip-cache warning only |
+| `.tools/member4-venv/bin/python -m compileall -q identity member4 dashboard tests/identity tests/member4/test_oidc.py tests/member4/test_keycloak_live.py`; `git diff --check` | Passed |
+
+Earlier iterations are not acceptance evidence: real Keycloak required complete
+synthetic user profiles and an explicit basic subject mapper; corrected bootstrap
+was imported after scoped database recreation. Browser test-only callback capture
+also required observing redirected requests instead of routing a redirect target.
+An initial identity-unit invocation in the dashboard test venv collected an API
+module without psycopg; API tests now run in their owned Member_4 environment.
+The selected Starlette emits its existing HTTPX TestClient deprecation warning.
+No passwords/tokens are committed; logs/config/test files remain ignored locally.
+
+### Identity prepublication correctness/security review — 2026-11-22
+
+The user authorized review, fixes, commit and a normal push to `main`. Initial
+uncommitted files were the identity milestone above; all changes in this review
+remain within that slice. `git fetch origin main` succeeded and
+`git rev-list --left-right --count origin/main...HEAD` returned `0 0` before
+publication. Existing Member_1/2/3 services and their data were preserved.
+
+Regression tests reproduced **3 failures before fixes**: a numeric-string JWT
+expiry passed validation and could break stream/renewal comparisons; a refresh
+could return a bearer after concurrent local logout; and a malformed provider
+JSON array raised an uncaught TypeError. Fixes and further review cover:
+
+- Require finite NumericDate values and recheck local session presence/expiry
+  after awaited token renewal. Reject malformed/missing token response fields.
+- Validate newly returned ID tokens on refresh, including signature, issuer,
+  audience, subject and authorized client. Failed renewal invalidates the session.
+- Clear open-tab data and dialogs, stop background tasks and navigate to a local
+  signed-out page after invalidation, including while keyboard reading holds a
+  panel. Real Keycloak tests verify a second open tab after logout for all roles.
+- Deny non-string tool names as well as unavailable/write tools; never accept
+  caller/model role headers. All API responses explicitly use no-store.
+- Bootstrap changes permissions only on its five generated files; an idempotent
+  rerun preserves credentials and unrelated files in the ignored identity folder.
+  No database reset or unrelated container/volume cleanup was needed for review.
+
+Final review verification supersedes initial identity counts above:
+
+| Exact command | Result |
+|---|---|
+| `.tools/member4-venv/bin/python -m pytest -q tests/identity/test_auth.py tests/identity/test_browser.py -k review --tb=short` | Initial regression run **3 failed, 1 passed before fixes** |
+| `make identity-test` | **22 passed**, no skips; regression coverage includes logout/expiry during refresh, malformed provider payload, renewed ID token validation and malformed tool names |
+| `make identity-api-test` | **36 passed**, no skips; actual SQL schemas, permitted/forbidden direct API changes and transactional audit |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_stream_live.py` | **1 passed**; real TCP replay/reconnect/cross-replica/heartbeat/reset regression |
+| `make identity-live-test` | **1 passed**, no skips; all three real Keycloak roles, refresh, cross-tab logout, tool guard; subprocess direct API and bootstrap preservation checks **2 passed** |
+| `make dashboard-test` | **29 passed**, no skips |
+| `make contracts BASE_REF=origin/main` | **214 passed**; no executable contract changes |
+| `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py tests/test_local_infra.py` | **21 passed** |
+| `.tools/member4-venv/bin/python -m pip --cache-dir .tools/pip-cache check`; `.tools/dashboard-venv/bin/python -m pip --cache-dir .tools/pip-cache check`; `.tools/dashboard-test-venv/bin/python -m pip --cache-dir .tools/pip-cache check` | No broken requirements in all three independent environments |
+| `docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml config --quiet` | Valid; local container inventory confirms all published developer ports still bind loopback |
+| `.tools/member4-venv/bin/python -m compileall -q identity member4 dashboard tests/identity tests/member4/test_oidc.py tests/member4/test_keycloak_live.py`; `git diff --check` | Passed |
+
+No remaining actionable finding blocks the standalone identity slice. Existing
+Starlette/HTTPX TestClient deprecation warning remains; no dependency pin changed.
+Keycloak is left running for local inspection; test servers/schemas/transient
+tokens are cleaned up. TLS, production hardening/dependency scans, kind/Calico
+isolation, persistent UI sessions and live internal control delivery retain their
+existing later-gate status. Publication is recorded in Git history/remote state;
+hosted CI is a separate result.
+
+### Identity limits and next milestone
+
+- **No remaining blocker for standalone identity.** Keycloak remains running on
+  loopback 18080 for inspection. Browser/API test processes stop and temporary SQL
+  schemas/token files are removed. Normal startup preserves the imported realm.
+- HTTP loopback and random synthetic users are for the trusted local computer.
+  API tokens already issued remain usable until their two-minute expiry after
+  logout. UI sessions are in memory, capped at 100 and 30 minutes; a UI restart
+  requires login. No production TLS or UI replica/session failover claim.
+- Policy/scenario effects remain the existing explicit contract mocks. Live
+  Member_1/3 service authentication/delivery, Linux application locks/images,
+  kind/Calico isolation tests, security scans and full-stack closed-loop acceptance
+  remain later gates. Private loopback bindings are not NetworkPolicy evidence.
+- **Next recommended milestone:** Member_4 typed read-only Tool Gateway and
+  deterministic MOCK Copilot with entity/evidence scope, budgets and audit;
+  preserve independent member ownership and later live/kind integration gates.
+
+## Previous milestone — Member_4 standalone operator dashboard
 
 **Member_4 standalone operator dashboard is implemented.** This requested slice
 adds the operations console; Member_1 retains simulation/Registry/observability,

@@ -9,7 +9,9 @@ from urllib.parse import urlsplit
 from jsonschema import ValidationError
 
 import httpx
-from nicegui import ui
+from nicegui import ui, app
+from fastapi import Request
+from fastapi.responses import RedirectResponse
 
 from dashboard.client import DEFINITIONS, Operations, error_text, instant
 
@@ -133,14 +135,22 @@ def configure(fixture=False, api_url=None):
     if parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', 'localhost', '::1') or parsed.path.rstrip('/') != '/api/v1' or parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError('Dashboard API must be a loopback HTTP /api/v1 URL')
     token = 'fixture-operator-token' if fixture else os.environ.get('DASHBOARD_API_TOKEN', '')
-    if not token:
-        raise ValueError('Set DASHBOARD_API_TOKEN to an explicit backend mock bearer token')
+    login = None
+    if not fixture and os.environ.get('MEMBER4_AUTH_MODE') != 'mock':
+        from identity.browser import BrowserLogin
+        login = BrowserLogin(app)
+        app.on_shutdown(login.http.aclose)
+    elif not token:
+        raise ValueError('Set DASHBOARD_API_TOKEN for explicit mock mode')
     ui.add_css(CSS, shared=True)
 
     @ui.page('/')
-    async def index(client):
+    async def index(client, request: Request):
+        sid = request.cookies.get('grid_session')
+        if login and not login.session(sid):
+            return RedirectResponse('/auth/login')
         ui.colors(primary='#235b91', secondary='#52657b', positive='#166344', negative='#b42332', warning='#805000')
-        source = Operations(base, token)
+        source = Operations(base, token, token_provider=(lambda: login.token(sid)) if login else None)
         selected = {'page': 'Overview', 'transformer': None, 'search': '', 'severity': 'All', 'status': 'All'}
         last = {'fingerprint': None}
         tasks = []
@@ -158,7 +168,10 @@ def configure(fixture=False, api_url=None):
             with ui.row().classes('items-center gap-4'):
                 status = ui.label('Loading').props('role=status aria-live=polite aria-atomic=true')
                 snapshot_label = ui.label('Snapshot pending').classes('muted text-sm')
-                ui.label('Fixture · Operator' if fixture else 'Local API · configured identity').classes('muted')
+                role_label = ui.label(login.session(sid)['actor']['role'] if login else ('Fixture · Operator' if fixture else 'Local API · configured identity')).classes('muted')
+                if login:
+                    ui.link('Log out', '/auth/logout?csrf='+login.session(sid)['csrf'])
+                    ui.link('Log in again', '/auth/login')
         with ui.left_drawer(value=None, top_corner=False, bottom_corner=True).props('breakpoint=1000 width=230') as drawer:
             ui.button('Close navigation', icon='close', on_click=lambda: drawer.hide()).props('flat').classes('lt-lg')
             ui.label('WORKSPACE').classes('eyebrow p-4').style('color:#afc5d9')
@@ -548,8 +561,24 @@ def configure(fixture=False, api_url=None):
             ui.label('Timeline contains retained load windows and latest alert/action transitions. v1 does not expose every historical saga transition.').classes('muted text-sm')
 
         def tick():
+            if login and not login.session(sid):
+                # Invalidate every open tab, including panels held for keyboard reading.
+                source.closed = True
+                for task in tasks:
+                    task.cancel()
+                source.data.clear()
+                source.health.clear()
+                content.clear()
+                detail_body.clear()
+                details.close()
+                timer.cancel()
+                ui.navigate.to('/auth/signed-out')
+                return
             status.set_text(f'{source.status.upper()} · {source.data.get("overview", {}).get("critical_count", "Unknown")} critical')
             snapshot_label.set_text(f'Snapshot {source.observed or "pending"}')
+            if login:
+                session = login.session(sid)
+                role_label.set_text(session['actor']['role'] if session else 'Login required')
             notice_fingerprint = json.dumps([source.status, source.errors, source.data.get('overview', {}).get('freshness')], sort_keys=True)
             if notice_fingerprint != last_notice['fingerprint']:
                 show_errors()

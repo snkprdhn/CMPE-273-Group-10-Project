@@ -76,3 +76,20 @@ dashboard-demo:
 
 dashboard-test:
 	PLAYWRIGHT_BROWSERS_PATH=.tools/playwright $(DASHBOARD_TEST_PYTHON) -m pytest -q tests/dashboard
+
+.PHONY: identity-bootstrap identity-up identity-test
+identity-bootstrap:
+	.tools/member4-venv/bin/python -m identity.bootstrap
+
+identity-up: identity-bootstrap
+	docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml up -d --build --no-deps keycloak
+
+identity-test:
+	.tools/member4-venv/bin/python -m pytest -q tests/identity/test_auth.py tests/identity/test_browser.py
+
+.PHONY: identity-api-test identity-live-test
+identity-api-test:
+	MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_api.py tests/member4/test_oidc.py tests/member4/test_review.py tests/member4/test_projection.py tests/member4/test_dashboard_boundary.py
+
+identity-live-test:
+	IDENTITY_LIVE=1 PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/dashboard-test-venv/bin/python -m pytest -q tests/identity/test_live.py

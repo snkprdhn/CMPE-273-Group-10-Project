@@ -43,9 +43,18 @@ def stamp(value):
 
 
 class Operations:
-    def __init__(self, base_url, token):
+    def __init__(self, base_url, token, token_provider=None):
         self.http = httpx.AsyncClient(base_url=base_url, headers={'Authorization': f'Bearer {token}'},
                                      timeout=httpx.Timeout(5, read=25), trust_env=False)
+        if token_provider:
+            async def bearer(request):
+                from identity.auth import Denied
+                try:
+                    request.headers['Authorization'] = 'Bearer ' + await token_provider()
+                except Denied as exc:
+                    response = httpx.Response(401, request=request)
+                    raise httpx.HTTPStatusError('Login required', request=request, response=response) from exc
+            self.http.event_hooks['request'].append(bearer)
         self.data = {}
         self.errors = {}
         self.cursor = None

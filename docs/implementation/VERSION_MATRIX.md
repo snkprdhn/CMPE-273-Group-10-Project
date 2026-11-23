@@ -216,3 +216,20 @@ Chromium **134.0.6998.35**, Playwright build **1161**, is stored in ignored
 claim Linux packaging, vulnerability-scan or kind acceptance; see
 [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) and implementation
 status for execution evidence.
+
+## Member_4 local identity — 2026-11-22
+
+Keycloak retains **26.1.4**, now verified on ARM64 with PostgreSQL 17.4, realm
+import/recreation, real PKCE browser login/logout and refresh. Immutable base:
+`quay.io/keycloak/keycloak:26.1.4@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761`.
+The local derived import image embeds disposable random synthetic credentials;
+keep it local and never push/export it. Identity owns no new PostgreSQL primary.
+
+[Identity hash lock](../../identity/requirements.txt) adds **PyJWT 2.15.1** and
+**cryptography 50.0.2**, with **cffi 2.1.1** and **pycparser 3.12**, included by the
+independent Member_4 API/dashboard locks. These versions were resolved from package
+metadata, hash-installed and checked in the existing CPython 3.12/macOS ARM64
+component environments. HTTPX and all earlier direct pins are unchanged. No custom
+signature implementation, Authlib, system package or host JVM is added. Linux
+native hashes/images, security scans and kind identity packaging remain unverified.
+See [ADR-032](../decisions/ADR-032-member4-local-identity.md) and executed status.

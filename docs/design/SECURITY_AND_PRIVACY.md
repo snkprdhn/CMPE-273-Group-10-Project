@@ -64,3 +64,22 @@ The Kubernetes deployment plans a local OIDC provider with Viewer, Operator, and
 ## 8. Future production considerations
 
 Real deployment would additionally require enterprise federation, managed key rotation, hardened mTLS workload identity, encryption-at-rest governance, tamper-resistant audit storage, formal safety analysis, utility protocol review, privacy review, and regulatory assessment. These remain non-goals for the class MVP.
+
+## Local identity implementation — 2026-11-22
+
+[ADR-032](../decisions/ADR-032-member4-local-identity.md) and the
+[runbook](../../identity/README.md) implement local OIDC with the fixed role
+hierarchy, PKCE/state/nonce, RS256/JWKS validation, server-held rotating tokens,
+opaque HttpOnly sessions and independent API authorization. Policy changes require
+Administrator; scenario/acknowledgement changes require Operator; reads require
+Viewer. Immutable subject, role, authorization time and request/trace/idempotency
+context are audited transactionally. Model-provided roles and browser identity
+headers never authorize a request. Tool-role authorization denies Viewer and all
+non-allowlisted tools; actual scoped tool execution remains the next milestone.
+
+Generated local passwords/import/env files stay ignored; the local Keycloak import
+image must never be published. Existing Kafka/database/Connect/admin ports remain
+Docker-internal or loopback-only. This standalone profile trusts the local computer;
+HTTP loopback, bounded in-memory UI sessions and two-minute offline JWT validity
+are explicit limits. It does not establish kind/Calico policy enforcement, TLS,
+instant token revocation, replica session recovery or live service authentication.

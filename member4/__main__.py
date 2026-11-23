@@ -31,7 +31,8 @@ def main():
     else:
         import uvicorn
         from member4.api import create_app
-        app = create_app(store, json.loads(os.environ['MEMBER4_MOCK_IDENTITIES']))
+        identities = json.loads(os.environ['MEMBER4_MOCK_IDENTITIES']) if os.environ.get('MEMBER4_AUTH_MODE') == 'mock' else None
+        app = create_app(store, identities)
         # Explicit loopback-only standalone mock identity boundary.
         uvicorn.run(app, host='127.0.0.1', port=args.port, timeout_keep_alive=5)
 

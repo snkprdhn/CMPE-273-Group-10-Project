@@ -17,7 +17,7 @@ while header connection/critical status stays live. Action explanations refresh
 while open. The investigator uses a responsive modal at the right edge for native
 keyboard dismissal/focus return; its service remains unavailable.
 Investigation entry points preserve scope but show the service as unavailable;
-Copilot progress/results/evidence and Keycloak remain separate milestones.
+Local Keycloak login/logout/renewal is implemented under [ADR-032](../decisions/ADR-032-member4-local-identity.md). Copilot progress/results/evidence remain a later milestone.
 The screen descriptions below remain the full product target where the current
 API cannot yet supply the data; they do not authorize inventing new v1 fields.
 

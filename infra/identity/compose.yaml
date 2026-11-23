@@ -1,0 +1,11 @@
+name: smart-grid-local-dev
+services:
+  keycloak:
+    image: smart-grid-local-dev/keycloak:26.1.4
+    build:
+      context: ../../.tools/identity
+    command: [start-dev, --import-realm, --http-port=8080, --hostname=http://127.0.0.1:18080]
+    env_file: ../../.tools/identity/keycloak.env
+    ports:
+      - '127.0.0.1:18080:8080'
+    mem_limit: 768m
