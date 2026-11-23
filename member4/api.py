@@ -295,6 +295,32 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
         return StreamingResponse(stream(), media_type='text/event-stream',
                                  headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
+    @app.get('/internal/investigator/projection')
+    def investigator_projection(request: Request):
+        authorize(request, 'Operator')
+        q = dict(request.query_params)
+        if len(q) != 1 or next(iter(q)) not in ('transformer_id', 'action_id'):
+            raise ApiError(400, 'Exactly one entity scope required')
+        field, entity = next(iter(q.items()))
+        validate('Id', entity)
+        with store.transaction() as db:
+            # Read only the owned journal; never another member's domain tables.
+            rows = db.execute("SELECT event FROM projection_events WHERE event->'payload'->>%s=%s ORDER BY (event->>'event_time')::timestamptz LIMIT 201",
+                              (field, entity)).fetchall()
+            if len(rows) > 200:
+                raise ApiError(429, 'Projection history exceeds bounded read')
+            events = [r[0] for r in rows]
+            if not events:
+                raise ApiError(404, 'Projection evidence unavailable')
+            actions = [e for e in events if e['event_type'] == 'action.transition']
+            action = max(actions, key=lambda e: e['saga_version'], default=None)
+            if field == 'action_id' and action is None:
+                raise ApiError(503, 'Confirmed reduction evidence unavailable')
+            return dict(actions=[{k:v for k,v in e.items() if k in BUNDLE['$defs']['Action']['properties']} for e in actions], alerts=[{k:v for k,v in e.items() if k in BUNDLE['$defs']['Alert']['properties']} for e in events if e['event_type'].startswith('alert.')],
+                        commands=[{k:v for k,v in e['payload'].items() if k in BUNDLE['$defs']['CommandPayload']['properties']} for e in events if e['event_type'] == 'charger.command'],
+                        results=[{k:v for k,v in e['payload'].items() if k in BUNDLE['$defs']['ResultPayload']['properties']} for e in events if e['event_type'] == 'command.result'],
+                        confirmed_reduction_kw=action['payload']['confirmed_reduction_kw'] if action else 0)
+
     # Register only the requested operations slice, preserving the frozen route shapes.
     def query_route(template):
         def handler(request: Request, id: str = None):

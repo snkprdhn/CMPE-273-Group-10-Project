@@ -165,13 +165,13 @@ def test_established_sse_store_failure_closes_and_resumes(store, records, monkey
     store.context(records)
     feed(store, records['events'])
     cursor = store.events(None, NOW)[0]['cursor']
-    original = Store.events
+    original = Store.events_with_context
     failed = False
     def flaky(self, cursor, now=None):
         if failed:
             raise psycopg.OperationalError('injected store outage')
         return original(self, cursor, now)
-    monkeypatch.setattr(Store, 'events', flaky)
+    monkeypatch.setattr(Store, 'events_with_context', flaky)
     with server(store) as url, httpx.Client(timeout=5) as c:
         headers = dict(HEADERS, **{'Last-Event-ID': cursor})
         with c.stream('GET', url+'/events', headers=headers) as response:

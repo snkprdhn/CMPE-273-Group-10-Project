@@ -44,3 +44,6 @@ dashboard/**/__pycache__/
 !observability/
 !observability/**
 observability/**/__pycache__/
+!copilot/
+!copilot/**
+copilot/**/__pycache__/

@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: copilot-audit
+  labels: {grid-owner: Member_4, grid-stage: apps}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 128Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copilot
+  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: copilot}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {grid-app: copilot}
+  template:
+    metadata:
+      labels: {grid-app: copilot, grid-owner: Member_4}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 10001, runAsNonRoot: true, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: copilot
+          image: smart-grid-kind/copilot:v1
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef: {name: telemetry-runtime}
+          env:
+            - {name: GRID_LOCAL_KIND, value: "1"}
+            - {name: COPILOT_PROJECTION_URL, value: "http://api:18084"}
+            - {name: COPILOT_AUDIT_PATH, value: /data/audit.sqlite}
+          ports:
+            - {name: http, containerPort: 18087}
+          resources:
+            requests: {cpu: 25m, memory: 96Mi}
+            limits: {cpu: 300m, memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: audit, mountPath: /data}
+            - {name: temp, mountPath: /tmp}
+          startupProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5, failureThreshold: 12}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 10}
+      volumes:
+        - {name: audit, persistentVolumeClaim: {claimName: copilot-audit}}
+        - {name: temp, emptyDir: {sizeLimit: 32Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: copilot
+  labels: {grid-owner: Member_4, grid-stage: apps}
+spec:
+  selector: {grid-app: copilot}
+  ports: [{name: http, port: 18087}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: copilot-boundary
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: copilot}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {grid-app: ui}}}]
+      ports: [{port: 18087, protocol: TCP}]
+  egress:
+    - to: [{podSelector: {matchLabels: {grid-app: api}}}]
+      ports: [{port: 18084, protocol: TCP}]
+    - to: [{podSelector: {matchLabels: {grid-app: keycloak}}}]
+      ports: [{port: 8080, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: investigator-ui-client
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: ui}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{podSelector: {matchLabels: {grid-app: copilot}}}]
+      ports: [{port: 18087, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: investigator-projection-ingress
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: api}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {grid-app: copilot}}}]
+      ports: [{port: 18084, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: investigator-identity-ingress
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: keycloak}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {grid-app: copilot}}}]
+      ports: [{port: 8080, protocol: TCP}]

@@ -231,6 +231,7 @@ class Cluster:
         builds = [
             ('registry:v1', 'member1/Dockerfile', 'registry'),
             ('action:v1', 'infra/kind/Dockerfile', 'action'), ('api:v1', 'infra/kind/Dockerfile', 'api'),
+            ('copilot:v1', 'infra/kind/Dockerfile', 'copilot'),
             ('ui:v1', 'infra/kind/Dockerfile', 'ui'), ('acceptance:v1', 'infra/kind/Dockerfile', 'acceptance'),
             ('connect:3.0.8-v1', 'infra/member3/Dockerfile.connect', 'strimzi'),
             ('aggregation:2.2.1-v1', 'member2/Dockerfile', None),
@@ -306,7 +307,7 @@ class Cluster:
     def apps(self):
         # Bring up dependencies before starting the next pod on the local node.
         self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=apps,!grid-app')
-        for name in ('registry', 'action', 'projection', 'api', 'keycloak', 'ui'):
+        for name in ('registry', 'action', 'projection', 'api', 'keycloak', 'copilot', 'ui'):
             self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=apps,grid-app=' + name)
             self.k('rollout', 'status', 'deployment/' + name, '--timeout=360s')
 

@@ -109,3 +109,11 @@ observability-render observability-install observability-inspect:
 
 observability-test:
 	.tools/observability-venv/bin/python -m pytest -q tests/observability
+
+# Member_4 independent deterministic read-only investigator.
+COPILOT_PYTHON ?= .tools/copilot-venv/bin/python
+.PHONY: copilot copilot-test
+copilot:
+	$(COPILOT_PYTHON) -m copilot
+copilot-test:
+	$(COPILOT_PYTHON) -m pytest -q tests/copilot

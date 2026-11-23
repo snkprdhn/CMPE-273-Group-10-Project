@@ -151,6 +151,29 @@ def configure(fixture=False, api_url=None):
         raise ValueError('Set DASHBOARD_API_TOKEN for explicit mock mode')
     ui.add_css(CSS, shared=True)
 
+    @ui.page('/investigations/{investigation_id}')
+    async def investigation_page(investigation_id: str, request: Request):
+        sid = request.cookies.get('grid_session')
+        if login and not login.session(sid):
+            return RedirectResponse('/auth/login')
+        from dashboard.client import validate
+        validate('Id', investigation_id)
+        bearer = await login.token(sid) if login else token
+        endpoint = os.getenv('COPILOT_URL', 'http://copilot:18087' if kind else 'http://127.0.0.1:18087')
+        ui.label('AI-generated · MOCK · Read-only investigation')
+        try:
+            async with httpx.AsyncClient(base_url=endpoint, timeout=5, trust_env=False,
+                headers={'Authorization':'Bearer '+bearer}) as http:
+                response = await http.get('/api/v1/investigations/' + investigation_id)
+                response.raise_for_status()
+                state = response.json()
+                validate('Investigation', state)
+            ui.label(state['status'] + ' · ' + state['freshness'])
+            ui.code(json.dumps(state, indent=2), language='json')
+        except (httpx.HTTPError, ValueError, ValidationError):
+            ui.label('Investigation unavailable or forbidden.')
+        ui.link('Return to operations', '/')
+
     @ui.page('/')
     async def index(client, request: Request):
         sid = request.cookies.get('grid_session')
@@ -222,13 +245,69 @@ def configure(fixture=False, api_url=None):
             with ui.card().classes('gap-4').style('width:420px;max-width:100vw;height:100%;border-radius:0'):
                 heading('Incident investigator')
                 scope_label = ui.label()
-                ui.input('Focused question', placeholder='Investigation service unavailable').classes('w-full').disable()
-                ui.label('Unavailable · Investigation service is not implemented in this milestone.').props('role=status')
-                ui.label('Provider mode: MOCK (planned). No generated findings or evidence are available.').classes('muted')
-                ui.label('Use transformer history, action explanations and command results to inspect the published evidence.').classes('muted')
+                question = ui.input('Focused question', value='Why is this transformer in its published state?').classes('w-full')
+                ui.label('AI-generated · Provider mode: MOCK · Read-only').classes('muted')
+                investigation_output = ui.column().classes('w-full').props('role=status aria-live=polite')
+                investigation_scope = {}
+
+                async def run_investigation():
+                    from uuid import uuid4
+                    investigation_output.clear()
+                    with investigation_output:
+                        ui.label('Running bounded investigation…')
+                    run_button.disable()
+                    try:
+                        import os
+                        endpoint = os.getenv('COPILOT_URL', 'http://copilot:18087' if os.getenv('GRID_LOCAL_KIND') == '1' else 'http://127.0.0.1:18087')
+                        headers = dict(source.http.headers)
+                        # Reuse the server-held identity renewal hook; no token enters the browser.
+                        async with httpx.AsyncClient(base_url=endpoint, headers=headers,
+                            event_hooks=source.http.event_hooks, timeout=5, trust_env=False) as client:
+                            body = dict(question=question.value, **investigation_scope)
+                            response = await client.post('/api/v1/investigations', json=body,
+                                headers={'Idempotency-Key':uuid4().hex})
+                            response.raise_for_status()
+                            id = response.json()['id']
+                            for _ in range(65):
+                                response = await client.get('/api/v1/investigations/' + id)
+                                response.raise_for_status()
+                                state = response.json()
+                                from dashboard.client import validate
+                                validate('Investigation',state)
+                                if state['status'] not in ('QUEUED','RUNNING'):
+                                    break
+                                investigation_output.clear()
+                                with investigation_output:
+                                    ui.label(f"{state['status']} · {state['usage']['tool_calls']} tool calls · {len(state['evidence'])} evidence items")
+                                await asyncio.sleep(.5)
+                            investigation_output.clear()
+                            with investigation_output:
+                                ui.label(state['status'] + ' · ' + state['freshness'])
+                                result = state['result']
+                                if result:
+                                    ui.label(result['summary'])
+                                    for claim in result['observations']:
+                                        ui.label(claim['text'] + ' [' + ', '.join(claim['evidence_ids']) + ']')
+                                    for hypothesis in result['hypotheses']:
+                                        ui.label('Hypothesis: ' + hypothesis['text'])
+                                    for gap in result['unknowns']:
+                                        ui.label('Unknown: ' + gap)
+                                for evidence in state['evidence']:
+                                    with ui.expansion(evidence['evidence_id'] + ' · ' + evidence['source_type'] + ' · ' + evidence['freshness']).classes('w-full'):
+                                        ui.label('Observed: ' + evidence['observed_at'])
+                                        ui.link('Authorized investigation view', evidence['deep_link'])
+                                        ui.code(__import__('json').dumps(evidence['data'],indent=2), language='json')
+                    except Exception:
+                        investigation_output.clear()
+                        with investigation_output:
+                            ui.label('Investigation unavailable or forbidden. Grid monitoring continues independently.')
+                    finally:
+                        run_button.enable()
+
+                run_button = ui.button('Run investigation', on_click=run_investigation).props('outline')
                 close_investigator = ui.button('Close investigator', on_click=investigator.close).props('outline autofocus')
-                # This is the sole enabled control; keep Tab/Shift-Tab within the modal.
-                close_investigator.on('keydown.tab.prevent', lambda: None)
+                close_investigator.on('keydown.tab.prevent', lambda: question.run_method('focus'))
+                question.on('keydown.shift.tab.prevent', lambda: close_investigator.run_method('focus'))
 
         def track_reading(element, key):
             element.on('focusin', lambda: reading.update({key: True}))
@@ -239,6 +318,13 @@ def configure(fixture=False, api_url=None):
 
         def investigate(entity=None, action=None, alert=None):
             scope_label.set_text(f'Scope: {entity or "grid"} · action {action or "all"} · alert {alert or "all"} · last {source.range_minutes} minutes · UTC')
+            investigation_scope.clear()
+            if entity:
+                investigation_scope['transformer_id'] = entity
+            elif action:
+                investigation_scope['action_id'] = action
+            run_button.set_enabled(bool(investigation_scope))
+            investigation_output.clear()
             investigator.open()
 
         def investigate_action():

@@ -56,3 +56,5 @@ Each accepted ADR should record context, decision, alternatives, consequences, d
 - [ADR-034 — Local kind deployment](ADR-034-local-kind-deployment.md) — selected Helm/Kustomize profiles, Calico enforcement and loopback identity scope.
 
 - [ADR-035 — Local observability and collected incident evidence](ADR-035-local-observability.md)
+
+- [ADR-036 — Bounded deterministic Grid Incident Investigator](ADR-036-grid-incident-investigator.md)

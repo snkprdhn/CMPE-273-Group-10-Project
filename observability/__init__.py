@@ -23,6 +23,7 @@ FIELDS = ('correlation_id', 'causation_id', 'event_id', 'transformer_id', 'devic
           'attempt', 'remaining_deadline_ms')
 BOUNDARIES = frozenset(('kafka.publish', 'kafka.delivery', 'kafka.process', 'aggregation.process',
     'control.load', 'control.result', 'control.tick', 'control.reconcile',
+    'investigation.run', 'investigation.model', 'investigation.tool',
     'db.control', 'db.projection', 'db.registry', 'db.gateway', 'grpc.client',
     'grpc.server', 'leadership.step', 'http.client', 'http.request', 'sse.send'))
 _fields = ContextVar('grid_log_fields', default={})

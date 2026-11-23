@@ -37,3 +37,10 @@ COPY tools/integration.py /app/tools/integration.py
 COPY tools/kind_workload.py /app/tools/kind_workload.py
 USER 10001:10001
 ENTRYPOINT ["/opt/venv/bin/python", "-m", "tools.kind_workload"]
+
+FROM base AS copilot
+COPY copilot /app/copilot
+COPY identity /app/identity
+RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r copilot/requirements.txt
+USER 10001:10001
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "copilot"]

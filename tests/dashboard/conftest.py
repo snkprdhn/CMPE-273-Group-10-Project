@@ -23,7 +23,7 @@ def servers():
         ]:
             log = open(f'.tools/dashboard-evidence/{name}.log', 'w+')
             logs.append(log)
-            proc = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env={k: v for k, v in os.environ.items() if k != 'PYTEST_CURRENT_TEST'})
+            proc = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env={**{k: v for k, v in os.environ.items() if k != 'PYTEST_CURRENT_TEST'}, 'COPILOT_URL':'http://127.0.0.1:18187'})
             processes.append(proc)
             for _ in range(100):
                 if proc.poll() is not None:
@@ -56,3 +56,31 @@ def fixture_api(servers):
         api.post('/fixture', json={'step': 0, 'fault': '', 'clear_history': True}).raise_for_status()
         yield api
         api.post('/fixture', json={'step': 0, 'fault': '', 'clear_history': True}).raise_for_status()
+
+
+@pytest.fixture
+def copilot_server(servers):
+    log=open('.tools/dashboard-evidence/copilot.log','w+')
+    process=subprocess.Popen([sys.executable,'-m','uvicorn','tests.copilot.server:app',
+        '--host','127.0.0.1','--port','18187'],stdout=log,stderr=subprocess.STDOUT)
+    try:
+        for _ in range(100):
+            if process.poll() is not None:
+                log.seek(0)
+                pytest.fail(log.read())
+            try:
+                if httpx.get('http://127.0.0.1:18187/healthz',timeout=.3,trust_env=False).status_code==200:
+                    break
+            except httpx.HTTPError:
+                pass
+            time.sleep(.1)
+        else:
+            pytest.fail('Investigator did not start')
+        yield
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill();process.wait()
+        log.close()

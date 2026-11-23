@@ -75,7 +75,7 @@ Administrator; scenario/acknowledgement changes require Operator; reads require
 Viewer. Immutable subject, role, authorization time and request/trace/idempotency
 context are audited transactionally. Model-provided roles and browser identity
 headers never authorize a request. Tool-role authorization denies Viewer and all
-non-allowlisted tools; actual scoped tool execution remains the next milestone.
+non-allowlisted tools; scoped tool execution is implemented in ADR-036 with bounded caller-token forwarding.
 
 Generated local passwords/import/env files stay ignored; the local Keycloak import
 image must never be published. Existing Kafka/database/Connect/admin ports remain

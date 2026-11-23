@@ -1,8 +1,85 @@
 # Implementation status
 
-Updated **2026-11-23 (America/Los_Angeles)** for the local observability milestone. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-23 (America/Los_Angeles)** for the Grid Incident Investigator implementation. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
-## Current milestone — local observability
+## Current milestone — Grid Incident Investigator
+
+Member_4's deterministic read-only implementation is delivered; **live kind
+Investigator acceptance remains open**. Member_1 retains simulation/Registry/
+observability, Member_2 Kafka/PyFlink and Member_3 control/PostgreSQL/Debezium
+ownership. See [ADR-036](../decisions/ADR-036-grid-incident-investigator.md) and
+[local runbook](../../services/copilot/README.md).
+
+Implemented seven strictly validated handlers, signed Operator authorization,
+server-owned entity/time scope, bounded projection journal reads and observability
+HTTP adapters, response caps, tool/model/deadline budgets, per-actor rate/concurrency
+and process bulkheads, agent-only circuit breaking, evidence IDs/citation rejection,
+PARTIAL/UNKNOWN/FAILED outputs, cancellation, bounded audit/SSE replay and a working
+NiceGUI investigation drawer plus authorized evidence page. The independent lock
+reuses accepted pins without SQL/Kafka drivers. The kind image, Deployment,
+Service, PVC, probes and NetworkPolicies are supplied. No provider credentials,
+external adapter/call, raw-query tool or control path exists.
+
+The seeded test loads **real PostgreSQL owned projections**, calls actual gateway
+and tool handlers, obtains snapshot/load/action/full command evidence, and checks
+the deterministic provider's citations and uncertainty. Provider-outage checks
+leave projection tools/readiness available. Chromium additionally exercised real
+HTTP fixture tools, mock orchestration, grounded UI output, unavailable-service
+handling and keyboard focus. This proves the bounded standalone slice, not a live
+Kafka-to-device experiment during provider outage.
+
+### Executed verification — 2026-11-23
+
+| Exact command | Result |
+|---|---|
+| `.venv/bin/python -m venv .tools/copilot-venv` | Created independent environment. |
+| `PIP_CACHE_DIR=.tools/pip-cache .tools/copilot-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r copilot/requirements.txt` | Installed all existing accepted pins with hashes. Initial offline-only attempt lacked identity wheels; normal cached/index installation passed. No global/system packages changed. |
+| `make copilot-test` | 11 passed in the independent environment. Real loopback HTTP handlers, all seven typed boundaries, denied writes/injection, scope/schema/deadline, provider timeout, invented citations, budgets/concurrency, redaction, safe audit, replay and queued/running cancellation. Initial sandbox run could not bind loopback; rerun with local-network authorization passed. |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_investigator.py tests/member4/test_api.py tests/member4/test_projection.py tests/member4/test_review.py tests/identity/test_auth.py` | 50 passed. A preexisting SSE outage test still patched `Store.events` after instrumentation moved dispatch to `events_with_context`; corrected that test seam. Before correction, 34 passed/one failed in the projection/API/review subset, and the failure repeated alone. |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_investigator.py` | Final post-redaction seeded acceptance: 1 passed; actual retained command envelopes and citation evidence present. |
+| `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/dashboard-test-venv/bin/python -m pytest -q tests/dashboard/test_browser.py::test_business_flow_detail_and_investigation tests/dashboard/test_browser.py::test_review_open_action_updates_and_investigator_mobile_keyboard tests/dashboard/test_browser.py::test_grounded_mock_investigation` | 3 passed. The first keyboard run found missing focus wrap after adding controls; fixed and reran. Screenshots/logs remain ignored under `.tools/dashboard-evidence/`. |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_kind_local.py tests/dashboard/test_client.py tests/dashboard/test_presentation.py` | 30 passed. An earlier combined run incorrectly included backend identity tests in the UI environment without psycopg; rerunning identity in Member_4's correct environment passed. |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | 86 passed, 3 opt-in live checks skipped. No control implementation changed. |
+| `make member2-test` | 43 passed. |
+| `make contracts BASE_REF=HEAD observability-test` | 214 contract checks and 8 observability tests passed. Public frozen schemas unchanged. An earlier attempt ran observability tests in the UI environment without the SDK; the correct isolated target passed. |
+| `.venv/bin/kubectl kustomize infra/kind/dev > .tools/copilot-kind-render.yaml` | Rendered successfully; no cluster mutation. |
+| `docker build --provenance=false -f infra/kind/Dockerfile --target copilot -t smart-grid-kind/copilot:v1 . > .tools/copilot-image-build.log 2>&1` | Built successfully, repeated after final redaction. |
+| `git diff --check` | Passed. |
+
+The built image also passed a heredoc smoke using
+`docker run --rm -i --network none --read-only --tmpfs /tmp:rw,nosuid,nodev,size=32m --entrypoint /opt/venv/bin/python smart-grid-kind/copilot:v1 -`.
+Its Python body constructed the real OIDC/Tools/Service/API, checked HTTP health
+200 and unauthenticated investigation 401 through ASGI, and asserted that neither
+`psycopg` nor `confluent_kafka` could be imported. It printed PASS and exited 0.
+
+### Decisions, limits, and next milestone
+
+- Retained journal events provide full envelopes; do not invent them from public
+  snapshots. PARTIAL explicitly covers incomplete retention/physical outcome.
+- SQLite is an independent, single-process 24-hour-on-access store with a
+  single-replica Recreate/PVC deployment. This is not replica failover or an HA
+  audit design. No raw prompt or bearer is persisted.
+- Missing required stream-health scalars cannot be represented as nullable v1
+  fields. The adapter requires complete fresh normalized recording-rule signals;
+  missing signals return DEPENDENCY_UNAVAILABLE. Current kind does not install
+  those optional rules. Fixed aggregate metric queries are bounded; entity metric
+  filtering and true checkpoint age remain unavailable. Tempo emits redacted
+  known-trace summaries; correlation search/automatic trace discovery is deferred.
+- Mock planning currently covers projection/action/command diagnosis, not every
+  evaluation scenario or backend. External providers are deferred and disabled;
+  the frozen v1 provider mode is MOCK. No subscription/API entitlement is assumed.
+- The independent service forwards the caller's validated OIDC token to the owned
+  projection API; no unsigned actor headers or separate workload identity claim.
+- **Remaining acceptance:** live kind deployment/security probes, collected agent
+  telemetry and a full running Kafka-to-device control-loop/provider-outage
+  experiment. No running cluster or VM allocation was changed in this milestone.
+  These are unverified, not passing gates. Remaining evaluation cases include
+  late correction, partial acknowledgements, stale fencing, and populated live
+  observability diagnosis. The next recommended milestone is this focused kind
+  Investigator acceptance, followed by the previously planned broker-loss/leader
+  handover review gates. No commits or pushes were made.
+
+## Previous milestone — local observability
 
 The Collector, Prometheus, Grafana, and Tempo ran on local Docker Desktop kind.
 Five dashboards are provisioned. Explicit instrumentation covers Kafka, gRPC,
@@ -171,6 +248,7 @@ from canonical savepoint
 
 | Milestone | Result | Evidence |
 |---|---|---|
+| Member_4 deterministic Investigator slice | Seeded real-projection tools, safe mock orchestration/audit and grounded UI pass; live kind acceptance remains current | [ADR-036](../decisions/ADR-036-grid-incident-investigator.md), verification above |
 | Local component integration | Four boundary assertions and deterministic closed loop pass on host/Compose with the kind Lease | [Runbook](LOCAL_INTEGRATION.md), executed evidence below |
 | Repository/machine preparation | Accepted small Python/container stack, ADRs, manual prerequisites, resource profiles and root conventions | [Matrix](VERSION_MATRIX.md), [prerequisites](LOCAL_PREREQUISITES.md), [preparation evidence](PREPARATION_VERIFICATION.md) |
 | Existing local prerequisites/empty cluster | Managed Python 3.12.9, isolated preparation venv, pinned native tools, Docker Desktop with built-in Kubernetes disabled, empty kind Kubernetes 1.34.0 | Read-only inventory reconfirmed below; earlier setup commands/digests retained in preparation evidence |

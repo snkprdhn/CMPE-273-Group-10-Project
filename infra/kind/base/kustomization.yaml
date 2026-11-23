@@ -6,6 +6,7 @@ resources:
   - topics.yaml
   - flink.yaml
   - workloads.yaml
+  - copilot.yaml
   - jobs.yaml
   - policy.yaml
   - rbac.yaml

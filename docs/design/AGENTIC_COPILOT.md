@@ -11,7 +11,7 @@ The agent is an operations aid, not part of the control plane. Transformer load,
 ### Required thin slice
 
 - One investigator agent with a provider-neutral model adapter
-- OpenAI-compatible, Gemini-compatible, or deterministic mock provider selected by configuration
+- Deterministic mock provider for frozen v1; external providers remain deferred
 - Seven allowlisted, read-only tools with typed inputs and bounded outputs
 - Incident-scoped conversation state and a complete tool/evidence audit trail
 - Dashboard investigation drawer with progress, answer, evidence, uncertainty, and failure states
@@ -164,3 +164,13 @@ The tool contracts, mock provider, evaluation fixtures, and UI states are design
 ## Provider references
 
 The provider adapter follows the structured tool-calling flow documented by the [OpenAI API](https://developers.openai.com/api/docs/guides/function-calling) and [Gemini API](https://ai.google.dev/gemini-api/docs/function-calling). Provider-specific capabilities remain behind the adapter and do not change domain or tool contracts.
+
+## Implemented deterministic slice — 2026-11-23
+
+[ADR-036](../decisions/ADR-036-grid-incident-investigator.md) records the implemented
+projection gateway, independent mock service, audit, budgets and UI. The
+[runbook](../../services/copilot/README.md) distinguishes executed checks from
+remaining live kind and full control-loop/provider-outage acceptance. SQLite is
+a single-replica owned audit store; the gateway shares the owned projection API
+and verifies caller OIDC. Full normalized stream-health signals and correlation
+trace discovery are unavailable rather than synthesized.
