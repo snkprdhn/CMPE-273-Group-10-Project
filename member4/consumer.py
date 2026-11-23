@@ -8,21 +8,33 @@ import threading
 from confluent_kafka import Consumer
 from psycopg.types.json import Jsonb
 
+from observability import setup, boundary, business
+
 from member4.contracts import TOPICS
 
 
 def process(store, message, prefix=''):
+    with boundary('kafka.process', message.headers()):
+        return _process(store, message, prefix)
+
+
+def _process(store, message, prefix=''):
     if message.error():
         raise RuntimeError(str(message.error()))
     raw = message.value()
     if raw is None or len(raw) > 65536:
         raise ValueError('missing or oversized event')
     topic = message.topic().removeprefix(prefix)
-    store.ingest(topic, message.key().decode('utf-8'), json.loads(raw),
-                 partition=message.partition(), offset=message.offset())
+    event = json.loads(raw)
+    with boundary('kafka.process', event=event):
+        changed = store.ingest(topic, message.key().decode('utf-8'), event,
+                     partition=message.partition(), offset=message.offset())
+    if changed:
+        business(event)
 
 
 def consume(store):
+    setup('member4.projection')
     prefix = os.getenv('KAFKA_PREFIX', '')
     stop = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):

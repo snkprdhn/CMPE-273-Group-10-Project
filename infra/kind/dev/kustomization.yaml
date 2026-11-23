@@ -1,3 +1,20 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources: [../base]
+patches:
+  # Leave scheduler headroom for the observability pods and one-shot simulator
+  # on the four-core node. Review retains its larger reservations.
+  - target: {kind: FlinkDeployment, name: aggregation}
+    patch: |-
+      - op: replace
+        path: /spec/jobManager/resource/cpu
+        value: 0.25
+      - op: replace
+        path: /spec/taskManager/resource/cpu
+        value: 0.5
+      - op: add
+        path: /spec/flinkConfiguration/kubernetes.jobmanager.cpu.limit-factor
+        value: "2.0"
+      - op: add
+        path: /spec/flinkConfiguration/kubernetes.taskmanager.cpu.limit-factor
+        value: "2.0"

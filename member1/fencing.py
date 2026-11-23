@@ -4,6 +4,8 @@ Own tables/role/schema; the only Control call is authorize_command(). SQLite
 standalone state is deliberately not reused across a distributed transaction.
 """
 from datetime import timedelta
+from observability import boundary, headers as trace_headers
+
 import json
 import time
 from uuid import uuid4
@@ -60,8 +62,8 @@ class FencedEdgeState:
         if key != d['device_id']:
             raise ValueError('WRONG_SHARD')
         carried = [(k, v.decode() if isinstance(v, bytes) else v)
-                   for k, v in (headers or []) if k == 'traceparent' and v is not None]
-        with self.db.transaction():
+                   for k, v in trace_headers(headers).items() if k == 'traceparent' and v is not None]
+        with boundary('db.gateway', event=command), self.db.transaction():
             self.db.execute("SET LOCAL idle_in_transaction_session_timeout = '5s'")
             self.db.execute("SET LOCAL statement_timeout = '4s'")
             # Typed, least-privilege boundary. The shared xact lock acquired by

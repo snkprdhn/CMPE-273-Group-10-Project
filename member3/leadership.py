@@ -11,6 +11,8 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
+from observability import traced
+
 import psycopg
 
 from member3.control import Conflict
@@ -61,6 +63,7 @@ class Lease:
             raise RuntimeError('Lease API request failed: ' + result.stderr[-500:])
         return json.loads(result.stdout)
 
+    @traced('leadership.step')
     def step(self):
         """CAS acquisition/renewal. Any uncertain renewal immediately stops work.
 

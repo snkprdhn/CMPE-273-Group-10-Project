@@ -1,7 +1,9 @@
 FROM python:3.12.9-slim-bookworm@sha256:40011d5cf225eb43b650ec158d4a59ca3110e6566ddfd3f506824db6153761cf AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/opt/venv/bin:$PATH
 WORKDIR /app
-RUN python -m venv /opt/venv && mkdir /state && chown 10001:10001 /state
+COPY observability /app/observability
+RUN python -m venv /opt/venv
+RUN /opt/venv/bin/python -m pip install --no-cache-dir --only-binary=:all: --require-hashes -r observability/requirements.txt && mkdir /state && chown 10001:10001 /state
 COPY member1 /app/member1
 COPY schemas/v1/bundle.json /app/schemas/v1/bundle.json
 ENTRYPOINT ["/opt/venv/bin/python", "-m", "member1"]

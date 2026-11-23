@@ -1,6 +1,6 @@
 # HTTP and Live-Update API Contracts
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_4 standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); local OIDC is implemented under [ADR-032](../decisions/ADR-032-member4-local-identity.md); investigations, live internal adapters and kind deployment remain later gates.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_4 standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); local OIDC is implemented under [ADR-032](../decisions/ADR-032-member4-local-identity.md); kind deployment and observability are implemented; investigations and live mutation adapters remain later gates.
 
 Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List endpoints use `limit` and opaque `cursor`. Errors use `{ "error": { "code", "message", "request_id", "details" } }`.
 

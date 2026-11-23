@@ -202,6 +202,9 @@ class Cluster:
         self.ready('node/' + self.node, timeout=180)
         self.k('uncordon', self.node)
         self.k('-n', 'kube-system', 'rollout', 'status', 'deployment/coredns', '--timeout=180s')
+        # Docker Desktop can assign a different API endpoint after a VM restart.
+        if self.k('get', 'networkpolicy/lease-and-topic-api', '--ignore-not-found', '-o', 'name', capture=True).strip():
+            self.api_policy()
 
     def chart(self, chart, release, namespace):
         filename, checksum, source = CHARTS[chart]
@@ -217,6 +220,8 @@ class Cluster:
         self.apply({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': 'platform'}})
         self.chart('strimzi', 'strimzi', 'grid-operators')
         self.chart('flink', 'flink-operator', 'grid-operators')
+        run(BIN / 'python', '-m', 'tools.observability', 'install',
+            '--context', 'kind-' + self.name, '--kubeconfig', self.kubeconfig)
 
     def build(self):
         download(ROOT / '.tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz',
@@ -277,6 +282,8 @@ class Cluster:
         self.stage('policy')
         self.api_policy()
         self.chart('postgres', 'postgres', 'platform')
+        # The idempotent bootstrap also applies additive control/projection migrations.
+        self.k('delete', 'job/database-bootstrap', '--ignore-not-found', '--timeout=60s')
         self.stage('bootstrap')
         self.k('wait', '--for=condition=Complete', 'job/database-bootstrap', '--timeout=160s')
 
@@ -294,8 +301,13 @@ class Cluster:
         self.stage('flink')
         self.k('wait', '--for=jsonpath={.status.jobStatus.state}=RUNNING',
                'flinkdeployment/aggregation', '--timeout=360s')
-        self.stage('apps')
+        self.apps()
+
+    def apps(self):
+        # Bring up dependencies before starting the next pod on the local node.
+        self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=apps,!grid-app')
         for name in ('registry', 'action', 'projection', 'api', 'keycloak', 'ui'):
+            self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=apps,grid-app=' + name)
             self.k('rollout', 'status', 'deployment/' + name, '--timeout=360s')
 
     def inspect(self):

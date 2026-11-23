@@ -23,6 +23,7 @@ def configuration(schema='member3_delivery', prefix='local-m3.'):
         'transforms.outbox.route.by.field': 'aggregatetype',
         'transforms.outbox.route.topic.replacement': prefix + '${routedByValue}',
         'transforms.outbox.table.expand.json.payload': 'false',
+        'transforms.outbox.table.fields.additional.placement': 'traceparent:header:traceparent,correlation_id:header:correlation_id,causation_id:header:causation_id',
         'transforms.outbox.table.op.invalid.behavior': 'fatal',
         'key.converter': 'org.apache.kafka.connect.storage.StringConverter',
         'value.converter': 'org.apache.kafka.connect.storage.StringConverter',

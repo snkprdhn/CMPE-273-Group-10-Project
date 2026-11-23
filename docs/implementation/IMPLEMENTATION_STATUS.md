@@ -1,6 +1,171 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for the local kind deployment milestone. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-23 (America/Los_Angeles)** for the local observability milestone. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+
+## Current milestone — local observability
+
+The Collector, Prometheus, Grafana, and Tempo ran on local Docker Desktop kind.
+Five dashboards are provisioned. Explicit instrumentation covers Kafka, gRPC,
+HTTP, SQL, Action/Lease, and SSE, with durable transport context for CDC and
+projection events. Public v1 contracts remain unchanged. See
+[ADR-035](../decisions/ADR-035-local-observability.md) and the
+[runbook](../../infra/observability/README.md).
+
+The seeded incident gate passed using the independent loopback API, local
+Compose PostgreSQL, and kind collection. An exclusive lock on the run-owned
+projection metadata caused one operator snapshot request to return HTTP 503.
+Prometheus recorded the error. Tempo recorded the SQL and HTTP error spans,
+and stderr contained the matching trace and span IDs. Three sub-second reads
+confirmed recovery 3.330 seconds after injection. Trace
+`90c170be453d4ca2b544cb045e53131d` and the evidence packet are retained under
+`.tools/observability-incidents/obs01/`.
+
+The repeat run `obs04` passed against kind PostgreSQL and kind collection after
+monitoring settled. The independent loopback API returned one HTTP 503.
+Prometheus recorded one error and nine successful queries. Tempo and the
+structured logs matched trace `e473510bd1ee4ee3bf735c1eef4d1f5d`. Recovery took
+**3.338 seconds** from injection and **0.074 seconds** after rollback. The
+three recovery reads took 28, 22 and 24 ms. The packet and collection image IDs
+are retained under `.tools/observability-incidents/obs04/`.
+
+| Executed command | Result |
+|---|---|
+| `.venv/bin/python -m tools.observability install --context kind-smart-grid-dev` | All four stack components rolled out and five dashboards were provisioned. The first Collector startup exposed invalid retry settings, corrected in the chart values. |
+| `PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .venv/bin/python -m tools.observability incident --context kind-smart-grid-dev --run obs01` | PASS, real collected metric, trace, correlated logs, HTTP 503 business impact and measured recovery. |
+| `.venv/bin/python -m tools.observability incident --context kind-smart-grid-kind-dev-obs --kubeconfig .tools/kind-dev.kubeconfig --run obs04` | PASS with kind PostgreSQL and the Collector, Prometheus and Tempo in kind. The earlier `obs02` and `obs03` attempts failed on port-forward readiness and evidence availability, respectively, while the monitoring pods were restarting. |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/dashboard/test_client.py tests/dashboard/test_presentation.py tests/test_kind_local.py tests/test_integration_evidence.py tests/test_preparation_docs.py` | 33 passed on the resumed verification. |
+| `make observability-test observability-render` | 8 tests passed and all three pinned charts rendered. |
+| `make contracts BASE_REF=HEAD` | 214 passed. |
+| `make member1-test member2-test` | 16 and 43 passed respectively. |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | 86 passed, three opt-in checks skipped. |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_api.py tests/member4/test_projection.py tests/member4/test_review.py tests/member4/test_dashboard_boundary.py` | 36 passed. |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/dashboard/test_client.py tests/dashboard/test_presentation.py tests/test_kind_local.py` | 25 passed. |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_integration_evidence.py tests/test_preparation_docs.py` | 16 passed. |
+| `make KIND_NAME=smart-grid-kind-dev-obs kind-create kind-install kind-deploy` | First attempt installed the observability stack and started PostgreSQL, Kafka/exporter, CDC and Flink. Application rollout timed out with 3975m CPU reserved on a 4-core node. The developer overlay now lowers Flink requests while retaining its CPU limits. |
+
+The retry with `make KIND_NAME=smart-grid-kind-dev-obs kind-install kind-deploy kind-smoke`
+built and loaded the instrumented images, applied database migrations and
+confirmed Debezium and Flink were running. Both Flink pods scheduled with the
+new CPU requests. Kubernetes admitted the six app pods, but container startup
+stalled while the VM and Kubernetes API were slow. The Registry readiness
+gate prevented the smoke test from running. The Prometheus scrape check
+found that Strimzi exposes the exporter as a pod without a Service. The chart
+now discovers exporter pods on port 9404. Grafana provisioning sidecars also
+hit their 64 MiB limits, now revised to 192 MiB. Final live Kafka/Flink panel
+population and the instrumented Kafka-to-SSE closed loop remain unverified.
+The final Helm retry for Kafka discovery and the Grafana sidecar adjustment
+also timed out waiting for readiness. See the private deployment and incident
+logs under `.tools/`.
+
+`make KIND_NAME=smart-grid-kind-dev-obs kind-stop` stopped the acceptance node
+using its Docker fallback after the Kubernetes shutdown timed out. The
+`bash .tools/observability-restore-standalone.sh` restore restarted the
+previous containers and returned Flink job `member2-review02` to RUNNING
+as `b9a26e187ac5c6574dc39c9f4eb539e3` from canonical savepoint
+`file:/checkpoints/observability-preserved/savepoint-68bf12-b7078937035d`.
+The acceptance volumes were retained.
+
+The proposed query SLO is displayed as a measured good fraction. Other SLOs,
+sustained capacity, broker loss and leader handover require separate runs.
+The next recommended milestone is the review-profile broker-loss and Action
+leader handover gate, followed by the bounded deterministic Copilot.
+
+### Readiness follow-up — 2026-11-23
+
+Reopened the preserved developer cluster with
+`make KIND_NAME=smart-grid-kind-dev-obs kind-create`. Recovered Helm's
+interrupted monitoring revision with `helm rollback monitoring 3` in the
+`observability` namespace, then ran
+`.venv/bin/python -m tools.observability install --context kind-smart-grid-kind-dev-obs --kubeconfig .tools/kind-dev.kubeconfig`.
+Monitoring deployed revision 7. Grafana reported 3/3 ready with zero restarts
+at inspection and its authenticated dashboard API returned all five dashboards.
+
+Changed deploy to apply and wait for application deployments in dependency
+order. All six deployments rolled out using
+`.venv/bin/python -c "from tools.kind_local import Cluster; Cluster('dev','smart-grid-kind-dev-obs').apps()"`.
+Registry initially timed out connecting to PostgreSQL. A probe using the
+Registry NetworkPolicy labels resolved and connected to the PostgreSQL Service,
+and the Registry recovered on restart. The smoke Flink readiness wait is now
+180 seconds to allow the actual job to recover after a node restart.
+
+`make KIND_NAME=smart-grid-kind-dev-obs kind-smoke` first timed out at the old
+15-second Flink gate. The retry passed Debezium, Flink, application readiness,
+and Lease RBAC. It failed at the 150-second readiness wait for the scheduled
+NetworkPolicy probe pod `grid-policy-outside` and did not launch the simulator
+through the full smoke harness. The probe was cleaned up. The official report
+is `.tools/kind-dev/report.json` and the retry log is
+`.tools/observability-resume-smoke.log`.
+
+A separate diagnostic `kubectl apply -k infra/kind/dev -l grid-stage=smoke`
+created the simulator Job with the existing platform policies in effect.
+The subsequent Job/log requests failed with control-plane TLS or watch errors,
+so this attempt supplies no Kafka-to-SSE result. Kubelet logged housekeeping
+delays up to 14.5 seconds and exec probe timeouts during this run.
+
+Prometheus's active target API reported the Kafka exporter, both Flink
+endpoints and both Collector endpoints up. Grafana's authenticated datasource
+query returned an empty consumer-lag vector before scenario data. The final
+Grafana datasource request returned HTTP 502. Live panel
+population and the full smoke remain open. Local checks passed:
+`make observability-test observability-render` (8 tests plus chart render),
+`.tools/dashboard-test-venv/bin/python -m pytest -q tests/test_kind_local.py`
+(8 tests), and `git diff --check`.
+
+The acceptance node was stopped using the Docker fallback after Kubernetes
+shutdown timed out. `bash .tools/observability-resume-restore.sh` restarted the
+standalone containers. Flink restored from
+`file:/checkpoints/observability-resume/savepoint-b9a26e-79d37c0d34ac`
+and reported `member2-review02` RUNNING as
+`7c3792adc192073d77d4d7b11f1c0831`. The next verification should use the
+documented larger local review VM budget to isolate the recurring node
+startup stalls from application behavior.
+
+### Larger-budget acceptance — 2026-11-23
+
+**Full Kafka-to-SSE smoke passed** on the one-broker developer topology with
+the documented review VM allocation of 8 CPUs and 10,240 MiB. Docker reported
+8 CPUs and 10,416,844,800 usable bytes. This run used a fresh kind cluster
+named `smart-grid-kind-dev-obsnew` with no competing nodes.
+
+The preserved cluster's first simulation exposed a real PyFlink worker
+failure. Beam's replacement for Python `print` rejected the logger's
+`flush=True` argument. Structured logging now writes and flushes stderr
+directly. The harness also compresses and chunks its final evidence so
+container logs can carry the whole report. Existing clusters refresh the
+bounded Lease API egress allowlist when the node restarts.
+
+| Executed command | Result |
+|---|---|
+| `make KIND_NAME=smart-grid-kind-dev-obsnew kind-create kind-install kind-deploy kind-smoke` | Exit 0. All four member gates passed, as did Calico ingress/egress, Action Lease RBAC, Keycloak Viewer login, and matching REST, SSE, and UI action assertions. |
+| `PYTHONPATH=. .venv/bin/python .tools/observability-large-panels.py` | Authenticated Grafana API returned all five dashboard definitions and live samples for all six provisioned streaming queries. Grafana was 3/3 ready with zero restarts on the fresh rollout. |
+| `make observability-test` | 8 passed. |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_integration_evidence.py` | 11 passed. |
+| `git diff --check` | Passed. |
+
+The smoke finished at 14:46:52 PST. It retained 14 load samples, 342 completed
+checkpoints, matching projection state, and two device effects. Commands
+throttled the charger to 2 kW, confirmed that replay did not apply a second
+effect, and restored 7.2 kW. The report is
+`.tools/observability-large-fresh-report.json` and the deployment and smoke
+log is `.tools/observability-large-fresh.log`.
+
+Grafana samples taken during simulation included Flink consumer lag of one
+record, semantic watermark delay of 11,032 ms, 285 completed and six failed
+checkpoints, a 190 ms last checkpoint, and zero backpressure in the sampled
+series. The exporter also returned negative lag aggregates for Action and
+Projection. Those raw values are recorded as an exporter limitation and should
+not be interpreted as queue depth. The queries and raw samples are retained in
+`.tools/observability-large-fresh-panels.log`. These are point samples from a
+short run. Sustained capacity, broker-loss and leadership-failover verification
+remain separate gates.
+
+After capture, `make KIND_NAME=smart-grid-kind-dev-obsnew kind-stop` stopped
+the acceptance node with volumes retained. Docker Desktop returned to 4 CPUs
+and 6,144 MiB configured, and
+`bash .tools/observability-large-restore.sh` restored the original services.
+`member2-review02` reported RUNNING as `0789faed407bb71676d9185d79626e80`
+from canonical savepoint
+`file:/checkpoints/observability-large/savepoint-7c3792-507019903243`.
 
 ## Completed milestones
 
@@ -19,7 +184,7 @@ Updated **2026-11-22 (America/Los_Angeles)** for the local kind deployment miles
 | Member_4 operator dashboard | Responsive NiceGUI REST/SSE console, contract-checked fixture mode, accessible states, confirmations and scoped investigation entry points | [Runbook](../../dashboard/README.md), [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md), executed acceptance below |
 | Member_4 projections and API | Replay-safe Kafka/SQL projections, migrations/rebuild, REST snapshots/filters/pages, durable cross-replica SSE/reset, freshness and internal contract mocks | [Runbook](../../member4/README.md), [ADR-030](../decisions/ADR-030-member4-projections-api.md), executed evidence below |
 
-## Current milestone and verification
+## Previous milestone — local kind deployment
 
 **The reproducible local kind deployment milestone is complete.** Both developer
 and three-broker review profiles passed all four closed-loop gates, live Calico

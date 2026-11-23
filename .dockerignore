@@ -40,3 +40,7 @@ dashboard/**/__pycache__/
 !tools/kind_workload.py
 !infra/kind/
 !infra/kind/Dockerfile
+
+!observability/
+!observability/**
+observability/**/__pycache__/

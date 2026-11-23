@@ -17,6 +17,8 @@ COPY --from=build /resolved.txt /opt/member2-resolved.txt
 COPY --from=build /kafka.jar /opt/flink/lib/kafka.jar
 ENV PATH=/opt/venv/bin:$PATH PYTHONPATH=/app PYFLINK_CLIENT_EXECUTABLE=/opt/venv/bin/python
 WORKDIR /app
+COPY observability /app/observability
+RUN /opt/venv/bin/python -m pip install --no-cache-dir --only-binary=:all: --require-hashes -r observability/requirements.txt
 COPY member2 /app/member2
 COPY schemas /app/schemas
 COPY tests/member2 /app/tests/member2

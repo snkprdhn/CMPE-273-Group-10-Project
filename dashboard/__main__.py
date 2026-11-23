@@ -2,6 +2,9 @@ import argparse
 import os
 from nicegui import ui
 from dashboard.app import configure
+from observability import setup
+
+setup('member4.dashboard')
 
 parser = argparse.ArgumentParser(description='Member_4 local operator dashboard')
 parser.add_argument('--fixture', action='store_true', help='Connect to disposable fixture API on port 18085')

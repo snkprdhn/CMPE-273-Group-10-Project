@@ -48,6 +48,7 @@ spec:
           imagePullPolicy: Never
           args: [simulate]
           envFrom:
+            - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: simulator-runtime}
           resources:
             requests: {cpu: 100m, memory: 96Mi}

@@ -1,8 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telemetry-runtime
+  labels: {grid-owner: Member_1, grid-stage: apps}
+data:
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel.observability:4318
+  GRID_ENVIRONMENT: local-kind
+  GRID_TRANSFORMERS: tx-001
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: registry
-  labels: {grid-owner: Member_1, grid-stage: apps}
+  labels: {grid-owner: Member_1, grid-stage: apps, grid-app: registry}
 spec:
   replicas: 1
   selector:
@@ -19,6 +29,7 @@ spec:
           image: smart-grid-kind/registry:v1
           imagePullPolicy: Never
           envFrom:
+            - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: registry-runtime}
           ports:
             - {name: http, containerPort: 8001}
@@ -61,7 +72,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: action
-  labels: {grid-owner: Member_3, grid-stage: apps}
+  labels: {grid-owner: Member_3, grid-stage: apps, grid-app: action}
 spec:
   replicas: 1
   selector:
@@ -78,6 +89,7 @@ spec:
           image: smart-grid-kind/action:v1
           imagePullPolicy: Never
           envFrom:
+            - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: action-runtime}
           env:
             - {name: KAFKA_PREFIX, value: "integration-kind."}
@@ -116,7 +128,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: projection
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: projection}
 spec:
   replicas: 1
   selector:
@@ -134,6 +146,7 @@ spec:
           imagePullPolicy: Never
           args: ["consume"]
           envFrom:
+            - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: projection-runtime}
           env:
             - {name: KAFKA_PREFIX, value: "integration-kind."}
@@ -171,7 +184,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: api}
 spec:
   replicas: 1
   selector:
@@ -189,6 +202,7 @@ spec:
           imagePullPolicy: Never
           args: ["serve", "--bind", "0.0.0.0"]
           envFrom:
+            - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: projection-runtime}
           env:
             - {name: GRID_LOCAL_KIND, value: "1"}
@@ -232,7 +246,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ui
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: ui}
 spec:
   replicas: 1
   selector:
@@ -290,7 +304,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: keycloak}
 spec:
   replicas: 1
   strategy: {type: Recreate}
@@ -308,6 +322,7 @@ spec:
           image: quay.io/keycloak/keycloak:26.1.4@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761
           args: [start-dev, --import-realm, --http-port=8080, --hostname=http://127.0.0.1:18086]
           envFrom:
+            - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: keycloak-runtime}
           env:
             - {name: KC_DB, value: postgres}

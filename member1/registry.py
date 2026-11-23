@@ -11,6 +11,8 @@ import time
 
 import grpc
 from google.protobuf import json_format
+from observability import boundary, headers, traced
+
 import psycopg
 from psycopg.types.json import Jsonb
 
@@ -47,6 +49,11 @@ def guarded(write=False):
     def decorate(method):
         @wraps(method)
         def call(self, request, context):
+            with boundary('grpc.server', context.invocation_metadata()) as span:
+                if span:
+                    span.set_attribute('rpc.method', method.__name__)
+                return invoke(self, request, context)
+        def invoke(self, request, context):
             started = time.monotonic()
             try:
                 self.authorize(context, write)
@@ -55,7 +62,7 @@ def guarded(write=False):
                     reject('DEADLINE_EXCEEDED', 'explicit deadline required')
                 budget = min(2.0, remaining)
                 # Connection and statement/lock waits are bounded by the RPC budget.
-                with psycopg.connect(self.dsn, connect_timeout=1,
+                with boundary('db.registry'), psycopg.connect(self.dsn, connect_timeout=1,
                                      options=f'-c statement_timeout={max(1, int(budget * 1000))}') as db:
                     # Serialize small Registry operations, across replicas. This also
                     # makes op-ID conflict checks atomic with registration/heartbeat.
@@ -245,6 +252,7 @@ class Client:
         self.stub = rpc.DeviceRegistryStub(self.channel)
         self.metadata = (('x-service-identity', identity), ('authorization', 'Bearer ' + token))
 
+    @traced('grpc.client')
     def call(self, name, request, timeout=2.0):
         if not 0 < timeout <= 2:
             raise ValueError('deadline must be in (0,2]')
@@ -259,7 +267,7 @@ class Client:
             if remaining <= 0:
                 raise TimeoutError('Registry deadline exhausted')
             try:
-                return getattr(self.stub, name)(request, timeout=remaining, metadata=self.metadata)
+                return getattr(self.stub, name)(request, timeout=remaining, metadata=self.metadata + tuple(headers().items()))
             except grpc.RpcError as exc:
                 if exc.code() != grpc.StatusCode.UNAVAILABLE or attempt == 2:
                     raise

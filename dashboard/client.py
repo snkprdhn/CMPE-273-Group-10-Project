@@ -9,6 +9,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 import httpx
+from observability import headers as trace_headers, traced
 
 
 DEFINITIONS = json.loads((Path(__file__).resolve().parents[1] / 'schemas/v1/bundle.json').read_text())['$defs']
@@ -46,6 +47,9 @@ class Operations:
     def __init__(self, base_url, token, token_provider=None):
         self.http = httpx.AsyncClient(base_url=base_url, headers={'Authorization': f'Bearer {token}'},
                                      timeout=httpx.Timeout(5, read=25), trust_env=False)
+        async def context(request):
+            request.headers.update(trace_headers())
+        self.http.event_hooks['request'].append(context)
         if token_provider:
             async def bearer(request):
                 from identity.auth import Denied
@@ -69,6 +73,7 @@ class Operations:
         self.health = {}
         self.retry_keys = {}
 
+    @traced('http.client')
     async def get(self, path, params=None):
         response = await self.http.get(path, params=params)
         response.raise_for_status()
@@ -143,6 +148,7 @@ class Operations:
                 self.status = 'Partial'
             return not errors
 
+    @traced('http.client')
     async def listen(self):
         delay = 1
         while not self.closed:
@@ -198,6 +204,7 @@ class Operations:
             await asyncio.sleep(10)
             await self.snapshot()
 
+    @traced('http.client')
     async def mutate(self, path, body=None):
         # Preserve a key after uncertain failure; never blindly issue another logical command.
         fingerprint = json.dumps([path, body], sort_keys=True)

@@ -8,12 +8,14 @@ from member4.store import Store
 
 
 def main():
+    from observability import setup
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=['migrate', 'replay', 'rebuild', 'serve', 'consume'])
     parser.add_argument('--fixtures', type=Path, default=Path(__file__).with_name('fixtures.json'))
     parser.add_argument('--port', type=int, default=18084)
     parser.add_argument('--bind', default='127.0.0.1', choices=['127.0.0.1', '0.0.0.0'])
     args = parser.parse_args()
+    setup('member4.projection' if args.command == 'consume' else 'member4.api')
     store = Store(os.environ['PROJECTION_DSN'])
     if args.command == 'migrate':
         store.migrate()

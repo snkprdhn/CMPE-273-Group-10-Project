@@ -64,7 +64,7 @@ state is never silently evicted. One task enforces run-wide identity and waterma
 semantics across Kafka partitions; throughput/rescaling are unmeasured. Custom
 operator metrics expose duplicates, DLQ, very-late, corrections, input/output,
 semantic watermark/delay, accepted late count and latest output. Flink supplies checkpoint duration/failures,
-restart/backpressure and Kafka source metrics. No monitoring stack is added.
+restart/backpressure and Kafka source metrics. The standalone slice needs no monitoring stack. The subsequent [observability milestone](../infra/observability/README.md) enables the bundled native Prometheus reporter and explicit Kafka header/span propagation in kind.
 
 The three Kafka sinks select transactional exactly-once delivery, with successful
 checkpoints, durable checkpoint files, recovery within a 300s transaction timeout,

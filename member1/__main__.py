@@ -14,6 +14,7 @@ from member1.simulator import command_fixture, devices, EdgeState, scenario, top
 
 
 def main():
+    from observability import setup
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', choices=['scenario', 'registry', 'simulate', 'command', 'command-fixture', 'register'])
     parser.add_argument('--case', choices=['throttle', 'restore', 'expired', 'stale'], default='throttle')
@@ -33,6 +34,7 @@ def main():
     parser.add_argument('--fixture', help='command envelope JSON file')
     parser.add_argument('--topology', help='write topology JSON file')
     args = parser.parse_args()
+    setup('member1.' + args.mode)
     if args.steps < 3 or not math.isfinite(args.interval) or args.interval <= 0:
         parser.error('--steps must be >=3 and --interval positive and finite')
     validate('Id', args.run_id)

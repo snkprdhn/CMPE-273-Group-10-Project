@@ -1,5 +1,7 @@
 """In-cluster database initialization and deterministic simulator acceptance."""
 import argparse
+import base64
+import gzip
 import json
 import os
 import signal
@@ -73,10 +75,12 @@ class KindRunner(Runner):
             generation = db.execute('SELECT generation FROM projection_meta').fetchone()[0]
             db.execute('CREATE SCHEMA kind_replay')
             for table in ('projection_events', 'projection_current', 'projection_stream',
-                          'projection_pages', 'projection_meta'):
+                          'projection_pages', 'projection_meta', 'projection_trace'):
                 db.execute(sql.SQL('CREATE TABLE kind_replay.{} AS TABLE integration_kind.{}').format(
                     sql.Identifier(table), sql.Identifier(table)))
             db.execute('ALTER TABLE kind_replay.projection_current ADD PRIMARY KEY(kind,id)')
+            db.execute('ALTER TABLE kind_replay.projection_stream ADD PRIMARY KEY(sequence)')
+            db.execute('ALTER TABLE kind_replay.projection_trace ADD FOREIGN KEY(sequence) REFERENCES kind_replay.projection_stream(sequence) ON DELETE CASCADE')
             # Reuse the same replay logic inside the locked snapshot transaction.
             db.execute('SET LOCAL search_path TO kind_replay')
             self.store._rebuild(db)
@@ -111,6 +115,8 @@ class KindRunner(Runner):
 
 
 def main():
+    from observability import setup
+    setup('member1.simulator')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('phase', choices=['bootstrap', 'simulate'])
     args = parser.parse_args()
@@ -124,7 +130,10 @@ def main():
         try:
             runner.simulate()
         finally:
-            print('KIND_EVIDENCE ' + json.dumps(runner.evidence, separators=(',', ':')))
+            payload = gzip.compress(json.dumps(runner.evidence, separators=(',', ':')).encode())
+            encoded = base64.b64encode(payload).decode()
+            for start in range(0, len(encoded), 4096):
+                print('KIND_EVIDENCE_CHUNK ' + encoded[start:start + 4096])
 
 
 if __name__ == '__main__':

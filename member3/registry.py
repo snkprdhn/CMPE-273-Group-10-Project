@@ -5,6 +5,8 @@ import sys
 import time
 
 import grpc
+from observability import traced, headers
+
 import psycopg
 from psycopg.types.json import Jsonb
 from google.protobuf import json_format
@@ -33,6 +35,7 @@ class Registry:
     def close(self):
         self.channel.close()
 
+    @traced('grpc.client')
     def snapshots(self, transformer_id, evaluated_at, policy_version):
         validate('Id', transformer_id)
         stamp(evaluated_at)
@@ -50,7 +53,7 @@ class Registry:
             if remaining <= 0:
                 raise TimeoutError('Registry deadline exhausted')
             try:
-                page = self.stub.ListEligibleChargers(request, timeout=remaining, metadata=self.metadata)
+                page = self.stub.ListEligibleChargers(request, timeout=remaining, metadata=self.metadata + tuple(headers().items()))
             except grpc.RpcError as exc:
                 if exc.code() != grpc.StatusCode.UNAVAILABLE or retries >= 2:
                     raise

@@ -13,6 +13,8 @@ import sys
 import time
 from uuid import uuid4
 
+from observability import headers, traced
+
 from psycopg.types.json import Jsonb
 
 from member4.contracts import ApiError, ROOT, instant, stamp, utc, validate
@@ -38,6 +40,7 @@ class RegistryContext:
     def close(self):
         self.channel.close()
 
+    @traced('grpc.client')
     def devices(self, device_ids, timeout=2.0):
         """Fetch a bounded inventory atomically within one shared RPC deadline.
 
@@ -51,8 +54,7 @@ class RegistryContext:
         for device_id in device_ids:
             validate('Id', device_id)
         end = time.monotonic() + timeout
-        metadata = self.metadata + (('x-request-id', uuid4().hex),
-            ('traceparent', '00-' + uuid4().hex + '-' + uuid4().hex[:16] + '-01'))
+        metadata = self.metadata + (('x-request-id', uuid4().hex),) + tuple(headers().items())
         result = []
         for device_id in device_ids:
             remaining = end - time.monotonic()

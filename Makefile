@@ -99,3 +99,13 @@ PROFILE ?= dev
 .PHONY: kind-create kind-install kind-deploy kind-smoke kind-policy kind-inspect kind-measure kind-open-ui kind-stop
 kind-create kind-install kind-deploy kind-smoke kind-policy kind-inspect kind-measure kind-open-ui kind-stop:
 	.venv/bin/python -m tools.kind_local $(patsubst kind-%,%,$@) --profile "$(PROFILE)" $(if $(KIND_NAME),--name "$(KIND_NAME)")
+
+# Member_1 local observability; explicit kind context, no cloud dependencies.
+OBSERVABILITY_CONTEXT ?= kind-smart-grid-kind-dev
+OBSERVABILITY_KUBECONFIG ?= .tools/kind-dev.kubeconfig
+.PHONY: observability-render observability-install observability-inspect observability-test
+observability-render observability-install observability-inspect:
+	.venv/bin/python -m tools.observability $(patsubst observability-%,%,$@) --context "$(OBSERVABILITY_CONTEXT)" --kubeconfig "$(OBSERVABILITY_KUBECONFIG)"
+
+observability-test:
+	.tools/observability-venv/bin/python -m pytest -q tests/observability

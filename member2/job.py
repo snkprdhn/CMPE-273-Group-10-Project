@@ -13,6 +13,8 @@ from pyflink.datastream.state import ValueStateDescriptor
 from pyflink.table import StreamTableEnvironment
 
 from member2.aggregation import Aggregator, LOAD, DLQ, LATE
+from observability import setup, boundary, headers, business
+from member2.tracing import remember, output_context
 
 
 class Aggregate(KeyedProcessFunction):
@@ -21,6 +23,7 @@ class Aggregate(KeyedProcessFunction):
         self.max_events = max_events
 
     def open(self, runtime_context):
+        setup('member2.aggregation')
         self.state = runtime_context.get_state(ValueStateDescriptor('run-v1', Types.PRIMITIVE_ARRAY(Types.BYTE())))
         metrics = runtime_context.get_metrics_group()
         self.counts = {name: metrics.counter(name) for name in ('duplicates', 'dlq', 'very_late', 'corrections', 'input', 'output')}
@@ -33,6 +36,10 @@ class Aggregate(KeyedProcessFunction):
         metrics.gauge('latest_output_ms', lambda: self.latest)
 
     def process_element(self, row, ctx):
+        with boundary('aggregation.process', row[4] or {}):
+            yield from self._process(row, ctx)
+
+    def _process(self, row, ctx):
         stored = self.state.value()
         engine = pickle.loads(bytes(stored)) if stored is not None else Aggregator(self.topology, self.max_events)
         if engine.topology != self.topology or engine.max_events != self.max_events:
@@ -41,6 +48,7 @@ class Aggregate(KeyedProcessFunction):
         now = datetime.now(timezone.utc)
         self.counts['input'].inc()
         results = engine.reading(row[1], row[0], now, row[2], row[3])
+        remember(engine, row[1], row[4] or {})
         results += engine.evaluate(now)
         self.state.update(pickle.dumps(engine, protocol=5))
         for name in before:
@@ -51,7 +59,11 @@ class Aggregate(KeyedProcessFunction):
         for topic, key, event in results:
             self.counts['output'].inc()
             self.latest = int(now.timestamp()*1000)
-            yield Row(topic, key, json.dumps(event, allow_nan=False, separators=(',', ':')))
+            context = output_context(engine, key, event)
+            with boundary('kafka.publish', context, event, link=True):
+                business(event)
+                yield Row(topic, key, json.dumps(event, allow_nan=False, separators=(',', ':')),
+                    {k: v.encode() for k, v in headers().items() if k in ('traceparent', 'correlation_id', 'causation_id', 'scenario_run_id')})
 
 
 def main():
@@ -94,7 +106,8 @@ def main():
     tables.execute_sql(f"""CREATE TABLE telemetry (
         kafka_key STRING, body STRING,
         part INT METADATA FROM 'partition' VIRTUAL,
-        off BIGINT METADATA FROM 'offset' VIRTUAL
+        off BIGINT METADATA FROM 'offset' VIRTUAL,
+        trace_headers MAP<STRING, BYTES> METADATA FROM 'headers' VIRTUAL
     ) WITH (
         'connector'='kafka', 'topic'='{prefix}grid.telemetry.v1',
         'properties.bootstrap.servers'='{args.bootstrap}',
@@ -105,14 +118,14 @@ def main():
         'value.format'='raw', 'value.fields-include'='EXCEPT_KEY'
     )""")
     source = tables.to_data_stream(tables.from_path('telemetry'))
-    result_type = Types.ROW_NAMED(['topic', 'kafka_key', 'body'], [Types.STRING()]*3)
+    result_type = Types.ROW_NAMED(['topic', 'kafka_key', 'body', 'trace_headers'], [Types.STRING()]*3 + [Types.MAP(Types.STRING(), Types.PRIMITIVE_ARRAY(Types.BYTE()))])
     aggregated = source.key_by(lambda _: 'run', key_type=Types.STRING()).process(
         Aggregate(topology, args.max_events), output_type=result_type).uid('member2-run-v1').name('Member_2 event-time aggregation')
     output = tables.from_data_stream(aggregated)
     tables.create_temporary_view('results', output)
     inserts = tables.create_statement_set()
     for i, topic in enumerate((LOAD, DLQ, LATE)):
-        tables.execute_sql(f"""CREATE TABLE sink_{i} (kafka_key STRING, body STRING) WITH (
+        tables.execute_sql(f"""CREATE TABLE sink_{i} (kafka_key STRING, body STRING, trace_headers MAP<STRING, BYTES> METADATA FROM 'headers') WITH (
             'connector'='kafka', 'topic'='{prefix}{topic}',
             'properties.bootstrap.servers'='{args.bootstrap}',
             'key.format'='raw', 'key.fields'='kafka_key',
@@ -121,7 +134,7 @@ def main():
             'sink.transactional-id-prefix'='m2-{args.run}-{i}-',
             'properties.transaction.timeout.ms'='300000'
         )""")
-        inserts.add_insert_sql(f"INSERT INTO sink_{i} SELECT kafka_key, body FROM results WHERE topic='{topic}'")
+        inserts.add_insert_sql(f"INSERT INTO sink_{i} SELECT kafka_key, body, trace_headers FROM results WHERE topic='{topic}'")
     inserts.execute()
 
 

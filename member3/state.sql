@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS action_outbox (
     id UUID PRIMARY KEY, aggregatetype TEXT NOT NULL, aggregateid TEXT NOT NULL,
     type TEXT NOT NULL, payload JSONB NOT NULL
 );
+-- Additive transport context; never part of the immutable v1 event envelope.
+ALTER TABLE action_outbox ADD COLUMN IF NOT EXISTS traceparent TEXT;
+ALTER TABLE action_outbox ADD COLUMN IF NOT EXISTS correlation_id TEXT;
+ALTER TABLE action_outbox ADD COLUMN IF NOT EXISTS causation_id TEXT;
 -- One local control shard. Never truncate/reset while command history survives.
 CREATE TABLE IF NOT EXISTS action_authority (
     shard INTEGER PRIMARY KEY CHECK (shard=1), epoch BIGINT NOT NULL CHECK (epoch>0),

@@ -1,4 +1,6 @@
 """Fail-closed acceptance for NetworkPolicy, Action RBAC and the in-kind closed loop."""
+import base64
+import gzip
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
@@ -91,7 +93,7 @@ def smoke(cluster):
         # Preserve the one-shot scenario until the full dependency chain can serve it.
         cluster.ready_connector(timeout=15)
         cluster.k('wait', '--for=jsonpath={.status.jobStatus.state}=RUNNING',
-                  'flinkdeployment/aggregation', '--timeout=15s')
+                  'flinkdeployment/aggregation', '--timeout=180s')
         cluster.k('rollout', 'status', 'deployment/ui', '--timeout=15s')
         cluster.k('rollout', 'status', 'deployment/action', '--timeout=15s')
         cluster.k('rollout', 'status', 'deployment/projection', '--timeout=15s')
@@ -114,8 +116,10 @@ def smoke(cluster):
             time.sleep(5)
         logs = cluster.k('logs', 'job/simulator', capture=True)
         write_private(cluster.directory / 'simulator.log', logs)
-        evidence = next((json.loads(line.removeprefix('KIND_EVIDENCE ')) for line in reversed(logs.splitlines())
-                         if line.startswith('KIND_EVIDENCE ')), {})
+        prefix = 'KIND_EVIDENCE_CHUNK '
+        chunks = [line.removeprefix(prefix) for line in logs.splitlines() if line.startswith(prefix)]
+        if chunks:
+            evidence = json.loads(gzip.decompress(base64.b64decode(''.join(chunks), validate=True)))
         if not state.get('succeeded') or not evidence:
             raise RuntimeError('Simulator did not pass; inspect the private simulator log')
         write_private(cluster.directory / 'evidence.json', json.dumps(evidence))

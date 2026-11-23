@@ -5,6 +5,8 @@ from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
 
+from observability import boundary, headers
+
 import psycopg
 from psycopg.types.json import Jsonb
 
@@ -24,7 +26,7 @@ class Store:
 
     @contextmanager
     def transaction(self):
-        with psycopg.connect(self.dsn, connect_timeout=3) as db:
+        with boundary('db.projection'), psycopg.connect(self.dsn, connect_timeout=3) as db:
             # ponytail: serial local-profile transactions; shard when measured throughput requires it.
             db.execute('SET LOCAL statement_timeout = 3000')
             db.execute('SELECT pg_advisory_xact_lock(427304)')
@@ -74,6 +76,7 @@ class Store:
                      version=seq, event_time=stamp(now), payload=payload)
         validate('SseEvent', event)
         db.execute('INSERT INTO projection_stream VALUES(%s,%s,%s)', (seq, now, Jsonb(event)))
+        db.execute('INSERT INTO projection_trace VALUES(%s,%s)', (seq, Jsonb(headers())))
         self._prune(db, now)
 
     def _prune(self, db, now):
@@ -238,26 +241,30 @@ class Store:
                        {'status': 'degraded', 'observed_at': stamp(now)}, now)
 
     def events(self, cursor, now=None):
+        return [event for event, _ in self.events_with_context(cursor, now)]
+
+    def events_with_context(self, cursor, now=None):
         with self.transaction() as db:
             now = now or utc()
             self._prune(db, now)
             current = self.cursor(db)
-            rows = db.execute('SELECT sequence,event FROM projection_stream ORDER BY sequence').fetchall()
+            rows = db.execute('SELECT sequence,event,context FROM projection_stream '
+                              'LEFT JOIN projection_trace USING(sequence) ORDER BY sequence').fetchall()
             try:
                 generation, seq = cursor.split(':')
                 seq = int(seq)
                 if generation != current.split(':')[0] or seq < 0 or seq > int(current.split(':')[1]):
                     raise ValueError()
-                pending = [(n, e) for n, e in rows if n > seq]
+                pending = [(n, event, context) for n, event, context in rows if n > seq]
                 if len(pending) != int(current.split(':')[1])-seq or any(
-                        n != seq+i for i, (n, _) in enumerate(pending, 1)):
+                        n != seq+i for i, (n, _, _) in enumerate(pending, 1)):
                     raise ValueError()
             except (ValueError, AttributeError):
                 reset = dict(cursor=current, event_type='snapshot.required', entity_id='projection',
                              version=int(current.split(':')[1]), event_time=stamp(now),
                              payload={'status': 'degraded', 'observed_at': stamp(now)})
-                return [reset]
-            return [e for _, e in pending]
+                return [(reset, {})]
+            return [(event, context or {}) for _, event, context in pending]
 
     def rebuild(self):
         with self.transaction() as db:

@@ -15,6 +15,8 @@ import psycopg
 from psycopg.types.json import Jsonb
 from starlette.exceptions import HTTPException
 
+from observability import HTTPMiddleware, boundary, sse_reset
+
 from member4.contracts import ApiError, BUNDLE, FORMATS, OPENAPI, instant, stamp, utc, validate
 from member4.operations import ContractMocks
 from member4.store import freshness
@@ -41,6 +43,8 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
         mocks = ContractMocks()
     app = FastAPI(title='Member_4 operations', docs_url=None,
                   redoc_url=None, openapi_url=None)
+
+    app.add_middleware(HTTPMiddleware)
 
     @app.middleware('http')
     async def request_context(request, call_next):
@@ -266,22 +270,26 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
         cursor = request.headers.get('last-event-id')
         if cursor is not None:
             validate('Id', cursor)
-        batch = await anyio.to_thread.run_sync(store.events, cursor)
+        batch = await anyio.to_thread.run_sync(store.events_with_context, cursor)
         async def stream():
             nonlocal cursor, batch
             heartbeat = time.monotonic()
             while not await request.is_disconnected():
                 if time.time() >= actor.get('expires_at', float('inf')):
                     return  # Reconnect with a renewed bearer; expiry applies to open streams too.
-                for event in batch:
-                    yield frame(event)
+                for event, context in batch:
+                    if event['event_type'] == 'snapshot.required':
+                        sse_reset()
+                    with boundary('sse.send', context, link=True):
+                        encoded = frame(event)
+                        yield encoded
                     cursor = event['cursor']
                 if time.monotonic() - heartbeat >= 15:
                     yield ': heartbeat\n\n'
                     heartbeat = time.monotonic()
                 await asyncio.sleep(.2)
                 try:
-                    batch = await anyio.to_thread.run_sync(store.events, cursor)
+                    batch = await anyio.to_thread.run_sync(store.events_with_context, cursor)
                 except psycopg.Error:
                     return  # Force cursor-based retry after an established stream fails.
         return StreamingResponse(stream(), media_type='text/event-stream',

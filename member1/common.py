@@ -3,7 +3,6 @@ from collections import Counter
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-import logging
 from pathlib import Path
 import threading
 from uuid import NAMESPACE_URL, uuid5
@@ -59,9 +58,8 @@ def event(kind, payload, now, identity, correlation, cause=None):
 
 
 def log(outcome, **fields):
-    logging.getLogger('member1').warning(json.dumps(dict(
-        timestamp=stamp(utc()), service='member1', severity='INFO',
-        outcome=outcome, **fields), allow_nan=False))
+    from observability import log as structured_log
+    structured_log(outcome, **fields)
 
 
 def monitor(port, ready, host='127.0.0.1'):

@@ -13,3 +13,17 @@
 11. Preserve incident evidence and document the instrumentation gap.
 
 The runbook distinguishes missing data from zero, correlation from causation, a timeout from a failed write, and platform restart from application-level recovery. The investigator can accelerate evidence gathering, but it cannot choose or execute the mitigation.
+
+
+## Automated local exercise
+
+Follow the [observability runbook](../../infra/observability/README.md#seeded-incident-packet)
+for `tools.observability incident`. It requires an actual SQL timeout/HTTP 503,
+queries live Prometheus and Tempo, matches JSON logs by trace ID, records the
+operator snapshot impact, and measures both injection-to-recovery and
+mitigation-to-recovery. Missing/mismatched evidence fails the run. The injected
+lock affects only a fresh run-owned schema; it is released with rollback and
+has an eight-second idle transaction safety timeout. The prior five baseline
+reads and three sub-second recovery reads are preserved, with the synthetic
+fixtures and mixed runtime labeled. This is a controlled database-lock exercise,
+not a broker-loss/leader-handover or sustained-capacity test.

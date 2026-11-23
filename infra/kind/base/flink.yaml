@@ -22,6 +22,9 @@ spec:
   serviceAccount: flink
   flinkConfiguration:
     kubernetes.rest-service.exposed.type: ClusterIP
+    metrics.reporters: prom
+    metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prom.port: "9249"
     taskmanager.numberOfTaskSlots: "1"
     taskmanager.memory.task.off-heap.size: "192m"
     taskmanager.memory.managed.size: "128m"
@@ -41,6 +44,11 @@ spec:
       securityContext: {fsGroup: 9999, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: flink-main-container
+          env:
+            - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: 'http://otel.observability:4318'}
+            - {name: GRID_ENVIRONMENT, value: local-kind}
+          ports:
+            - {name: metrics, containerPort: 9249}
           volumeMounts:
             - {name: checkpoints, mountPath: /checkpoints}
       volumes:

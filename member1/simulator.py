@@ -1,5 +1,7 @@
 """Seeded waveforms and durable simulated charger effects/inbox/outbox."""
 from datetime import timedelta
+from observability import boundary, headers as trace_headers
+
 import json
 import math
 import random
@@ -98,7 +100,7 @@ class EdgeState:
             raise ValueError('WRONG_SHARD')
         encoded = json.dumps(p, sort_keys=True, allow_nan=False)
         carried = json.dumps([(k, v.decode() if isinstance(v, bytes) else v)
-                              for k, v in (headers or []) if k == 'traceparent' and v is not None])
+                              for k, v in trace_headers(headers).items() if k == 'traceparent' and v is not None])
         with self.db:
             # Serialize concurrent processes too, before any dedup/fence read.
             self.db.execute('BEGIN IMMEDIATE')

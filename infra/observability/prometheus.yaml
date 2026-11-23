@@ -1,0 +1,92 @@
+# Member_1 stack; Member_4 product SLO views. Laptop-sized, 24-hour retention.
+fullnameOverride: monitoring
+commonLabels: {grid-owner: Member_1}
+alertmanager: {enabled: false}
+nodeExporter: {enabled: false}
+defaultRules: {create: false}
+kubeEtcd: {enabled: false}
+kubeControllerManager: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeProxy: {enabled: false}
+prometheusOperator:
+  prometheusConfigReloader:
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+      limits: {cpu: 100m, memory: 64Mi}
+  resources:
+    requests: {cpu: 30m, memory: 64Mi}
+    limits: {cpu: 300m, memory: 192Mi}
+  admissionWebhooks: {enabled: false}
+  tls: {enabled: false}
+kube-state-metrics:
+  podLabels: {grid-owner: Member_1}
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+grafana:
+  podLabels: {grid-owner: Member_1}
+  image: {repository: grafana/grafana, tag: '11.6.0'}
+  defaultDashboardsEnabled: false
+  testFramework: {enabled: false}
+  persistence: {enabled: true, size: 1Gi, storageClassName: standard}
+  initChownData: {enabled: false}
+  resources:
+    requests: {cpu: 30m, memory: 96Mi}
+    limits: {cpu: 300m, memory: 256Mi}
+  sidecar:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {cpu: 200m, memory: 192Mi}
+    datasources:
+      searchNamespace: observability
+    dashboards:
+      enabled: true
+      searchNamespace: observability
+      label: grafana_dashboard
+  additionalDataSources:
+    - name: Tempo
+      uid: tempo
+      type: tempo
+      access: proxy
+      url: http://tempo:3100
+      jsonData:
+        nodeGraph: {enabled: true}
+        tracesToMetrics: {datasourceUid: prometheus}
+  grafana.ini:
+    plugins: {preinstall_disabled: true}
+    analytics: {reporting_enabled: false, check_for_updates: false, check_for_plugin_updates: false}
+    news: {news_feed_enabled: false}
+    auth.anonymous: {enabled: false}
+prometheus:
+  prometheusSpec:
+    podMetadata: {labels: {grid-owner: Member_1}}
+    image: {registry: quay.io, repository: prometheus/prometheus, tag: v3.2.1}
+    retention: 24h
+    retentionSize: 1GB
+    scrapeInterval: 5s
+    evaluationInterval: 5s
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: 700m, memory: 512Mi}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: [ReadWriteOnce]
+          resources: {requests: {storage: 2Gi}}
+    additionalScrapeConfigs:
+      - job_name: grid-otel
+        static_configs: [{targets: ['otel:8889']}]
+      - job_name: grid-collector
+        static_configs: [{targets: ['otel:8888']}]
+      - job_name: grid-flink
+        kubernetes_sd_configs: [{role: pod, namespaces: {names: [platform]}}]
+        relabel_configs:
+          - {source_labels: [__meta_kubernetes_pod_label_grid_app], regex: aggregation, action: keep}
+          - {source_labels: [__meta_kubernetes_pod_container_port_number], regex: '9249', action: keep}
+          - {source_labels: [__meta_kubernetes_pod_name], target_label: pod}
+      - job_name: grid-kafka-exporter
+        kubernetes_sd_configs: [{role: pod, namespaces: {names: [platform]}}]
+        relabel_configs:
+          - {source_labels: [__meta_kubernetes_pod_label_grid_app], regex: kafka-exporter, action: keep}
+          - {source_labels: [__meta_kubernetes_pod_container_port_number], regex: '9404', action: keep}

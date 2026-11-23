@@ -1,0 +1,57 @@
+# Member_1: no OTel Operator, external endpoints, or log backend.
+fullnameOverride: otel
+mode: deployment
+image: {repository: otel/opentelemetry-collector-contrib, tag: '0.120.0'}
+command: {name: otelcol-contrib}
+podLabels: {grid-owner: Member_1}
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 500m, memory: 192Mi}
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities: {drop: [ALL]}
+ports:
+  jaeger-compact: {enabled: false}
+  jaeger-thrift: {enabled: false}
+  jaeger-grpc: {enabled: false}
+  zipkin: {enabled: false}
+  prometheus: {enabled: true, containerPort: 8889, servicePort: 8889, protocol: TCP}
+  metrics: {enabled: true, containerPort: 8888, servicePort: 8888, protocol: TCP}
+alternateConfig:
+  extensions:
+    health_check: {endpoint: '0.0.0.0:13133'}
+  receivers:
+    otlp:
+      protocols:
+        grpc: {endpoint: '0.0.0.0:4317'}
+        http: {endpoint: '0.0.0.0:4318'}
+  processors:
+    memory_limiter: {check_interval: 1s, limit_mib: 150, spike_limit_mib: 30}
+    transform/metrics:
+      metric_statements:
+        - context: datapoint
+          statements:
+            - 'set(attributes["service"], resource.attributes["service.name"])'
+            - 'set(attributes["service_instance"], resource.attributes["service.instance.id"])'
+    batch: {timeout: 1s, send_batch_size: 128}
+  exporters:
+    otlp/tempo:
+      endpoint: tempo:4317
+      tls: {insecure: true}
+      sending_queue: {queue_size: 256}
+      retry_on_failure: {max_elapsed_time: 15s, max_interval: 5s}
+    prometheus:
+      endpoint: '0.0.0.0:8889'
+      metric_expiration: 5m
+      resource_to_telemetry_conversion: {enabled: false}
+      # Service and instance are the only resource dimensions required here.
+      enable_open_metrics: true
+  service:
+    telemetry:
+      metrics: {address: '0.0.0.0:8888'}
+    extensions: [health_check]
+    pipelines:
+      traces: {receivers: [otlp], processors: [memory_limiter, batch], exporters: [otlp/tempo]}
+      metrics: {receivers: [otlp], processors: [memory_limiter, transform/metrics, batch], exporters: [prometheus]}

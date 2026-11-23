@@ -132,10 +132,10 @@ def test_producer_bounds_delivery_and_headers():
     fake = FakeProducer()
     pub = Publisher('', producer=fake)
     value = next(scenario(273, NOW))
-    pub.send('grid.telemetry.v1', 'tx-001', value, [('traceparent', b'00-test')])
+    pub.send('grid.telemetry.v1', 'tx-001', value, [('traceparent', b'00-11111111111111111111111111111111-2222222222222222-01')])
     topic, sent = fake.messages[0]
     assert topic == 'local-dev.grid.telemetry.v1' and sent['key'] == b'tx-001'
-    assert ('traceparent', b'00-test') in sent['headers']
+    assert ('traceparent', b'00-11111111111111111111111111111111-2222222222222222-01') in sent['headers']
     pub.drain()
     assert pub.healthy
     full = Publisher('', producer=FakeProducer(full=True))
@@ -189,14 +189,14 @@ import os, sys
 from tests.member1.test_edge import command, NOW
 from member1.simulator import EdgeState, devices
 s = EdgeState(sys.argv[1], devices(NOW)[0])
-s.apply(command(), 'ev-001', NOW, [('traceparent', b'00-persisted')])
+s.apply(command(), 'ev-001', NOW, [('traceparent', b'00-11111111111111111111111111111111-3333333333333333-01')])
 os._exit(0)
 '''
     subprocess.run([sys.executable, '-c', script, path], check=True)
     edge = state(tmp_path)
     assert edge.current() == (3, '42', 1)
     assert len(edge.pending()) == 2
-    assert json.loads(edge.pending()[0][2]) == [['traceparent', '00-persisted']]
+    assert json.loads(edge.pending()[0][2]) == [['traceparent', '00-11111111111111111111111111111111-3333333333333333-01']]
     assert edge.apply(command(), 'ev-001', NOW)['payload']['outcome'] == 'ALREADY_APPLIED'
     assert edge.current()[2] == 1
     edge.db.close()

@@ -3,6 +3,8 @@ from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 
+from observability import boundary, traced, headers
+
 import psycopg
 from psycopg.types.json import Jsonb
 
@@ -24,7 +26,7 @@ class Control:
 
     @contextmanager
     def transaction(self, migration=False):
-        with psycopg.connect(self.dsn, connect_timeout=2) as db:
+        with boundary('db.control'), psycopg.connect(self.dsn, connect_timeout=2) as db:
             db.execute("SET LOCAL statement_timeout = '5s'")
             db.execute("SET LOCAL idle_in_transaction_session_timeout = '5s'")
             db.execute("SET LOCAL lock_timeout = '4s'")
@@ -86,9 +88,9 @@ class Control:
 
     def outbox(self, db, event, schema, key, delivery=None):
         validate(schema, event)
-        db.execute('INSERT INTO action_outbox(id,aggregatetype,aggregateid,type,payload) VALUES (%s,%s,%s,%s,%s)',
+        db.execute('INSERT INTO action_outbox(id,aggregatetype,aggregateid,type,payload,traceparent,correlation_id,causation_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
                    (delivery or event['event_id'], {'Action':'grid.action.v1','Command':'grid.charger-command.v1','Alert':'grid.alert.v1'}[schema],
-                    key, event['event_type'], Jsonb(event)))
+                    key, event['event_type'], Jsonb(event), headers().get('traceparent'), event['correlation_id'], event['causation_id']))
 
     def envelope(self, kind, payload, now, eid, action, cause):
         return dict(event_id=eid, event_type=kind, schema_version=1, source='member3.action',
@@ -140,6 +142,7 @@ class Control:
         row = db.execute('SELECT state FROM action_plans WHERE transformer_id=%s AND active', (tx,)).fetchone()
         return row[0] if row else None
 
+    @traced('control.load', event_arg=1)
     def load(self, event, key, now):
         stamp(now)
         validate('Load', event)
@@ -252,6 +255,7 @@ class Control:
         self.issue(db, a, 'RESTORE', now)
         state['recovery'], state['recovery_end'] = 0, None
 
+    @traced('control.result', event_arg=1)
     def result(self, event, key, now, expected_version=None):
         stamp(now)
         validate('Result', event)
@@ -335,6 +339,7 @@ class Control:
                      or now >= instant(command['event']['payload']['expires_at'])
                      or command['event']['leader_epoch'] != self.epoch))
 
+    @traced('control.tick', event_arg=None)
     def tick(self, now):
         """Restart-safe explicit clock: at most one retransmission before expiry.
 
@@ -371,6 +376,7 @@ class Control:
                         state['health'] = 'SAFE_HOLD'
                 self.save_transformer(db, a['tx'], version, state)
 
+    @traced('control.reconcile', event_arg=None)
     def reconcile(self, now):
         """New ownership holds all unfinished old-epoch work, retaining evidence."""
         with self.transaction() as db:
@@ -390,7 +396,7 @@ class Control:
 
     def inspect(self):
         """Read-only durable evidence, ordered for fixture assertions and local review."""
-        with psycopg.connect(self.dsn, connect_timeout=2) as db:
+        with boundary('db.control'), psycopg.connect(self.dsn, connect_timeout=2) as db:
             db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
             return dict(transformers={r[0]: dict(r[2], version=r[1]) for r in db.execute('SELECT id,version,state FROM action_transformers ORDER BY id')},
                         actions=[r[0] for r in db.execute('SELECT state FROM action_plans ORDER BY id')],

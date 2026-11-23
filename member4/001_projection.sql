@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS projection_offsets (
 CREATE TABLE IF NOT EXISTS projection_stream (
     sequence bigint PRIMARY KEY, created_at timestamptz NOT NULL, event jsonb NOT NULL
 );
+CREATE TABLE IF NOT EXISTS projection_trace (
+    sequence bigint PRIMARY KEY REFERENCES projection_stream(sequence) ON DELETE CASCADE,
+    context jsonb NOT NULL
+);
 CREATE TABLE IF NOT EXISTS projection_pages (
     token text PRIMARY KEY, scope text NOT NULL, created_at timestamptz NOT NULL,
     response jsonb NOT NULL, cursor text NOT NULL

@@ -1,0 +1,28 @@
+# Member_1: single binary, PVC, finite retention, no usage reporting.
+fullnameOverride: tempo
+labels: {grid-owner: Member_1}
+podLabels: {grid-owner: Member_1}
+tempo:
+  repository: grafana/tempo
+  tag: '2.7.1'
+  memBallastSizeMbs: 0
+  reportingEnabled: false
+  retention: 24h
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  ingester: {max_block_duration: 5m}
+  querier: {max_concurrent_queries: 2}
+  queryFrontend:
+    search: {concurrent_jobs: 2}
+  receivers:
+    jaeger: {protocols: {grpc: null, thrift_http: null, thrift_binary: null, thrift_compact: null}}
+    opencensus: null
+    otlp:
+      protocols:
+        grpc: {endpoint: '0.0.0.0:4317'}
+        http: {endpoint: '0.0.0.0:4318'}
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities: {drop: [ALL]}
+persistence: {enabled: true, size: 2Gi, storageClassName: standard}

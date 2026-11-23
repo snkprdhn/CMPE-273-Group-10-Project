@@ -243,3 +243,26 @@ the v3.31.0 Calico manifest and the pinned Strimzi 0.45.2, Flink Operator
 renders the fixed 17.4 ARM64-compatible image and logical WAL settings. The
 existing NiceGUI, API and OIDC pins include Linux ARM64 wheel hashes for their
 kind images. All authored workloads run Python inside their image venvs.
+
+## Observability runtime amendment — 2026-11-22
+
+[ADR-035](../decisions/ADR-035-local-observability.md) implements the already
+selected local Collector, kube-prometheus-stack/Grafana and Tempo versions.
+[Helm values and runbook](../../infra/observability/README.md) retain those pins;
+[installer](../../tools/observability.py) checks the three chart archive SHA-256s
+including packaged dependencies. Flink 2.2.1 already bundles its Prometheus
+reporter under `plugins/metrics-prometheus`; no additional JAR is required.
+
+| Python addition | Accepted pin | Compatibility |
+|---|---|---|
+| OTel API, SDK, OTLP HTTP/proto exporters | 1.45.2 | Existing FastAPI requires API >=1.44; keeps Protobuf 5.29.6 for PyFlink/generated RPCs |
+| OTel semantic conventions and HTTP transport helpers | 0.66b2 | Exact SDK/exporter companions |
+
+The additive [hash lock](../../observability/requirements.txt) covers CPython
+3.12 on macOS ARM64 and Linux ARM64. Install alongside each independent component
+lock, never in a global Python environment. An initial 1.31.1 SDK candidate was
+rejected by `pip check` because of FastAPI's API minimum; it is not the shipped
+pin. Existing application requirements remain unchanged. Check executed SDK,
+container, collection and incident evidence in implementation status; the
+historical preparation-only “not verified” list above describes that earlier
+phase, not the current milestone.

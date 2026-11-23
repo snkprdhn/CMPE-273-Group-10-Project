@@ -54,3 +54,5 @@ Each accepted ADR should record context, decision, alternatives, consequences, d
 - [ADR-031 — Member_4 operator dashboard](ADR-031-member4-operator-dashboard.md) — accepted; NiceGUI REST/SSE console, independent fixture mode, accessible states and scoped investigation entry points; identity/Copilot/kind remain separate.
 
 - [ADR-034 — Local kind deployment](ADR-034-local-kind-deployment.md) — selected Helm/Kustomize profiles, Calico enforcement and loopback identity scope.
+
+- [ADR-035 — Local observability and collected incident evidence](ADR-035-local-observability.md)

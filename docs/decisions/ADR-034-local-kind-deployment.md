@@ -34,5 +34,5 @@ Run the accepted deterministic scenario in a one-shot Member_1 Job against the
 kind workloads. Verify the durable gateway effect, committed Flink windows,
 outbox delivery, replay-equivalent projections, matching REST/SSE and real
 Keycloak/Chromium dashboard login. Review adds broker/process redundancy on the
-same node. Prometheus/Grafana/trace packaging, Copilot and live operator mutation
+same node. Prometheus/Grafana/trace packaging is added by [ADR-035](ADR-035-local-observability.md). Copilot and live operator mutation
 adapters remain subsequent work. See the [runbook](../../infra/kind/README.md).

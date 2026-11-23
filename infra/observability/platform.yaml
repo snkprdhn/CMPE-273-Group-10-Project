@@ -1,0 +1,48 @@
+# Additive NetworkPolicies for the existing default-deny platform namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: telemetry-export, namespace: platform, labels: {grid-owner: Member_1}}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [registry, action, api, projection, simulator, aggregation, ui]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: opentelemetry-collector}}
+      ports: [{port: 4318, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: telemetry-scrape, namespace: platform, labels: {grid-owner: Member_1}}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [aggregation, kafka-exporter]}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: prometheus}}
+      ports: [{port: 9249, protocol: TCP}, {port: 9404, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: kafka-exporter-client, namespace: platform, labels: {grid-owner: Member_2}}
+spec:
+  podSelector: {matchLabels: {grid-app: kafka-exporter}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{podSelector: {matchLabels: {grid-app: kafka}}}]
+      ports: [{port: 9091, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: kafka-exporter-broker, namespace: platform, labels: {grid-owner: Member_2}}
+spec:
+  podSelector: {matchLabels: {grid-app: kafka}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {grid-app: kafka-exporter}}}]
+      ports: [{port: 9091, protocol: TCP}]

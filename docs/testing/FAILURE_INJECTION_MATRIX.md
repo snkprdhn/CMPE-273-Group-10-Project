@@ -18,3 +18,10 @@
 | Member_4 | Prompt injection/write-tool request | No unavailable tool executes and no authorization widens | Denial audit and zero domain changes |
 
 Each owner defines expected behavior and evidence for their component. Member_1 maintains the reusable Toxiproxy/scenario runner but does not own another component's assertions or fixes. Tests record hypothesis, blast radius, timestamps, expected and observed behavior, affected SLI, logs/trace IDs, recovery, and cleanup. Kubernetes/operator faults and seeded fixtures cover the remaining cases; no full chaos platform is required.
+
+
+The observability milestone automates a bounded projection metadata SQL-lock
+incident; see the [runbook](../../infra/observability/README.md) and
+[execution status](../implementation/IMPLEMENTATION_STATUS.md). Its collected
+metric/trace/log packet measures actual query failure and recovery. It does not
+complete the separate broker-loss or Action leader-handover gates above.

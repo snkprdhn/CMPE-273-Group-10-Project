@@ -5,6 +5,8 @@ import time
 from confluent_kafka import Consumer, Producer
 from jsonschema.exceptions import ValidationError
 
+from observability import boundary, headers as trace_headers
+
 from member1.common import BUNDLE, log, METRICS, validate
 
 
@@ -29,18 +31,30 @@ class Publisher:
         self.healthy = True
 
     def send(self, topic, key, value, headers=None):
+        with boundary('kafka.publish', headers, value):
+            return self._send(topic, key, value, list(trace_headers(headers).items()))
+
+    def _send(self, topic, key, value, headers=None):
         validate(BUNDLE['x-events'][topic], value, key)
         raw = json.dumps(value, allow_nan=False, separators=(',', ':')).encode()
         if len(raw) > 65536:
             raise ValueError('event exceeds 64KiB')
         end = time.monotonic() + self.timeout
         carried = [(k, v) for k, v in (headers or []) if k == 'traceparent' and v is not None]
+        carried = [(k, v.encode() if isinstance(v, str) else v) for k, v in carried]
         carried.extend([('correlation_id', value['correlation_id'].encode()),
                         ('causation_id', (value['causation_id'] or '').encode())])
+        context = trace_headers(headers)
+        def acknowledged(error, message):
+            with boundary('kafka.delivery', context, value) as span:
+                self.delivered(error, message)
+                if error and span:
+                    from opentelemetry.trace import Status, StatusCode
+                    span.set_status(Status(StatusCode.ERROR))
         while True:
             try:
                 self.producer.produce(self.prefix + topic, key=key.encode(), value=raw,
-                                      headers=carried, on_delivery=self.delivered)
+                                      headers=carried, on_delivery=acknowledged)
                 METRICS['enqueued_total'] += 1
                 METRICS['buffer_messages'] = len(self.producer)
                 self.producer.poll(0)
@@ -102,6 +116,11 @@ def flush_results(state, publisher, headers=None):
 
 
 def handle_message(message, state, publisher, receiver, now):
+    with boundary('kafka.process', message.headers()):
+        return _handle_message(message, state, publisher, receiver, now)
+
+
+def _handle_message(message, state, publisher, receiver, now):
     """Invalid records stop visibly without committing; no poison-success stub.
 
     This standalone shard owns the complete topic's fixture fleet (one EV).
