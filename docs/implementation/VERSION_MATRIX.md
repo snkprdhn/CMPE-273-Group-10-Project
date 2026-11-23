@@ -201,3 +201,18 @@ gate. The selected Starlette emits one TestClient HTTPX deprecation warning;
 tests retain the approved HTTPX pin rather than adding a second client library.
 See [ADR-030](../decisions/ADR-030-member4-projections-api.md) and executed
 [status](IMPLEMENTATION_STATUS.md).
+
+## Member_4 standalone dashboard — 2026-11-22
+
+The [dashboard runtime lock](../../dashboard/requirements.txt) reuses NiceGUI
+**3.19.0**, built-in ECharts, HTTPX **0.28.1**, jsonschema **4.23.0** and the
+selected FastAPI/Starlette/Pydantic/Uvicorn pins. Its hash lock has 53 runtime
+distributions. The [test lock](../../dashboard/requirements-test.txt) adds 14
+browser/test distributions including Playwright **1.51.0**, pytest-playwright
+**0.7.0**, and pytest **8.3.5**. Native artifact hashes target CPython 3.12/macOS
+ARM64. Independent runtime/test environments resolve with hash checking;
+Chromium **134.0.6998.35**, Playwright build **1161**, is stored in ignored
+`.tools/playwright`. No direct version selection changed. These locks do not
+claim Linux packaging, vulnerability-scan or kind acceptance; see
+[ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) and implementation
+status for execution evidence.

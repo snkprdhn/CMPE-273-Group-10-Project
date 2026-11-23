@@ -6,6 +6,11 @@ Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List 
 
 The API runs as multiple Kubernetes replicas behind a Service. It reads and writes only its `projection` logical store. Configuration changes use optimistic versions and a typed internal Action control endpoint owned by Member_3 rather than direct access to `control` tables. Scenario operations similarly call the Member_1-owned scenario boundary. Responses include data freshness where it affects operator interpretation, and trace context plus authenticated role are preserved across internal calls.
 
+The [standalone dashboard](../../dashboard/README.md) consumes this boundary using
+schema-checked REST snapshots and SSE invalidation. It introduces no v1 shape
+changes. See [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) for UI
+limits when the API cannot provide full history, metrics or investigations.
+
 ## Endpoint contract
 
 All routes below except investigation routes are implemented in the standalone

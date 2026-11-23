@@ -11,8 +11,10 @@ projections, Kafka replay/checkpoints, REST snapshots, filters, durable paginati
 SSE replay/reset, operator annotations and policy/scenario contract mocks.
 [ADR-030](../decisions/ADR-030-member4-projections-api.md) records missing-context
 and state/version decisions without moving domain logic out of its owner.
-NiceGUI, Keycloak, Tool Gateway, Copilot and full kind packaging remain subsequent
-milestones; the responsibilities below describe the full Member_4 workstream.
+The [NiceGUI dashboard](../../dashboard/README.md) now implements the standalone
+operator console with REST/SSE and explicit fixtures under
+[ADR-031](../decisions/ADR-031-member4-operator-dashboard.md). Keycloak, Tool Gateway,
+Copilot and full kind packaging remain subsequent milestones; the responsibilities below describe the full Member_4 workstream.
 
 ## Workstream responsibilities
 

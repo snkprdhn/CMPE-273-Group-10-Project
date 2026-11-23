@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for Member_4 projections/API acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for Member_4 operator dashboard acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
@@ -14,9 +14,154 @@ Updated **2026-11-22 (America/Los_Angeles)** for Member_4 projections/API accept
 | Member_2 standalone Kafka/PyFlink aggregation | Native ARM64 source-built runtime, 56-package hash lock; fixed golden telemetry, transactional load/DLQ/late output; checkpoint/replay proof with an open transaction at TaskManager crash | [Runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md), evidence below |
 | Outbox delivery and fencing | Real Debezium CDC, kind Lease and durable epochs, atomic fenced simulated gateway | [ADR-029](../decisions/ADR-029-outbox-and-fencing.md), [runbook](../../infra/member3/README.md), failure evidence below |
 | Member_3 Action domain and durable saga | PostgreSQL transactional state/inbox/outbox, deterministic fixture allocation, retry/timeout/hold/restore, optimistic versions and restart recovery | [Runbook](../../member3/README.md), [ADR-028](../decisions/ADR-028-member3-action-domain.md), 42 PostgreSQL tests and demo below |
+| Member_4 operator dashboard | Responsive NiceGUI REST/SSE console, contract-checked fixture mode, accessible states, confirmations and scoped investigation entry points | [Runbook](../../dashboard/README.md), [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md), executed acceptance below |
 | Member_4 projections and API | Replay-safe Kafka/SQL projections, migrations/rebuild, REST snapshots/filters/pages, durable cross-replica SSE/reset, freshness and internal contract mocks | [Runbook](../../member4/README.md), [ADR-030](../decisions/ADR-030-member4-projections-api.md), executed evidence below |
 
 ## Current milestone and verification
+
+**Member_4 standalone operator dashboard is implemented.** This requested slice
+adds the operations console; Member_1 retains simulation/Registry/observability,
+Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4
+projection/API/UI/identity/Copilot ownership. No other member's runtime changed.
+
+The operator can follow normal → overload → throttle → recovery/restore without
+refreshing, inspect the trigger/policy/action and command outcomes, acknowledge
+alerts, and confirm scenario operations. REST/SSE responses are checked against
+the executable v1 bundle. Reconnect, cursor reset, duplicate/older events,
+periodic freshness refresh, retained values on failure and mutation idempotency
+are implemented. Navigation/search and logical button focus survive updates;
+status changes announce critical counts politely. Charts have corresponding
+value tables and disable animation. Desktop/tablet/mobile screenshots were
+rendered and visually inspected; skip-link overlap, drawer contrast, crowded
+secondary device columns and threshold-label spacing were corrected.
+
+### Dashboard prepublication review — 2026-11-22
+
+The user authorized review, fixes, commit and a normal push to `main`. The
+uncommitted starting changes were the dashboard milestone above; unrelated
+Member_1/2/3 implementations and existing service data were preserved.
+
+Review reproduced three initial client failures before fixes: a disconnected
+stream could become falsely Live after failed/healthy REST refreshes; an
+uncertain mutation lost its retry key when another operation intervened; and
+partially completed multi-endpoint reads leaked into displayed state. All three
+regressions passed after stream-state separation, per-operation keys and staged
+snapshot publication. Additional review corrections and checks cover:
+
+- Open action explanations now follow current action/command results. Dialogs
+  retain a persistent parent across live redraws and transient dialogs clean up.
+- Timestamp fractions sort by instant; recent lists sort before truncation.
+  Table sorting also compares fractional instants and numeric power values.
+  Negative net export is plotted; non-finite/overflow and overly nested JSON
+  fail visibly rather than killing refresh tasks or showing invalid numbers.
+- History results carry both entity and time-range scope. SSE reset clears old
+  health records that have no REST source. Empty fixture configuration now
+  succeeds instead of indexing an absent transformer.
+- Table headers expose columnheader/scope/sort state and real keyboard buttons.
+  The previous autofocus/rebuild approach is superseded by a visible keyboard
+  reading hold, retaining focus, table sort/page state and expansions; move focus
+  outside the panel to apply current values. Header critical/status updates stay
+  live and do not repeatedly announce snapshot timestamps.
+- The investigator fits mobile width, disables its unavailable question input,
+  traps Tab on its sole enabled control, and supports Escape/focus return.
+  Native dialog transitions are disabled; tests wait for viewport visibility.
+- Noncompleted plans are labeled Open actions, not asserted physical throttles.
+  No v1 shape, dependency pin, domain state logic or service ownership changed.
+
+Final review verification (supersedes initial 19-check acceptance below):
+
+| Exact command | Result |
+|---|---|
+| `git fetch origin main`; `git rev-list --left-right --count origin/main...HEAD` | Fetch succeeded; `0 0` before publication |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/dashboard/test_client.py -k review --tb=short` | Initial three client regressions **3 failed before fixes**; then passed in the expanded client suite |
+| `make dashboard-test` | **29 passed**, no skips (12 browser cases, 14 client/fixture checks, 3 presentation regressions) |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_dashboard_boundary.py --tb=short` | **1 passed**, no skip; actual PostgreSQL/API through HTTPX ASGI transport, snapshot validation, historical stale data, Viewer denial, start/stop/acknowledgement; temporary schema removed |
+| `make contracts BASE_REF=origin/main` | **214 passed**; executable contracts unchanged |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
+| `.tools/dashboard-test-venv/bin/python -m pip check`; `.tools/dashboard-venv/bin/python -m pip check` | No broken requirements; selected versions unchanged |
+| `.tools/dashboard-test-venv/bin/python -m compileall -q dashboard tests/dashboard tests/member4/test_dashboard_boundary.py`; `git diff --check` | Passed |
+
+Browser review uses real Chromium and TCP fixture REST/SSE. Rendered review
+screenshots are ignored in `.tools/dashboard-evidence/`; no evidence/cache files
+are published. Keyboard/ARIA assertions and visual inspection are verified;
+a manual screen-reader audit is not claimed. Full live control/Kafka, identity,
+Copilot execution, Linux/kind packaging and multi-UI failover remain the documented
+later gates. The real-API check above is not a new end-to-end closed-loop claim.
+No blocker remains for this review scope after the final checks. Git history and
+remote state record the authorized commit/push; hosted CI is a separate result.
+
+### Dashboard executed verification — 2026-11-22
+
+Initial Git status was clean. All downloads and Python environments are local
+and ignored; selected dependency versions were reused. The runtime hash lock
+contains 53 distributions; the separate test lock adds 14. Network download,
+loopback servers and Chromium execution required sandbox escalation. Disposable
+browser-test servers own ports 18185/18186 and stop after tests; manual previews
+use 18085/18086 (`.tools/dashboard-venv/bin/python -m dashboard.fixture_api` and
+`.tools/dashboard-venv/bin/python -m dashboard --fixture`), and were stopped with
+`kill -INT 34743 34794` after inspection. No commits, pushes, cloud resources or model calls.
+
+| Exact command | Result |
+|---|---|
+| `.venv/bin/python -m venv .tools/dashboard-venv` | Created independent dashboard environment, CPython 3.12.9 |
+| `.tools/dashboard-venv/bin/python -m pip --cache-dir .tools/pip-cache install --report .tools/dashboard-install.json 'nicegui==3.19.0' 'fastapi==0.165.0' 'starlette==1.10.0' 'uvicorn==0.35.0' 'pydantic==2.14.4' 'pydantic-core==2.50.5' 'httpx==0.28.1' 'pytest==8.3.5' 'playwright==1.51.0' 'pytest-playwright==0.7.0'` | Approved pins resolved/installed; report supplies exact artifact hashes; initial sandbox DNS failure, escalated retry succeeded |
+| `.tools/dashboard-venv/bin/python -m pip --cache-dir .tools/pip-cache install --no-index --find-links .tools/member4-wheels-macos --report .tools/dashboard-schema-install.json 'jsonschema==4.23.0'` | Reused selected schema validator/wheels; report hashes included in runtime lock |
+| `.venv/bin/python -m venv .tools/dashboard-runtime-check`; `.tools/dashboard-runtime-check/bin/python -m pip --cache-dir .tools/pip-cache install --require-hashes -r dashboard/requirements.txt` | Clean runtime environment/hash install passed for original 49 runtime dependencies |
+| `.tools/dashboard-runtime-check/bin/python -m pip --cache-dir .tools/pip-cache install --no-index --find-links .tools/member4-wheels-macos --require-hashes -r dashboard/requirements.txt` | Final 53-package runtime lock satisfied; four schema distributions added offline with hashes |
+| `.venv/bin/python -m venv .tools/dashboard-test-venv`; `.tools/dashboard-test-venv/bin/python -m pip --cache-dir .tools/pip-cache install --require-hashes -r dashboard/requirements-test.txt` | Clean independent test environment installed all 67 hash-locked distributions |
+| `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/dashboard-venv/bin/python -m playwright install chromium` | Chromium 134.0.6998.35/build 1161 plus its headless shell/FFmpeg installed under ignored `.tools`; initial sandbox DNS failure, escalated retry passed |
+| `make dashboard-test` | **19 passed** (10 Chromium browser cases, 9 client/fixture checks); no skips |
+| `make contracts BASE_REF=HEAD` | **214 passed**; executable v1 unchanged |
+| `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py` | **10 passed** |
+| `.tools/dashboard-venv/bin/python -m pip check`; `.tools/dashboard-test-venv/bin/python -m pip check`; `.tools/dashboard-runtime-check/bin/python -m pip check` | No broken requirements |
+| `.tools/dashboard-test-venv/bin/python -m compileall -q dashboard tests/dashboard`; `git diff --check` | Passed |
+
+Earlier nonpassing iterations are not acceptance evidence: fixture liveness
+initially required authentication; NiceGUI theme configuration initially created
+a global UI element; subprocesses inherited NiceGUI's unrelated internal pytest
+mode; browser locators needed dialog scoping; the tablet drawer overlapped its
+header toggle; one landmark was duplicated; and a focused data-panel button was
+removed by rendering. Tests reproduced these issues and fixes were verified.
+History queries now publish their transformer scope atomically with their results,
+so a failed switch cannot relabel another transformer's history.
+A mutation notification also outlived its rendered parent; use the persistent
+client context. Native Quasar autofocus now preserves the same logical action
+button, with no project JavaScript. Client unit checks run their event loops in
+an isolated thread so Playwright's running loop cannot interfere.
+
+Screenshots/logs are ignored in `.tools/dashboard-evidence/`: overload, recovery,
+reconnect, loading/state failures, tablet scenarios, mobile overload and the
+investigator drawer. Browser tests run real TCP REST/SSE with schema-checked
+fixtures, not in-browser response interception. Unit checks cover pagination
+loops, invalid success payloads, history-scope failure, stale/duplicate SSE versions, permission denial,
+uncertain mutation keys and fixture electrical accounting/schema agreement.
+
+### Dashboard decisions, limits and next milestone
+
+- [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) resolves conceptual
+  UI/API differences explicitly; v1 shapes/enums remain unchanged. The trend is
+  a named highest-risk transformer's history; overview demand remains the API
+  total. Scenario cards/fields use only the four approved v1 inputs.
+- Candidate lists, complete command envelopes, every historical saga transition,
+  telemetry arrival timestamps and component metrics are not supplied by v1.
+  Display bounded published results and label unknown coverage; do not fabricate
+  healthy state or control decisions. Recovery remains an Action lifecycle.
+- The fixture story is controlled synthetic UI evidence (72 → 96 → 75 → 72 kW),
+  not a new simulator/control implementation. Scenario operations remain backend
+  contract mocks. Live mode connects to the existing independent API; this
+  milestone does not claim new Kafka/SQL/control closed-loop acceptance.
+- One loopback UI process with a server-configured local mock identity. OIDC,
+  per-user sessions, Linux lock/image/kind packaging, observability metrics and
+  UI replica failover remain later gates. No production identity claim.
+- Investigation entry points preserve transformer/action/alert/time context and
+  explicitly report unavailable. Copilot execution, stages, provider errors and
+  evidence links belong to the Tool Gateway/Copilot milestone, not fake answers.
+- **Remaining blocker for the standalone dashboard: none.**
+- **Next recommended milestone:** Member_4 Keycloak identity integration, followed
+  by Tool Gateway/Copilot and complete live context/internal adapters; retain the
+  independent Member_2 → Member_3 → Member_1 and kind integration gates.
+
+## Previous milestone — Member_4 projections and API
 
 **Member_4 projections and API are complete in the standalone local profile.**
 Only the requested backend milestone is implemented. Member_1 retains

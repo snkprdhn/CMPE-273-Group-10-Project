@@ -50,3 +50,5 @@ Each accepted ADR should record context, decision, alternatives, consequences, d
 - [ADR-029 — Outbox delivery and durable fencing](ADR-029-outbox-and-fencing.md) — accepted; local CDC, kind Lease and atomic simulated gateway effect boundaries.
 
 - [ADR-030 — Member_4 standalone projections and operations API](ADR-030-member4-projections-api.md) — accepted; durable replay, REST/SSE and contract-mock operations; UI/identity/live integration remain later gates.
+
+- [ADR-031 — Member_4 operator dashboard](ADR-031-member4-operator-dashboard.md) — accepted; NiceGUI REST/SSE console, independent fixture mode, accessible states and scoped investigation entry points; identity/Copilot/kind remain separate.

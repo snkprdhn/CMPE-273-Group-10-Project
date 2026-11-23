@@ -60,3 +60,19 @@ MEMBER4_PYTHON ?= .tools/member4-venv/bin/python
 .PHONY: member4-test
 member4-test:
 	$(MEMBER4_PYTHON) -m pytest -q tests/member4
+
+# Member_4 Python operator console; fixture API is separate and disposable.
+DASHBOARD_PYTHON ?= .tools/dashboard-venv/bin/python
+DASHBOARD_TEST_PYTHON ?= .tools/dashboard-test-venv/bin/python
+.PHONY: dashboard dashboard-fixtures dashboard-demo dashboard-test
+dashboard:
+	$(DASHBOARD_PYTHON) -m dashboard
+
+dashboard-fixtures:
+	$(DASHBOARD_PYTHON) -m dashboard.fixture_api
+
+dashboard-demo:
+	$(DASHBOARD_PYTHON) -m dashboard --fixture
+
+dashboard-test:
+	PLAYWRIGHT_BROWSERS_PATH=.tools/playwright $(DASHBOARD_TEST_PYTHON) -m pytest -q tests/dashboard

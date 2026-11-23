@@ -25,3 +25,12 @@ All changes here are design decisions. No dashboard, SSE bridge, load script, or
 Supersede the original NiceGUI 2.24.2 pin with **3.19.0**. Upstream [GHSA-m47w-xwfc-82pf](https://github.com/zauberzeug/nicegui/security/advisories/GHSA-m47w-xwfc-82pf) identifies a chart/grid data-key XSS fixed in 3.19.0; [GHSA-jfrm-rx66-g536](https://github.com/zauberzeug/nicegui/security/advisories/GHSA-jfrm-rx66-g536) identifies file disclosure in older releases.
 
 The patched release requires Starlette >=1.3.1 and pydantic-core >=2.35.0, incompatible with the old FastAPI 0.116.1 / Pydantic 2.11.7 combination. Select FastAPI **0.165.0**, Starlette **1.10.0**, and Pydantic **2.14.4** (core **2.50.5**) together for API/UI environments. Exact release metadata and nine direct constraint comparisons were checked in [recheck evidence](../implementation/PREPARATION_VERIFICATION.md). No environment was installed or fully resolved; runtime/browser and full dependency/security gates remain open. The Python-only authoring and independent service boundaries do not change.
+
+## Standalone implementation amendment — 2026-11-22
+
+The selected runtime and browser tooling now have a verified standalone
+implementation and hash locks in [dashboard](../../dashboard/README.md).
+[ADR-031](ADR-031-member4-operator-dashboard.md) records REST/SSE refresh, fixture
+mode, accessibility and current v1 limitations. Earlier design-only/unresolved
+runtime statements above describe their original decision date; identity,
+Copilot, security scans and kind deployment remain separate gates.

@@ -5,6 +5,9 @@ Member_4 owns these tables and credentials. Member_1 retains simulation/Registry
 observability; Member_2 Kafka/PyFlink; Member_3 control/PostgreSQL/Debezium.
 No imports or table reads cross those application boundaries.
 
+The [operator dashboard](../dashboard/README.md) connects through this REST/SSE
+boundary and has an independent fixture mode; it does not import the store.
+
 ## Run locally
 
 Prerequisite: existing [local dependencies](../infra/compose/README.md), PostgreSQL
