@@ -58,6 +58,11 @@ Member_2 writes no PostgreSQL data. Flink publishes transformer-load events, and
 
 ### Transformer
 
+This conceptual lifecycle includes RECOVERING. The executable v1 Transformer
+response permits NORMAL/WARNING/CRITICAL/STALE only; recovery is shown through
+the owned Action lifecycle. Member_4 preserves owner classifications and does
+not calculate this state machine. See [ADR-030](../decisions/ADR-030-member4-projections-api.md).
+
 ```mermaid
 stateDiagram-v2
     [*] --> NORMAL
@@ -104,7 +109,7 @@ stateDiagram-v2
 
 ## 5. Time and units
 
-- IDs are UUIDs unless a deterministic command ID is required.
+- Entity/correlation IDs are bounded opaque IDs under ADR-025; event IDs are UUIDs.
 - Timestamps use UTC ISO 8601 in JSON and timezone-aware database types.
 - Power uses kilowatts; energy, if added later, uses kilowatt-hours.
 - Solar generation is negative power; consumption is positive.

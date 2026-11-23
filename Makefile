@@ -54,3 +54,9 @@ MEMBER3_PYTHON ?= .tools/member3-venv/bin/python
 .PHONY: member3-test
 member3-test:
 	$(MEMBER3_PYTHON) -m pytest -q tests/member3
+
+# Member_4 operations backend; owned PostgreSQL plus contract mocks only.
+MEMBER4_PYTHON ?= .tools/member4-venv/bin/python
+.PHONY: member4-test
+member4-test:
+	$(MEMBER4_PYTHON) -m pytest -q tests/member4

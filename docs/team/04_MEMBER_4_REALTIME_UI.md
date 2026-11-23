@@ -4,7 +4,17 @@
 
 Member_4 owns the distributed read/operations product slice, not every component's platform work. This includes consuming domain events into owned query projections, REST/SSE delivery, the operator UI, Gateway/Keycloak, product SLO/health views, the read-only Tool Gateway and Copilot Service, and coordination of the final overlay. Member_1 installs the shared observability stack; every member owns their manifests, instrumentation, dashboard panel, and fault experiment.
 
-## Planned responsibilities
+## Implemented boundary — projections/API
+
+The [standalone backend](../../member4/README.md) implements owned PostgreSQL
+projections, Kafka replay/checkpoints, REST snapshots, filters, durable pagination,
+SSE replay/reset, operator annotations and policy/scenario contract mocks.
+[ADR-030](../decisions/ADR-030-member4-projections-api.md) records missing-context
+and state/version decisions without moving domain logic out of its owner.
+NiceGUI, Keycloak, Tool Gateway, Copilot and full kind packaging remain subsequent
+milestones; the responsibilities below describe the full Member_4 workstream.
+
+## Workstream responsibilities
 
 1. Consume load, alert, action, result, and health events into idempotent read models.
 2. Track entity versions so reordered or duplicate events cannot regress a projection.

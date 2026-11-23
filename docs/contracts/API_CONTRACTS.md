@@ -1,12 +1,16 @@
 # HTTP and Live-Update API Contracts
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Application runtime behavior remains unimplemented.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_4 standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); investigations, live identity/internal adapters and kind deployment remain later gates.
 
 Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List endpoints use `limit` and opaque `cursor`. Errors use `{ "error": { "code", "message", "request_id", "details" } }`.
 
 The API runs as multiple Kubernetes replicas behind a Service. It reads and writes only its `projection` logical store. Configuration changes use optimistic versions and a typed internal Action control endpoint owned by Member_3 rather than direct access to `control` tables. Scenario operations similarly call the Member_1-owned scenario boundary. Responses include data freshness where it affects operator interpretation, and trace context plus authenticated role are preserved across internal calls.
 
-## Planned endpoints
+## Endpoint contract
+
+All routes below except investigation routes are implemented in the standalone
+[Member_4 backend](../../member4/README.md), with explicit mock identity and
+scenario/policy adapters. Investigation routes remain planned.
 
 | Method and path | Role | Purpose |
 |---|---|---|
@@ -33,6 +37,17 @@ The API runs as multiple Kubernetes replicas behind a Service. It reads and writ
 | `GET /events` | Viewer | Server-Sent Events stream |
 
 ## SSE contract
+
+Standalone REST snapshots include an `X-Event-ID` header from the same transaction
+as the snapshot. Subscribe/reconnect from that cursor; after `snapshot.required`,
+replace client state from REST and use the new snapshot header. `X-Snapshot-At`
+identifies the evaluation instant; cached pages preserve that original instant
+and describe freshness as of that snapshot. List page tokens
+are bound to the original query and expire after five minutes (409 on mismatch
+or expiry). Replay verifies continuity through the high-water mark, including
+interior/tail gaps; initial store failure returns 503 before streaming begins.
+SSE payload freshness is as of publication; refresh REST on reconnect
+and periodically to age data during event silence. See [recovery protocol](../../member4/README.md).
 
 Event types are `transformer.updated`, `alert.opened`, `alert.updated`, `action.updated`, `device.updated`, `scenario.updated`, and `system.health`. Each message includes an event cursor, entity ID, version, event time, and payload. Clients reconnect with `Last-Event-ID`; if the cursor cannot be replayed, the server emits `snapshot.required` and the client reloads REST state.
 

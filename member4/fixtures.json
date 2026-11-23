@@ -1,0 +1,224 @@
+{
+  "transformers": [
+    {
+      "transformer_id": "tx-001",
+      "state": "CRITICAL",
+      "load": {
+        "transformer_id": "tx-001",
+        "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+        "window_start": "2026-11-09T18:30:00Z",
+        "window_end": "2026-11-09T18:30:05Z",
+        "revision": 0,
+        "topology_version": "topology-001",
+        "meter_demand_kw": 70,
+        "ev_demand_kw": 28,
+        "solar_generation_kw": 2,
+        "net_load_kw": 96,
+        "capacity_kw": 100,
+        "utilization_pct": 96,
+        "expected_device_count": 3,
+        "good_device_count": 3,
+        "estimated_device_count": 0,
+        "missing_device_count": 0,
+        "late_event_count": 0,
+        "quality_flags": [],
+        "completeness": "COMPLETE"
+      },
+      "policy": {
+        "version": 1,
+        "warning_pct": 80,
+        "critical_pct": 95,
+        "recovery_pct": 75,
+        "cooldown_seconds": 30,
+        "recovery_windows": 2,
+        "command_ttl_seconds": 10,
+        "ack_timeout_seconds": 5
+      },
+      "freshness": "FRESH",
+      "data_age_seconds": 0
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "ev-001",
+      "transformer_id": "tx-001",
+      "device_type": "EV_CHARGER",
+      "controllable": true,
+      "minimum_rate_kw": 0,
+      "maximum_rate_kw": 32,
+      "priority": 0,
+      "capability_version": 1,
+      "updated_at": "2026-11-09T18:30:04Z"
+    }
+  ],
+  "events": [
+    {
+      "topic": "grid.telemetry.v1",
+      "key": "tx-001",
+      "event": {
+        "event_id": "3f3928b3-82d3-5866-a283-43c109aa8a96",
+        "event_type": "telemetry.reading",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:04Z",
+        "ingested_at": "2026-11-09T18:30:06Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "device_id": "ev-001",
+          "transformer_id": "tx-001",
+          "device_type": "EV_CHARGER",
+          "boot_id": "boot-001",
+          "power_kw": 28,
+          "quality": "GOOD",
+          "sequence_number": 1,
+          "current_rate_kw": 28
+        }
+      }
+    },
+    {
+      "topic": "grid.transformer-load.v1",
+      "key": "tx-001",
+      "event": {
+        "event_id": "3ca8ee1e-cef4-5cde-844a-63f1c20301a6",
+        "event_type": "transformer.load",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:06Z",
+        "ingested_at": "2026-11-09T18:30:06Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "transformer_id": "tx-001",
+          "window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "window_start": "2026-11-09T18:30:00Z",
+          "window_end": "2026-11-09T18:30:05Z",
+          "revision": 0,
+          "topology_version": "topology-001",
+          "meter_demand_kw": 70,
+          "ev_demand_kw": 28,
+          "solar_generation_kw": 2,
+          "net_load_kw": 96,
+          "capacity_kw": 100,
+          "utilization_pct": 96,
+          "expected_device_count": 3,
+          "good_device_count": 3,
+          "estimated_device_count": 0,
+          "missing_device_count": 0,
+          "late_event_count": 0,
+          "quality_flags": [],
+          "completeness": "COMPLETE"
+        }
+      }
+    },
+    {
+      "topic": "grid.alert.v1",
+      "key": "tx-001",
+      "event": {
+        "event_id": "d6000848-4a87-51d3-8c5f-f62ef71f3ff9",
+        "event_type": "alert.transition",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:06Z",
+        "ingested_at": "2026-11-09T18:30:06Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "alert_id": "alert-001",
+          "transformer_id": "tx-001",
+          "severity": "CRITICAL",
+          "status": "OPEN",
+          "load_window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "load_revision": 0,
+          "message": "Recorded critical load from owner",
+          "opened_at": "2026-11-09T18:30:06Z"
+        }
+      }
+    },
+    {
+      "topic": "grid.action.v1",
+      "key": "tx-001",
+      "event": {
+        "event_id": "26c64aec-8cc4-5f2e-8eec-98df8c3dd6a5",
+        "event_type": "action.transition",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:06Z",
+        "ingested_at": "2026-11-09T18:30:06Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "action_id": "action-001",
+          "transformer_id": "tx-001",
+          "status": "REDUCTION_CONFIRMED",
+          "trigger_window_id": "ad582803-c030-5a73-bcbe-ab851bd1a4f3",
+          "trigger_revision": 0,
+          "policy_version": 1,
+          "leader_epoch": 42,
+          "target_reduction_kw": 21,
+          "expected_reduction_kw": 21,
+          "confirmed_reduction_kw": 21,
+          "selected_device_count": 1,
+          "acknowledged_device_count": 1,
+          "reason": "Recorded confirmed reduction",
+          "transition_time": "2026-11-09T18:30:06Z"
+        },
+        "leader_epoch": 42,
+        "saga_version": 2
+      }
+    },
+    {
+      "topic": "grid.charger-command.v1",
+      "key": "ev-001",
+      "event": {
+        "event_id": "edec5edf-d833-5a87-aa7d-99f7f3d1fec1",
+        "event_type": "charger.command",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:06Z",
+        "ingested_at": "2026-11-09T18:30:06Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "command_id": "command-001",
+          "action_id": "action-001",
+          "device_id": "ev-001",
+          "transformer_id": "tx-001",
+          "command_type": "THROTTLE",
+          "target_rate_kw": 7,
+          "issued_at": "2026-11-09T18:30:06Z",
+          "expires_at": "2026-11-09T18:30:16Z",
+          "reason": "overload",
+          "policy_version": 1,
+          "saga_version": 1,
+          "leader_epoch": 42
+        },
+        "leader_epoch": 42,
+        "saga_version": 1
+      }
+    },
+    {
+      "topic": "grid.command-result.v1",
+      "key": "ev-001",
+      "event": {
+        "event_id": "589b30e6-b5ab-55cc-a308-0775686a980f",
+        "event_type": "command.result",
+        "schema_version": 1,
+        "source": "tx-001",
+        "event_time": "2026-11-09T18:30:06Z",
+        "ingested_at": "2026-11-09T18:30:06Z",
+        "correlation_id": "tx-001",
+        "causation_id": "tx-001",
+        "payload": {
+          "command_id": "command-001",
+          "action_id": "action-001",
+          "device_id": "ev-001",
+          "outcome": "APPLIED",
+          "previous_rate_kw": 28,
+          "applied_rate_kw": 7,
+          "result_time": "2026-11-09T18:30:06Z"
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for outbox delivery and fencing acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain and the local CDC/Lease/fenced gateway boundary are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for Member_4 projections/API acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
@@ -11,36 +11,172 @@ Updated **2026-11-22 (America/Los_Angeles)** for outbox delivery and fencing acc
 | Minimum local development infrastructure | One Kafka broker, PostgreSQL primary, on-demand Toxiproxy; isolated stores, real smoke checks, restart persistence, guarded reset | [Compose runbook](../../infra/compose/README.md), executed acceptance below |
 | Executable contract bundle v1 | Eight Kafka events; canonical topology, REST/internal/SSE and seven agent-tool/evidence/output schemas; Registry proto; versioned examples and fixed golden scenarios; compatibility tests and Ubuntu CI workflow | [Bundle](../../schemas/README.md), [ADR-025](../decisions/ADR-025-executable-contract-freeze.md), `make contracts` |
 | Member_1 standalone edge and Registry | Deterministic three-device scenario; Kafka telemetry/commands/results; durable simulated effects/dedup/fences; PostgreSQL gRPC Registry; operational endpoints and independent ARM64 images | [Runbook](../../member1/README.md), [ADR-026](../decisions/ADR-026-member1-standalone-state.md), executed evidence below |
-
 | Member_2 standalone Kafka/PyFlink aggregation | Native ARM64 source-built runtime, 56-package hash lock; fixed golden telemetry, transactional load/DLQ/late output; checkpoint/replay proof with an open transaction at TaskManager crash | [Runbook](../../member2/README.md), [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md), evidence below |
 | Outbox delivery and fencing | Real Debezium CDC, kind Lease and durable epochs, atomic fenced simulated gateway | [ADR-029](../decisions/ADR-029-outbox-and-fencing.md), [runbook](../../infra/member3/README.md), failure evidence below |
 | Member_3 Action domain and durable saga | PostgreSQL transactional state/inbox/outbox, deterministic fixture allocation, retry/timeout/hold/restore, optimistic versions and restart recovery | [Runbook](../../member3/README.md), [ADR-028](../decisions/ADR-028-member3-action-domain.md), 42 PostgreSQL tests and demo below |
+| Member_4 projections and API | Replay-safe Kafka/SQL projections, migrations/rebuild, REST snapshots/filters/pages, durable cross-replica SSE/reset, freshness and internal contract mocks | [Runbook](../../member4/README.md), [ADR-030](../decisions/ADR-030-member4-projections-api.md), executed evidence below |
 
 ## Current milestone and verification
 
-**Outbox delivery and fencing are complete in the small local profile.**
-Member_3 owns Connect/Debezium, the PostgreSQL authority and kind Lease client;
-Member_1 owns the fenced simulated gateway. Member_2 Kafka/PyFlink and Member_4
-projection/API/UI/identity/Copilot ownership is preserved. See
-[ADR-029](../decisions/ADR-029-outbox-and-fencing.md) and the
-[local delivery runbook](../../infra/member3/README.md).
+**Member_4 projections and API are complete in the standalone local profile.**
+Only the requested backend milestone is implemented. Member_1 retains
+simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3
+control/PostgreSQL/Debezium, and Member_4 projection/API/UI/identity/Copilot.
 
-Committed rows are captured by real Debezium and eventually published after
-Connect SIGKILL/restart. Physical retries preserve logical event/command IDs;
-duplicate delivery and lost result publication do not repeat effects. Kind tests
-kill a real leader process and reject its delayed acquisition/work. The actual
-worker process is restarted twice and reconciles pending work to review. The
-fenced gateway's authorization, effect, dedup and output share one PostgreSQL
-transaction, so process/session death cannot leave a cross-store stale effect.
-A typed function and separate schema/login preserve table ownership/isolation.
+Owned PostgreSQL transactions persist event dedup, highest entity versions,
+Kafka source positions and SSE publication atomically. Recorded events converge
+to a fixed full expected snapshot under duplication, reordering and rebuild.
+SQL-backed replay/pages/mutation idempotency work across API instances, and real
+HTTP clients reconnect or reload snapshots on cursor gaps. Policy/scenario
+operations use explicit contract mocks with validation, conflicts and failures.
+No Registry/Control tables or application internals are read.
 
-No blocker remains for this requested boundary. Live Registry/charger observations,
-operator compensation API, full kind workload/security/observability packaging,
-backup/restore and database-server restart remain subsequent gates. This is not a
-full closed-loop platform deployment. Existing Member_1/2 containers/data were
-preserved; only the new Connect container was killed/restarted. No system software,
-cloud resources or model calls were used. Initial implementation made no commits
-or pushes; the subsequent user-authorized review and publication are recorded below.
+### Member_4 prepublication review — 2026-11-22
+
+The user authorized correctness/failure review, fixes, commit and a normal push
+to `main`. Review reproduced and fixed the following boundaries:
+
+- SSE checked only the earliest retained row. An interior/tail hole could be
+  silently skipped (including retention with replica clock skew). Verify every
+  sequence through the committed high-water mark; otherwise require a snapshot.
+- Snapshot/expiry/publication clocks were sampled before waiting for the SQL
+  lock. Sample after acquisition so waits do not preserve false freshness or
+  replay an expired cursor. Frozen pages expose their original `X-Snapshot-At`.
+- Events for unconfigured entities were journaled but omitted from inventory
+  while overview/inventory could report FRESH. Signal partial coverage and emit
+  degraded projection health without inventing metadata or domain decisions.
+- Equal-version events could disagree with bootstrap fixture loads and disappear
+  behind the fixture. Reject the conflict atomically in either loading order.
+  Reject excessively future-dated event/load times rather than keeping them fresh.
+- Initial SSE database failure returned 200 and immediately closed. Check before
+  headers and return a safe 503. A later outage still closes the established
+  stream; real HTTP tests prove cursor-based recovery after the dependency returns.
+- ISO parsing accepted non-RFC3339 forms; non-ASCII bearer input raised TypeError;
+  sufficiently nested JSON raised an uncaught RecursionError. Enforce the frozen
+  UTC timestamp form and return bounded authentication/validation errors.
+- A subscription exception could bypass consumer cleanup. Validate source binding
+  before constructing the consumer, and include subscribe in the cleanup scope.
+
+Eleven initial regression cases failed before fixes, then all eleven passed.
+Additional cases cover future inputs, reverse fixture/event loading, established
+SSE outage recovery, and rollback after an SSE insert. A deeply nested JSON case
+also failed before its parser guard; the earlier shallower variant correctly
+returned a domain error and was increased to exercise actual parser exhaustion.
+The first expanded full run had one failure because the new fixture conflict
+check masked the more specific reused-event-ID check; identity validation now
+runs first. These intermediate failures are not acceptance evidence.
+
+Final review verification (supersedes the initial 22-test acceptance below):
+
+| Exact command | Result |
+|---|---|
+| `git fetch origin main`; `git rev-list --left-right --count origin/main...HEAD` | Fetch succeeded; `0 0` before publication |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_review.py --tb=short` | **11 failed before fixes**, then **11 passed** for the initial regression set |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_review.py tests/member4/test_projection.py --tb=short` | **23 passed** before the final two request/rollback cases were added |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection MEMBER4_TEST_KAFKA=127.0.0.1:19092 make member4-test` | **39 passed**, no skips; real PostgreSQL/Kafka, killed/restarted consumer, two TCP API instances, reconnects/heartbeats, stream outage and cursor gaps |
+| `make contracts BASE_REF=origin/main` | **214 passed**; executable v1 unchanged |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
+| `.tools/member4-venv/bin/python -m pip check`; `.tools/member4-venv/bin/python -m compileall -q member4 tests/member4`; `git diff --check` | Passed; no broken dependencies, compilation or whitespace errors |
+
+One selected Starlette TestClient/HTTPX deprecation warning remains; no pin was
+changed. This publication includes only the requested Member_4 implementation,
+its review fixes/tests and affected documentation. Existing Member_1/2/3
+services/data were preserved; no model calls or cloud resources were used.
+No blocker remains for this scope. Git history/remote state record the authorized
+commit and normal push; hosted CI is a separate, unclaimed result.
+
+### Member_4 executed verification — 2026-11-22
+
+All credentials below are disposable local fixtures. Local PostgreSQL/Kafka and
+TCP HTTP checks required sandbox escalation. All temporary schemas/topics are
+removed after acceptance; existing other-member services/data were preserved.
+The CLI smoke leaves only the new Member_4 fixture journal/context/views in the
+owned projection database; its temporary API process was gracefully stopped.
+
+| Exact command | Result |
+|---|---|
+| `git status --short`; `rg --files`; reads of AGENTS, master/status/version matrix, relevant design/contracts and accepted ADRs | Initially clean; scoped implementation added without unrelated edits |
+| `.venv/bin/python -m venv .tools/member4-venv` | Independent CPython 3.12.9 environment created |
+| `.tools/member4-venv/bin/python -m pip install --no-index --find-links .tools/member1-wheels-macos --require-hashes -r member3/requirements.txt` | Existing selected Kafka/SQL/validation/test pins installed offline |
+| `.tools/member4-venv/bin/python -m pip --cache-dir .tools/pip-cache install --report .tools/member4-install.json 'fastapi==0.165.0' 'starlette==1.10.0' 'uvicorn==0.35.0' 'pydantic==2.14.4' 'pydantic-core==2.50.5' 'httpx==0.28.1'` | Selected API pins and transitives resolved/installed; report hashes used for Member_4 lock |
+| `.tools/member4-venv/bin/python -m pip --cache-dir .tools/pip-cache download --require-hashes -r member4/requirements.txt -d .tools/member4-wheels-macos` | All 29 distributions downloaded with verified lock hashes |
+| `.tools/member4-venv/bin/python -m pip install --no-index --find-links .tools/member4-wheels-macos --require-hashes -r member4/requirements.txt` | Offline locked environment satisfied |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection MEMBER4_TEST_KAFKA=127.0.0.1:19092 make member4-test` | **22 passed**, no skips; real PostgreSQL/Kafka and two TCP HTTP/SSE instances; one selected Starlette TestClient/HTTPX deprecation warning |
+| `make contracts BASE_REF=HEAD` | **214 passed**, frozen executable v1 unchanged |
+| `.venv/bin/python -m pytest -q tests/test_local_infra.py tests/test_preparation_docs.py tests/test_preparation_environment.py tests/member2/test_aggregation.py` | **64 passed** |
+| `PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m member4 migrate` | Owned migration completed |
+| `PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m member4 replay` | Recorded fixtures replayed |
+| `PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m member4 rebuild` | Views rebuilt, cursor generation rotated |
+| `PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection MEMBER4_MOCK_IDENTITIES='{"local-admin-token":{"actor":"local-admin","role":"Administrator"}}' .tools/member4-venv/bin/python -m member4 serve` | CLI started on loopback 18084; HTTPX smoke below passed; gracefully stopped with `kill -INT 33005` after observation of that PID |
+| `.tools/member4-venv/bin/python -m pip check`; `.tools/member4-venv/bin/python -m compileall -q member4 tests/member4`; `git diff --check` | No broken requirements, compilation/whitespace passed |
+
+Exact manual HTTP smoke executed using `.tools/member4-venv/bin/python -`:
+
+```python
+import httpx
+headers={'Authorization':'Bearer local-admin-token'}
+with httpx.Client(base_url='http://127.0.0.1:18084/api/v1',timeout=5) as client:
+ for path in ['/health','/ready','/overview','/transformers?state=STALE&limit=1']:
+  r=client.get(path,headers=headers);r.raise_for_status();print(path,r.status_code,r.json())
+ with client.stream('GET','/events',headers=headers) as r:
+  r.raise_for_status()
+  for line in r.iter_lines():
+   if line.startswith('event:'):
+    print('SSE',r.status_code,line);assert line=='event: snapshot.required';break
+```
+
+All five requests returned 200; overview showed one transformer, 96 kW and
+explicit STALE freshness for the historical recording. Tests also check the
+complete expected fresh snapshot at its fixed historical evaluation instant.
+
+Earlier nonpassing evidence is not acceptance: the first projection tests found
+an invalid test status and an assumed fixture ordering, both corrected to the
+executable contracts; API tests found unresolved relative OpenAPI refs, fixed
+with local bundle resolution. The initial real Kafka restart hit the default
+45-second group timeout; the local consumer now uses six seconds, and the
+retested SIGKILL/restart passes. Six leftover random test topics from the first
+cleanup failure were removed; final cleanup bounds shutdown and kills a stuck
+test worker before deleting its owned topics. No existing component was killed.
+One manual-server attempt was rejected because automatic approval review was
+out of workspace credits, not because it determined the action unsafe; after
+the user's instruction to continue, the reviewed retry and smoke passed.
+
+### Decisions, limitations and next milestone
+
+- [ADR-030](../decisions/ADR-030-member4-projections-api.md) resolves the missing
+  context feeds, alert version ordering, frozen response/history shapes, and
+  conceptual RECOVERING mismatch. Unknown context is not invented. This is a
+  standalone fixture boundary; full inventory/policy/state delivery needs an
+  owning-service boundary before live completeness can be claimed.
+- The API never calculates control thresholds, allocation or recovery. Local
+  alert acknowledgements are independent audited annotations; policy/scenario
+  adapters are explicit deterministic contract mocks, with no live effects.
+- REST `X-Event-ID` and shared durable generations close snapshot/subscribe and
+  replica recovery gaps. Page snapshots expire after five minutes; SSE retains
+  1000 events/five minutes. Payload freshness is as of publication; reconnect
+  and periodic snapshot refresh provide current age during event silence.
+- One PostgreSQL primary and one local Kafka broker; finite-profile global SQL
+  lock, materialized pages and project-lifetime journal. Monitor disk; no scale,
+  replicated availability or incomplete-retention disaster recovery claim.
+- Mock bearer identity binds loopback; OIDC/TLS, real service authentication and
+  network deadlines, live context feeds, packaged Linux native wheels, images,
+  kind workloads/NetworkPolicies, observability and security scans remain later
+  gates. Two real HTTP API instances and consumer process restart were tested;
+  Kubernetes replica failover and database-server crash were not exercised.
+- **Remaining blocker for this milestone: none.** No cloud resources, model calls,
+  host tooling installation, commits or pushes were performed.
+- **Next recommended milestone:** Member_4 NiceGUI dashboard and Keycloak identity
+  against this snapshot/SSE boundary; then complete live context/internal adapters
+  and pairwise events-to-operations acceptance. Existing live observation and
+  Member_2 → Member_3 → Member_1 closed-loop gates remain independent prerequisites
+  for full platform acceptance.
+
+## Previous current milestone — outbox delivery and fencing
+
+Outbox delivery and fencing completed in the small local profile under
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md). Member_3 owns Connect,
+PostgreSQL authority and kind Lease; Member_1 owns the atomic fenced simulated
+gateway. Historical verification and publication evidence follows unchanged.
 
 ## Outbox prepublication review — 2026-11-22
 

@@ -26,7 +26,7 @@ The platform demonstrates how a utility could observe local grid demand and coor
 | FR-02 | Publish versioned telemetry with device time and ingestion time. |
 | FR-03 | Partition and process telemetry by transformer. |
 | FR-04 | Calculate demand, solar generation, EV demand, net load, and utilization per window. |
-| FR-05 | Classify transformers as `NORMAL`, `WARNING`, `CRITICAL`, or `RECOVERING`. |
+| FR-05 | Owner services classify grid conditions; executable v1 Transformer states are `NORMAL`, `WARNING`, `CRITICAL`, `STALE`. Recovery is represented by the Action lifecycle (ADR-030). |
 | FR-06 | Select eligible chargers and issue throttle or restore commands. |
 | FR-07 | Track command delivery and device acknowledgement. |
 | FR-08 | Store load history, alerts, actions, and configuration. |

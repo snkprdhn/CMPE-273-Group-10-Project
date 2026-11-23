@@ -185,3 +185,19 @@ psycopg-binary 3.2.9** pins for the optional PostgreSQL effect profile. No Kuber
 SDK or new version selection is introduced; the local runner invokes the pinned
 kubectl. Real local CDC and kind Lease failure evidence is in implementation
 status. Full kind workload/security/operations packaging remains unverified.
+
+## Member_4 standalone API execution — 2026-11-22
+
+The existing selected FastAPI **0.165.0**, Starlette **1.10.0**, Uvicorn
+**0.35.0**, Pydantic **2.14.4** / core **2.50.5**, HTTPX **0.28.1**,
+confluent-kafka **2.8.2**, psycopg/binary **3.2.9**, jsonschema **4.23.0**
+and pytest **8.3.5** run together in `.tools/member4-venv`. No direct pin changed.
+The [independent 29-distribution hash lock](../../member4/requirements.txt) reuses
+existing locks and pins newly resolved transitives; FastAPI's required
+opentelemetry-api **1.45.2** is a runtime dependency, not an observability-stack
+deployment claim. Locked wheels were downloaded and hash-checked for CPython
+3.12/macOS ARM64. Linux native wheel locking/image packaging remains a later
+gate. The selected Starlette emits one TestClient HTTPX deprecation warning;
+tests retain the approved HTTPX pin rather than adding a second client library.
+See [ADR-030](../decisions/ADR-030-member4-projections-api.md) and executed
+[status](IMPLEMENTATION_STATUS.md).

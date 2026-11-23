@@ -48,3 +48,5 @@ Each accepted ADR should record context, decision, alternatives, consequences, d
 - [ADR-028 — Member_3 Action domain and durable saga](ADR-028-member3-action-domain.md) — accepted; PostgreSQL fixture/restart acceptance, CDC/leadership remain later gates.
 
 - [ADR-029 — Outbox delivery and durable fencing](ADR-029-outbox-and-fencing.md) — accepted; local CDC, kind Lease and atomic simulated gateway effect boundaries.
+
+- [ADR-030 — Member_4 standalone projections and operations API](ADR-030-member4-projections-api.md) — accepted; durable replay, REST/SSE and contract-mock operations; UI/identity/live integration remain later gates.
