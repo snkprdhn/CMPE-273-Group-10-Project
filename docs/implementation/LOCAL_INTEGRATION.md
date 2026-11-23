@@ -7,7 +7,7 @@ API, UI, identity and Copilot.
 Start the existing local profiles for Kafka/PostgreSQL, Registry, Flink and
 Kafka Connect. The runner uses the existing kind cluster for the Action Lease
 and starts host Python processes and an additional Compose TaskManager for
-this run. The full kind workload deployment is a separate gate. The read-only
+this run. The [kind runbook](../../infra/kind/README.md) deploys the same loop as Kubernetes workloads with real Keycloak browser authentication. The read-only
 browser check uses an explicit local Viewer identity with the real API and
 NiceGUI. The Keycloak suite remains independently runnable.
 

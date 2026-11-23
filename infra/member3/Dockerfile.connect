@@ -1,7 +1,13 @@
-FROM quay.io/strimzi/kafka:0.45.2-kafka-3.9.2@sha256:5d96fe7c68db643f4916146176a7587aaf9f91c32fa9da7300f013e3e79298d8
+FROM quay.io/strimzi/kafka:0.45.2-kafka-3.9.2@sha256:5d96fe7c68db643f4916146176a7587aaf9f91c32fa9da7300f013e3e79298d8 AS compose
 USER root
 COPY .tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz /tmp/plugin.tar.gz
 RUN echo '600806875b810abb96b3774f789d9ed33dbe4ac687d3ed9454bc0caa76b7279c  /tmp/plugin.tar.gz' | sha256sum -c - && mkdir -p /opt/kafka/plugins && tar -xzf /tmp/plugin.tar.gz -C /opt/kafka/plugins && rm /tmp/plugin.tar.gz
 COPY infra/member3/connect.properties /opt/kafka/config/member3-connect.properties
 USER 1001
 ENTRYPOINT ["/opt/kafka/bin/connect-distributed.sh", "/opt/kafka/config/member3-connect.properties"]
+
+FROM quay.io/strimzi/kafka:0.45.2-kafka-3.9.2@sha256:5d96fe7c68db643f4916146176a7587aaf9f91c32fa9da7300f013e3e79298d8 AS strimzi
+COPY --from=compose --chown=1001:0 /opt/kafka/plugins /opt/kafka/plugins
+
+# Default target preserves the standalone Compose launch command.
+FROM compose

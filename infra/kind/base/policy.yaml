@@ -1,0 +1,374 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dns
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+  labels: {grid-owner: Member_3, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: postgres}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: grid-app, operator: In, values: [database-bootstrap, registry, connect, action, projection, api, keycloak, simulator]}
+      ports:
+        - {port: 5432, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-clients
+  labels: {grid-owner: Member_3, grid-stage: policy}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [database-bootstrap, registry, connect, action, projection, api, keycloak, simulator]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: postgres}
+      ports:
+        - {port: 5432, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: registry-ingress
+  labels: {grid-owner: Member_1, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: registry}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: grid-app, operator: In, values: [action, simulator]}
+      ports:
+        - {port: 50051, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: registry-clients
+  labels: {grid-owner: Member_1, grid-stage: policy}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [action, simulator]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: registry}
+      ports:
+        - {port: 50051, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-ingress
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: api}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {grid-app: ui}
+      ports:
+        - {port: 18084, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-clients
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: ui}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: api}
+      ports:
+        - {port: 18084, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-ingress
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: keycloak}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: grid-app, operator: In, values: [api, ui]}
+      ports:
+        - {port: 8080, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-clients
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [api, ui]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: keycloak}
+      ports:
+        - {port: 8080, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: connect-ingress
+  labels: {grid-owner: Member_3, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: connect}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: grid-app, operator: In, values: [simulator]}
+      ports:
+        - {port: 8083, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: connect-clients
+  labels: {grid-owner: Member_3, grid-stage: policy}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [simulator]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: connect}
+      ports:
+        - {port: 8083, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aggregation-ingress
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: aggregation}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: grid-app, operator: In, values: [simulator]}
+      ports:
+        - {port: 8081, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aggregation-clients
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [simulator]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: aggregation}
+      ports:
+        - {port: 8081, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-ingress
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: kafka}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: grid-app, operator: In, values: [connect, aggregation, action, projection, simulator]}
+      ports:
+        - {port: 9092, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-clients
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [connect, aggregation, action, projection, simulator]}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: kafka}
+      ports:
+        - {port: 9092, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-peers
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: kafka}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {grid-app: kafka}
+      ports:
+        - {port: 9090, protocol: TCP}
+        - {port: 9091, protocol: TCP}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: kafka}
+      ports:
+        - {port: 9090, protocol: TCP}
+        - {port: 9091, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aggregation-peers
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: aggregation}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {grid-app: aggregation}
+      ports:
+        - {port: 6121, protocol: TCP}
+        - {port: 6122, protocol: TCP}
+        - {port: 6123, protocol: TCP}
+        - {port: 6124, protocol: TCP}
+        - {port: 8081, protocol: TCP}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: aggregation}
+      ports:
+        - {port: 6121, protocol: TCP}
+        - {port: 6122, protocol: TCP}
+        - {port: 6123, protocol: TCP}
+        - {port: 6124, protocol: TCP}
+        - {port: 8081, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: broker-internal-ingress
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: kafka}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {grid-app: topic-operator}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: grid-operators}
+          podSelector:
+            matchLabels: {name: strimzi-cluster-operator}
+      ports:
+        - {port: 9091, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: topic-operator-egress
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: topic-operator}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: kafka}
+      ports:
+        - {port: 9091, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aggregation-operator
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: aggregation}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: grid-operators}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: flink-kubernetes-operator}
+      ports:
+        - {port: 8081, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: connect-operator
+  labels: {grid-owner: Member_3, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: connect}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: grid-operators}
+          podSelector:
+            matchLabels: {name: strimzi-cluster-operator}
+      ports:
+        - {port: 8083, protocol: TCP}

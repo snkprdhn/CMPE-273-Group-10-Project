@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for local component integration acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for the local kind deployment milestone. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
@@ -20,6 +20,86 @@ Updated **2026-11-22 (America/Los_Angeles)** for local component integration acc
 | Member_4 projections and API | Replay-safe Kafka/SQL projections, migrations/rebuild, REST snapshots/filters/pages, durable cross-replica SSE/reset, freshness and internal contract mocks | [Runbook](../../member4/README.md), [ADR-030](../decisions/ADR-030-member4-projections-api.md), executed evidence below |
 
 ## Current milestone and verification
+
+**The reproducible local kind deployment milestone is complete.** Both developer
+and three-broker review profiles passed all four closed-loop gates, live Calico
+ingress/egress enforcement, scoped Action Lease RBAC, Keycloak Viewer PKCE login,
+matching REST/SSE payloads and the Chromium dashboard assertion.
+
+| Profile | VM budget | Node working set, six samples | CPU, six samples | Checkpoints | Final charger |
+|---|---|---|---|---|---|
+| Developer | 4 CPUs / 6144 MiB configured | 4680–4857 MiB | 656–3162m | 165 | 7.2 kW, two effects |
+| Review | 8 CPUs / 10240 MiB configured | 6956–7296 MiB | 1084–1614m | 178 | 7.2 kW, two effects |
+
+These are sampled node working sets and CPU utilization during acceptance,
+including Kubernetes and operator processes. They do not establish sustained
+capacity or physical host availability.
+
+### Executed commands and results
+
+The commands ran from `.tools/kind-finish/checkout`, a fresh local clone of
+`da2848557ba88d89f53ad93a919e3236102f0670` with the uncommitted milestone source
+changes copied in. Generated bindings, credentials, application data and
+kubeconfigs started fresh. The checkout reused preparation binaries, locked
+contract/browser environments and verified download caches. This verifies the
+proposed source tree before committing it.
+
+| Command | Result |
+|---|---|
+| `make KIND_NAME=smart-grid-kind-dev-clean kind-create kind-install kind-deploy` | PASS. Fresh one-broker KRaft, nine managed topics, persistent PostgreSQL, Debezium streaming task, operator-managed PyFlink, Registry, Action, projection, API, UI and Keycloak rolled out. |
+| `make KIND_NAME=smart-grid-kind-dev-clean kind-smoke` | PASS at `2026-11-23T04:23:48.390275Z`. Action `1f07468a-b166-51e7-ae07-635b3c5d150c` completed. |
+| `make KIND_NAME=smart-grid-kind-dev-clean kind-measure kind-inspect` | PASS. Complete dev measurement recorded before review. |
+| `make KIND_NAME=smart-grid-kind-dev-clean kind-stop` | Stopped the dev node, retaining volumes. |
+| `make PROFILE=review kind-create kind-install kind-deploy` | PASS under the documented larger VM budget. Three brokers, RF3/minISR2 topics and internal state, two TaskManagers, two Action/API/Registry replicas. |
+| `make PROFILE=review kind-smoke` | PASS at `2026-11-23T06:46:47.128227Z`. Action `6cf4c5d7-0d8c-5f3a-aace-6d1f1c5510db` completed. |
+| `make PROFILE=review kind-measure kind-inspect` | PASS. Every deployed workload has its Member ownership and health signal. |
+| `make contracts BASE_REF=HEAD` | 214 passed. Executable contracts unchanged. |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_integration_evidence.py tests/test_preparation_docs.py` | 16 passed, including rendered profiles, bounded ordered shutdown, every-partition evidence reading and Debezium task assignment/failure. |
+| `.tools/member4-venv/bin/python -m pytest -q tests/identity/test_local_routes.py tests/identity/test_auth.py tests/identity/test_browser.py` | 31 passed. |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | 85 passed, three opt-in checks skipped in the earlier regression run. |
+| `make identity-api-test` | 38 passed, including live mutation failure behavior and chronological classification fixtures. |
+| `git diff --check`; `.venv/bin/python -m compileall -q member2 member3 member4 dashboard identity tools` | Passed. |
+
+Reports, simulator logs, browser screenshots and resource samples are retained
+under `.tools/kind-finish/checkout/.tools/kind-dev` and `kind-review`.
+Lifecycle logs are under `.tools/kind-finish`. Credentials remain private.
+
+### Decisions and resolved failures
+
+Member_1 owns Registry, simulation and observability. Member_2 owns Kafka,
+PyFlink and their operators. Member_3 owns PostgreSQL, Action, Lease fencing
+and CDC. Member_4 owns projection/API/UI, identity and Copilot.
+
+The earlier partial run competed with existing workloads in the small VM.
+After saving and stopping the standalone runtimes, Debezium completed its
+snapshot and streamed. Strimzi Ready can precede task assignment. Deploy and
+smoke now explicitly require the connector and assigned task to be RUNNING,
+fail on a FAILED task and bound their waits. The full smoke verifies the
+resulting CDC commands and effects. A first fresh-copy build also exposed that
+Docker does not include an external directory symlink in its build context.
+The retry used the hash-verified plugin archive as a regular local build input.
+
+The existing standalone Flink job was stopped with the canonical savepoint
+`file:/checkpoints/savepoint-f18edd-252790095f6d`. Existing volume mounts were
+recorded before shutdown. The review temporarily used 8 CPUs/10240 MiB with
+built-in Kubernetes disabled. Docker Desktop was restored to 4 CPUs/6144 MiB and all original standalone
+containers were restarted. The saved `member2-review02` job was resubmitted
+from that savepoint as job `68bf12d96cab5a0740c1a3191fcccdde`. Flink REST
+confirmed savepoint checkpoint 1999 restored and three new checkpoints completed. See `.tools/kind-finish/standalone-restored.log`.
+Task-owned dev/review/probe nodes are stopped with their volumes retained.
+
+The profiles share one kind node and its local-path checkpoint PVC. Browser
+access uses loopback UI and the selected realm's public OIDC paths. API and
+identity backchannel calls use Service DNS. Live scenario/policy mutation
+adapters return 503 until their separate milestone. Full observability-stack
+packaging, Copilot, broker-loss and Action-leader failure exercises remain
+subsequent milestones. No cloud resources, paid calls, commit or push occurred.
+
+**Next recommended milestone** is the review failure-injection gate for broker
+loss, Action leader handover and reconciliation, followed by observability and
+the bounded deterministic Copilot.
+
+## Previous milestone — local component integration
 
 **Local component integration and the deterministic closed loop pass in the
 host/Compose profile.** The Action worker acquires its Lease from local kind.

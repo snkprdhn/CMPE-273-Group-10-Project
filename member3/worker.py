@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 import json
 import os
+from pathlib import Path
 import signal
 import threading
 
@@ -24,6 +25,7 @@ def main():
     authority = Leadership(dsn, lease)
     consumer = None
     registry = None
+    health = Path(os.environ['WORKER_HEALTH_FILE']) if 'WORKER_HEALTH_FILE' in os.environ else None
     try:
         if 'CONTROL_SNAPSHOTS' in os.environ:
             with open(os.environ['CONTROL_SNAPSHOTS']) as source:
@@ -33,6 +35,8 @@ def main():
                                 os.environ['REGISTRY_ACTION_TOKEN'], dsn)
         while not stop.is_set():
             if not lease.step():
+                if health is not None:
+                    health.touch()
                 stop.wait(1)
                 continue
             epoch = authority.activate()
@@ -65,6 +69,8 @@ def main():
                         handler(event, key, now)
                     consumer.commit(message=message, asynchronous=False)
                 control.tick(now)
+                if health is not None:
+                    health.touch()
             break  # a lost incarnation exits; restart with a fresh identity
     finally:
         # Fence first; never keep serving while closing group membership.

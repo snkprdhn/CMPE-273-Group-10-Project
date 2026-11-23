@@ -1,10 +1,12 @@
 # Smart Grid / EV Fleet Energy Balancing Platform
 
-> **Status:** Repository preparation, Docker Desktop/venv prerequisites, the executable v1 contract bundle and lightweight Compose dependencies are verified, including persistence, fault-proxy and reset checks plus an empty local kind cluster; Member_1 standalone simulation/Registry and Member_2 standalone Kafka/PyFlink aggregation are implemented and verified; Member_3 standalone Action/CDC/fencing and Member_4 projections/API/operator dashboard are also implemented; identity, Copilot and full platform deployment remain future work. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). All application/test code is Python; infrastructure JVMs stay in containers. No host JDK or Node.js is required.
+> **Status:** The deterministic closed loop passes in the host/Compose integration profile. Local Keycloak identity is verified in its standalone profile. The lightweight and three-broker kind deployment profiles are packaged, and Calico policy enforcement is verified in kind. Developer and three-broker review kind closed loops pass, including real browser authentication. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). Python application and test code runs in virtual environments. Infrastructure JVMs stay in containers.
 
 Run `make member2-test`, `make member2-build`, then `make member2-live` for [standalone aggregation](member2/README.md). Run `make contracts` for the offline contract gate; see the [bundle guide](schemas/README.md) for setup, fixtures and compatibility checks.
 
 Run `make dashboard-fixtures` and `make dashboard-demo` in separate terminals for the [standalone operator console](dashboard/README.md), then open [GridBalance](http://127.0.0.1:18086).
+
+Use the [local kind runbook](infra/kind/README.md) to create, install, deploy, inspect, smoke-test, measure and stop the platform on Docker Desktop.
 
 ## Abstract
 

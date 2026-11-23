@@ -1,6 +1,7 @@
 """At-least-once Kafka transport; PostgreSQL is the offset/checkpoint authority."""
 import json
 import os
+from pathlib import Path
 import signal
 import threading
 
@@ -36,6 +37,10 @@ def consume(store):
 
     def assigned(consumer, partitions):
         assign(store, consumer, partitions, prefix)
+        if health is not None:
+            health.touch()
+
+    health = Path(os.environ['WORKER_HEALTH_FILE']) if 'WORKER_HEALTH_FILE' in os.environ else None
 
     client = Consumer({'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP', '127.0.0.1:19092'),
                        'group.id': os.getenv('PROJECTION_GROUP', 'member4.projection.v1'),
@@ -52,6 +57,8 @@ def consume(store):
             if message is not None:
                 process(store, message, prefix)
                 client.commit(message=message, asynchronous=False)
+            if health is not None and client.assignment():
+                health.touch()
     finally:
         client.close()
 

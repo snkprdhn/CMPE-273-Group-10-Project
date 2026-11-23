@@ -160,6 +160,7 @@ def test_positive_normal_classification_requires_exact_owner_marker_and_revision
 
     alert = deepcopy(next(r for r in events if TOPICS[r['topic']] == 'Alert'))
     alert['event']['event_id'] = str(uuid4())
+    alert['event']['event_time'] = '2026-11-09T18:30:05Z'
     alert['event']['payload'].update(alert_id='classification-fixture', status='RESOLVED',
                                       load_revision=1, message='Operator resolved alert')
     feed(store, [alert])

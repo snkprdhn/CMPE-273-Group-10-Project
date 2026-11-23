@@ -1,0 +1,115 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: brokers
+  labels:
+    strimzi.io/cluster: grid
+    grid-owner: Member_2
+    grid-stage: kafka
+spec:
+  replicas: 1
+  roles: [controller, broker]
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 2Gi
+        deleteClaim: false
+        kraftMetadata: shared
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "1", memory: 896Mi}
+  jvmOptions:
+    -Xms: 192m
+    -Xmx: 384m
+  template:
+    pod:
+      metadata:
+        labels: {grid-app: kafka, grid-owner: Member_2}
+      terminationGracePeriodSeconds: 60
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: grid
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+  labels: {grid-owner: Member_2, grid-stage: kafka}
+spec:
+  kafka:
+    version: 3.9.2
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+    config:
+      auto.create.topics.enable: false
+      num.partitions: 3
+      log.retention.hours: 24
+      default.replication.factor: 1
+      min.insync.replicas: 1
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      transaction.max.timeout.ms: 900000
+    readinessProbe: {initialDelaySeconds: 15, timeoutSeconds: 5}
+    livenessProbe: {initialDelaySeconds: 30, timeoutSeconds: 5}
+  entityOperator:
+    topicOperator:
+      resources:
+        requests: {cpu: 75m, memory: 160Mi}
+        limits: {cpu: 300m, memory: 320Mi}
+    template:
+      pod:
+        metadata:
+          labels: {grid-app: topic-operator, grid-owner: Member_2}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: grid-connect
+  labels: {grid-owner: Member_3, grid-stage: connect}
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  version: 3.9.2
+  replicas: 1
+  image: smart-grid-kind/connect:3.0.8-v1
+  bootstrapServers: grid-kafka-bootstrap:9092
+  config:
+    group.id: integration-kind.connect
+    config.storage.topic: integration-kind.connect.configs
+    offset.storage.topic: integration-kind.connect.offsets
+    status.storage.topic: integration-kind.connect.status
+    config.storage.replication.factor: 1
+    offset.storage.replication.factor: 1
+    status.storage.replication.factor: 1
+    offset.flush.interval.ms: 1000
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.storage.StringConverter
+    producer.acks: all
+    producer.enable.idempotence: true
+    config.providers: env
+    config.providers.env.class: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+    config.providers.env.param.allowlist.pattern: CDC_PASSWORD
+  jvmOptions:
+    -Xms: 128m
+    -Xmx: 256m
+  resources:
+    requests: {cpu: 150m, memory: 320Mi}
+    limits: {cpu: 750m, memory: 640Mi}
+  readinessProbe: {initialDelaySeconds: 15, timeoutSeconds: 5}
+  livenessProbe: {initialDelaySeconds: 30, timeoutSeconds: 5}
+  template:
+    pod:
+      metadata:
+        labels: {grid-app: connect, grid-owner: Member_3}
+      terminationGracePeriodSeconds: 45
+    connectContainer:
+      env:
+        - name: CDC_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: cdc-runtime, key: password}

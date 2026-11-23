@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: checkpoints
+  labels: {grid-owner: Member_2, grid-stage: flink}
+spec:
+  storageClassName: standard
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 2Gi}
+---
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: aggregation
+  labels: {grid-owner: Member_2, grid-stage: flink}
+spec:
+  image: smart-grid-kind/aggregation:2.2.1-v1
+  imagePullPolicy: Never
+  flinkVersion: v2_2
+  mode: standalone
+  serviceAccount: flink
+  flinkConfiguration:
+    kubernetes.rest-service.exposed.type: ClusterIP
+    taskmanager.numberOfTaskSlots: "1"
+    taskmanager.memory.task.off-heap.size: "192m"
+    taskmanager.memory.managed.size: "128m"
+    taskmanager.rpc.port: "6122"
+    taskmanager.data.port: "6121"
+    blob.server.port: "6124"
+    heartbeat.interval: "1000"
+    heartbeat.timeout: "60000"
+    python.client.executable: /opt/venv/bin/python
+    python.executable: /opt/venv/bin/python
+  podTemplate:
+    metadata:
+      labels: {grid-app: aggregation, grid-owner: Member_2}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      securityContext: {fsGroup: 9999, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: flink-main-container
+          volumeMounts:
+            - {name: checkpoints, mountPath: /checkpoints}
+      volumes:
+        - name: checkpoints
+          persistentVolumeClaim: {claimName: checkpoints}
+  jobManager:
+    resource: {cpu: 0.5, memory: 896m}
+    podTemplate:
+      spec:
+        containers:
+          - name: flink-main-container
+            startupProbe: {tcpSocket: {port: 8081}, periodSeconds: 5, failureThreshold: 48}
+            readinessProbe: {httpGet: {path: /overview, port: 8081}, periodSeconds: 5}
+            livenessProbe: {tcpSocket: {port: 8081}, periodSeconds: 10, failureThreshold: 4}
+  taskManager:
+    replicas: 1
+    resource: {cpu: 1, memory: 1536m}
+    podTemplate:
+      spec:
+        containers:
+          - name: flink-main-container
+            startupProbe: {tcpSocket: {port: 6122}, periodSeconds: 5, failureThreshold: 48}
+            readinessProbe: {tcpSocket: {port: 6122}, periodSeconds: 5}
+            livenessProbe: {tcpSocket: {port: 6122}, periodSeconds: 10, failureThreshold: 4}
+  job:
+    jarURI: local:///opt/flink/opt/flink-python-2.2.1.jar
+    entryClass: org.apache.flink.client.python.PythonDriver
+    args:
+      - -py
+      - /app/member2/job.py
+      - --run
+      - kind
+      - --bootstrap
+      - grid-kafka-bootstrap:9092
+      - --prefix
+      - integration-kind.
+      - --topology
+      - /app/member2/integration-topology.json
+      - --checkpoint
+      - file:///checkpoints/integration-kind
+      - --checkpoint-ms
+      - "1000"
+    parallelism: 1
+    upgradeMode: stateless
+    state: running

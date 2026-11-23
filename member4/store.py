@@ -260,19 +260,22 @@ class Store:
             return [e for _, e in pending]
 
     def rebuild(self):
-        # Retained journal is also an offline replay source. Rotate generation so old cursors reset.
         with self.transaction() as db:
-            rows = db.execute('SELECT topic,event FROM projection_events ORDER BY event_id').fetchall()
-            db.execute('DELETE FROM projection_current')
-            db.execute('DELETE FROM projection_stream')
-            db.execute('DELETE FROM projection_pages')
-            db.execute('UPDATE projection_meta SET generation=%s,sequence=0', (uuid4().hex,))
-            for topic, event in rows:
-                name = TOPICS[topic]
-                identity, ordering = self._identity(name, event)
-                prior = db.execute('SELECT ordering FROM projection_current WHERE kind=%s AND id=%s',
-                                   (name, identity)).fetchone()
-                if not prior or ordering > prior[0]:
-                    db.execute('INSERT INTO projection_current VALUES(%s,%s,%s,%s) ON CONFLICT(kind,id) '
-                               'DO UPDATE SET ordering=excluded.ordering,event=excluded.event',
-                               (name, identity, Jsonb(ordering), Jsonb(event)))
+            self._rebuild(db)
+
+    def _rebuild(self, db):
+        # Existing consumers must reload snapshots after the generation rotates.
+        rows = db.execute('SELECT topic,event FROM projection_events ORDER BY event_id').fetchall()
+        db.execute('DELETE FROM projection_current')
+        db.execute('DELETE FROM projection_stream')
+        db.execute('DELETE FROM projection_pages')
+        db.execute('UPDATE projection_meta SET generation=%s,sequence=0', (uuid4().hex,))
+        for topic, event in rows:
+            name = TOPICS[topic]
+            identity, ordering = self._identity(name, event)
+            prior = db.execute('SELECT ordering FROM projection_current WHERE kind=%s AND id=%s',
+                               (name, identity)).fetchone()
+            if not prior or ordering > prior[0]:
+                db.execute('INSERT INTO projection_current VALUES(%s,%s,%s,%s) ON CONFLICT(kind,id) '
+                           'DO UPDATE SET ordering=excluded.ordering,event=excluded.event',
+                           (name, identity, Jsonb(ordering), Jsonb(event)))

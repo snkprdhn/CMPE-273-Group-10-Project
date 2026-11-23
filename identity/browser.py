@@ -11,7 +11,7 @@ import httpx
 from fastapi import Request
 from fastapi.responses import RedirectResponse, PlainTextResponse, HTMLResponse
 
-from identity.auth import CLIENT, ISSUER, Denied, OIDC
+from identity.auth import CLIENT, Denied, OIDC
 
 ORIGIN = 'http://127.0.0.1:18086'
 COOKIE = 'grid_session'
@@ -50,14 +50,14 @@ class BrowserLogin:
         state, verifier, nonce = (secrets.token_urlsafe(32) for _ in range(3))
         self.pending[state] = dict(verifier=verifier, nonce=nonce, until=time.time()+300)
         challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
-        response = RedirectResponse(ISSUER + '/protocol/openid-connect/auth?' + urlencode(dict(
+        response = RedirectResponse(self.oidc.issuer + '/protocol/openid-connect/auth?' + urlencode(dict(
             client_id=CLIENT, redirect_uri=ORIGIN+'/auth/callback', response_type='code',
             scope='openid', state=state, nonce=nonce, code_challenge=challenge, code_challenge_method='S256')))
         response.set_cookie('grid_login', state, httponly=True, samesite='lax', max_age=300, path='/auth')
         return response
 
     async def exchange(self, data):
-        response = await self.http.post(ISSUER+'/protocol/openid-connect/token', data=dict(client_id=CLIENT, **data))
+        response = await self.http.post(self.oidc.backchannel+'/protocol/openid-connect/token', data=dict(client_id=CLIENT, **data))
         response.raise_for_status()
         tokens = response.json()
         if not isinstance(tokens, dict) or any(
@@ -142,7 +142,7 @@ class BrowserLogin:
         if not session or not secrets.compare_digest(request.query_params.get('csrf', '').encode(), session['csrf'].encode()):
             return PlainTextResponse('Invalid logout request', status_code=400)
         self.sessions.pop(sid, None)
-        response = RedirectResponse(ISSUER+'/protocol/openid-connect/logout?'+urlencode(dict(
+        response = RedirectResponse(self.oidc.issuer+'/protocol/openid-connect/logout?'+urlencode(dict(
             client_id=CLIENT, id_token_hint=session['tokens']['id_token'], post_logout_redirect_uri=ORIGIN+'/')))
         response.delete_cookie(COOKIE)
         response.headers['Cache-Control'] = 'no-store'

@@ -93,3 +93,9 @@ identity-api-test:
 
 identity-live-test:
 	IDENTITY_LIVE=1 PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/dashboard-test-venv/bin/python -m pytest -q tests/identity/test_live.py
+
+# Dedicated local Docker Desktop kind profile. Use PROFILE=review after dev measurement.
+PROFILE ?= dev
+.PHONY: kind-create kind-install kind-deploy kind-smoke kind-policy kind-inspect kind-measure kind-open-ui kind-stop
+kind-create kind-install kind-deploy kind-smoke kind-policy kind-inspect kind-measure kind-open-ui kind-stop:
+	.venv/bin/python -m tools.kind_local $(patsubst kind-%,%,$@) --profile "$(PROFILE)" $(if $(KIND_NAME),--name "$(KIND_NAME)")

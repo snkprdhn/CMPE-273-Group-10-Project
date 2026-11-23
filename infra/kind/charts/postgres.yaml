@@ -1,0 +1,26 @@
+fullnameOverride: postgres
+image:
+  tag: "17.4-bookworm@sha256:304ab813518754228f9f792f79d6da36359b82d8ecf418096c636725f8c930ad"
+  imagePullPolicy: IfNotPresent
+auth:
+  username: local_admin
+  database: postgres
+  existingSecret: postgres-admin
+podLabels:
+  grid-owner: Member_3
+  grid-app: postgres
+config:
+  postgresql:
+    shared_buffers: 64MB
+    effective_cache_size: 256MB
+    max_connections: 50
+    wal_level: logical
+    max_wal_senders: 4
+  extraConfig:
+    - max_replication_slots = 4
+persistence:
+  storageClass: standard
+  size: 2Gi
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 512Mi}

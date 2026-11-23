@@ -130,9 +130,13 @@ def ordered_records(name, rows):
 
 
 def configure(fixture=False, api_url=None):
-    base = (api_url or os.environ.get('DASHBOARD_API_URL', 'http://127.0.0.1:18084/api/v1')).rstrip('/')
+    kind = os.getenv('GRID_LOCAL_KIND') == '1'
+    base = ('http://api:18084/api/v1' if kind else
+            (api_url or os.environ.get('DASHBOARD_API_URL', 'http://127.0.0.1:18084/api/v1')).rstrip('/'))
     parsed = urlsplit(base)
-    if parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', 'localhost', '::1') or parsed.path.rstrip('/') != '/api/v1' or parsed.username or parsed.password or parsed.query or parsed.fragment:
+    if not kind and (parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', 'localhost', '::1')
+                     or parsed.path.rstrip('/') != '/api/v1' or parsed.username or parsed.password
+                     or parsed.query or parsed.fragment):
         raise ValueError('Dashboard API must be a loopback HTTP /api/v1 URL')
     token = 'fixture-operator-token' if fixture else os.environ.get('DASHBOARD_API_TOKEN', '')
     login = None
@@ -140,6 +144,9 @@ def configure(fixture=False, api_url=None):
         from identity.browser import BrowserLogin
         login = BrowserLogin(app)
         app.on_shutdown(login.http.aclose)
+        if kind:
+            from identity.local_routes import install
+            install(app)
     elif not token:
         raise ValueError('Set DASHBOARD_API_TOKEN for explicit mock mode')
     ui.add_css(CSS, shared=True)

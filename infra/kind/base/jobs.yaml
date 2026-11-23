@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-bootstrap
+  labels: {grid-owner: Member_3, grid-stage: bootstrap}
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels: {grid-app: database-bootstrap, grid-owner: Member_3}
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: bootstrap
+          image: smart-grid-kind/acceptance:v1
+          imagePullPolicy: Never
+          args: [bootstrap]
+          envFrom:
+            - secretRef: {name: database-bootstrap}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 400m, memory: 160Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: simulator
+  labels: {grid-owner: Member_1, grid-stage: smoke}
+spec:
+  # Restarting a partially executed acceptance run could hide duplicate effects.
+  backoffLimit: 0
+  activeDeadlineSeconds: 260
+  template:
+    metadata:
+      labels: {grid-app: simulator, grid-owner: Member_1}
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 25
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: simulator
+          image: smart-grid-kind/acceptance:v1
+          imagePullPolicy: Never
+          args: [simulate]
+          envFrom:
+            - secretRef: {name: simulator-runtime}
+          resources:
+            requests: {cpu: 100m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}

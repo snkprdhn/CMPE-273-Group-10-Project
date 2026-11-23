@@ -22,3 +22,5 @@ COPY schemas /app/schemas
 COPY tests/member2 /app/tests/member2
 RUN mkdir -p /checkpoints && chown -R flink:flink /checkpoints /app && /opt/venv/bin/python -c 'import pyflink; import platform; print(platform.machine())'
 USER flink
+
+COPY member1/fixtures/topology.json /app/member2/integration-topology.json

@@ -33,3 +33,21 @@ def test_projection_gate_requires_sse_and_chromium_even_with_matching_rest():
     evidence['sse_action_equal'] = True
     with pytest.raises(AssertionError, match='browser UI'):
         evaluate(GATES[3], evidence)
+
+
+def test_scenario_reader_requires_all_topics_and_reads_each_partition(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    from tools.integration import from_beginning
+
+    assigned = []
+    monkeypatch.setitem(sys.modules, 'confluent_kafka',
+                        SimpleNamespace(TopicPartition=lambda *args: args))
+    topic = SimpleNamespace(error=None, partitions={0: None, 1: None, 2: None})
+    reader = SimpleNamespace(list_topics=lambda timeout: SimpleNamespace(topics={'loads': topic}),
+                             assign=assigned.extend)
+    from_beginning(reader, ['loads'])
+    assert assigned == [('loads', 0, 0), ('loads', 1, 0), ('loads', 2, 0)]
+    with pytest.raises(AssertionError, match='missing'):
+        from_beginning(reader, ['absent'])

@@ -39,10 +39,10 @@ The [kind 0.30.0 release](https://github.com/kubernetes-sigs/kind/releases/tag/v
 
 | Component/owner | Exact selected version/artifact | Compatibility constraint and official evidence |
 |---|---|---|
-| Policy CNI / shared infrastructure | Calico 3.31.0, upstream manifest; IPv4 VXLAN/iptables | [Calico 3.31 requirements](https://raw.githubusercontent.com/tigera/docs/master/calico_versioned_docs/version-3.31/_includes/partials/_system-requirements.mdx) list ARM64 and Kubernetes 1.32–1.35; default kind CNI disabled for security profile; integration/allow-deny tests unverified |
+| Policy CNI / shared infrastructure | Calico 3.31.0, upstream manifest; IPv4 VXLAN/iptables | [Calico 3.31 requirements](https://raw.githubusercontent.com/tigera/docs/master/calico_versioned_docs/version-3.31/_includes/partials/_system-requirements.mdx) list ARM64 and Kubernetes 1.32–1.35; default kind CNI disabled for security profile; kind checks are recorded in [implementation status](IMPLEMENTATION_STATUS.md) |
 | Strimzi / Member_2 | Helm chart/operator 0.45.2 | [Upstream matrix](https://strimzi.io/downloads/) lists Kafka 3.9.2 and Kubernetes through 1.35 for this release |
 | Kafka and Connect / Member_2, Member_3 | `quay.io/strimzi/kafka:0.45.2-kafka-3.9.2` | KRaft; Connect shares the selected Kafka distribution; no ZooKeeper |
-| Flink Operator / Member_2 | Chart/image 1.15.0 | [Apache downloads](https://flink.apache.org/downloads/) lists Flink 2.2.x support; webhook disabled locally |
+| Flink Operator / Member_2 | Chart/image 1.15.0 | [Apache downloads](https://flink.apache.org/downloads/) lists Flink 2.2.x support; webhook disabled locally; packaged operator image tag `79d730b` |
 | Flink / Member_2 | `flink:2.2.1-scala_2.12-java17` | [Upstream image recipe](https://raw.githubusercontent.com/apache/flink-docker/master/2.2/scala_2.12-java17-ubuntu/Dockerfile); derive a Python-enabled ARM64 image at implementation time |
 | PyFlink / Member_2 | `apache-flink==2.2.1` | [Python 3.9–3.12 supported](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/python/installation/); Linux ARM64 source wheel build required, [published files](https://pypi.org/project/apache-flink/2.2.1/#files) |
 | Flink Kafka connector / Member_2 | `org.apache.flink:flink-sql-connector-kafka:5.0.0-2.2` | Bundled upstream JAR for Python jobs; [matching connector line](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connectors/datastream/kafka/); includes runtime dependencies, no custom Java build |
@@ -233,3 +233,13 @@ component environments. HTTPX and all earlier direct pins are unchanged. No cust
 signature implementation, Authlib, system package or host JVM is added. Linux
 native hashes/images, security scans and kind identity packaging remain unverified.
 See [ADR-032](../decisions/ADR-032-member4-local-identity.md) and executed status.
+
+
+## Local kind artifacts
+
+The [kind lifecycle runner](../../tools/kind_local.py) verifies SHA-256 for
+the v3.31.0 Calico manifest and the pinned Strimzi 0.45.2, Flink Operator
+1.15.0 and CloudPirates PostgreSQL 0.22.0 Helm archives. PostgreSQL's chart
+renders the fixed 17.4 ARM64-compatible image and logical WAL settings. The
+existing NiceGUI, API and OIDC pins include Linux ARM64 wheel hashes for their
+kind images. All authored workloads run Python inside their image venvs.

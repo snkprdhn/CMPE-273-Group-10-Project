@@ -1,0 +1,29 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: action
+  namespace: platform
+  labels: {grid-owner: Member_3, grid-stage: apps}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {grid-app: action}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: apps}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {grid-app: api}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: registry
+  namespace: platform
+  labels: {grid-owner: Member_1, grid-stage: apps}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {grid-app: registry}}

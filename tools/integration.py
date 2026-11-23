@@ -59,6 +59,15 @@ def stable_id(path):
     return str(uuid5(NAMESPACE_URL, 'smart-grid/v1/' + path))
 
 
+def from_beginning(reader, names):
+    """Read every partition of the pre-provisioned scenario topics."""
+    from confluent_kafka import TopicPartition
+    topics = reader.list_topics(timeout=10).topics
+    require(all(name in topics and not topics[name].error and topics[name].partitions for name in names),
+            'scenario topics are missing or unavailable')
+    reader.assign([TopicPartition(name, partition, 0) for name in names for partition in topics[name].partitions])
+
+
 def evaluate(name, evidence):
     """Pure evidence checks; missing evidence fails closed, never skips to PASS."""
     loads = [e['payload'] for e in evidence.get('loads', [])]
@@ -145,6 +154,27 @@ def verdicts(evidence, blockers=None):
             result[name] = {'status': 'BLOCKED' if reason else 'FAIL', 'reason': reason or str(exc)}
     return result
 
+
+def verify_http(api_url, evidence, token, generation):
+    headers = {'Authorization': 'Bearer ' + token}
+    final = next((e['payload'] for e in reversed(evidence['actions']) if e['payload']['status'] == 'COMPLETED'), None)
+    require(final is not None, 'no completed action to verify over HTTP')
+    actual = http(api_url + '/actions/' + final['action_id'], headers=headers)
+    evidence['api_action'] = actual
+    evidence['api_action_equal'] = actual == final
+    # Start from the durable pre-action cursor for this projection generation.
+    request = Request(api_url + '/events', headers=dict(headers, **{'Last-Event-ID': generation + ':0'}))
+    with urlopen(request, timeout=20) as stream:
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            line = stream.readline().decode().strip()
+            if line.startswith('data: '):
+                event = json.loads(line[6:])
+                if event['event_type'] == 'action.updated' and event['payload'] == final:
+                    evidence['sse_action'] = event
+                    evidence['sse_action_equal'] = True
+                    break
+    return final
 
 class Runner:
     def __init__(self, args):
@@ -240,7 +270,7 @@ class Runner:
                         'run-specific Flink job', 90)
 
     def flow(self):
-        from confluent_kafka import Consumer, TopicPartition
+        from confluent_kafka import Consumer
         import grpc
         import psycopg
         from member1.common import utc, event
@@ -271,18 +301,12 @@ class Runner:
             reader = Consumer({'bootstrap.servers': self.args.bootstrap, 'group.id': prefix + 'acceptance',
                                'enable.auto.commit': False, 'isolation.level': 'read_committed'})
             topics = ['grid.transformer-load.v1', 'grid.action.v1', 'grid.charger-command.v1', 'grid.command-result.v1']
-            reader.assign([TopicPartition(prefix + topic, 0, 0) for topic in topics])
             edge_reader = Consumer({'bootstrap.servers': self.args.bootstrap, 'group.id': prefix + 'edge',
                                     'enable.auto.commit': False, 'enable.auto.offset.store': False,
                                     'isolation.level': 'read_committed'})
-            edge_reader.assign([TopicPartition(prefix + 'grid.charger-command.v1', 0, 0)])
-            env = dict(os.environ, CONTROL_DSN=self.args.control_dsn, KAFKA_PREFIX=prefix,
-                       KAFKA_BOOTSTRAP=self.args.bootstrap, LEASE_NAME='integration-' + run,
-                       REGISTRY_ADDRESS=self.args.registry,
-                       REGISTRY_ACTION_TOKEN=os.environ.get('REGISTRY_ACTION_TOKEN', 'action_disposable'))
-            env.pop('CONTROL_SNAPSHOTS', None)
-            self.spawn('control', [str(ROOT / '.tools/member3-venv/bin/python'), '-m', 'member3.worker'], env)
-            self.start_projection(env)
+            from_beginning(reader, [prefix + topic for topic in topics])
+            from_beginning(edge_reader, [prefix + 'grid.charger-command.v1'])
+            self.start_workers()
             start, next_sample, tick = time.monotonic(), 0, 0
             recovery = False
             duplicated = False
@@ -355,6 +379,15 @@ class Runner:
         finally:
             client.channel.close()
 
+    def start_workers(self):
+        env = dict(os.environ, CONTROL_DSN=self.args.control_dsn, KAFKA_PREFIX=self.args.prefix,
+                   KAFKA_BOOTSTRAP=self.args.bootstrap, LEASE_NAME='integration-' + self.args.run,
+                   REGISTRY_ADDRESS=self.args.registry,
+                   REGISTRY_ACTION_TOKEN=os.environ.get('REGISTRY_ACTION_TOKEN', 'action_disposable'))
+        env.pop('CONTROL_SNAPSHOTS', None)
+        self.spawn('control', [str(ROOT / '.tools/member3-venv/bin/python'), '-m', 'member3.worker'], env)
+        self.start_projection(env)
+
     def start_projection(self, env):
         if not self.args.projection_dsn:
             self.blockers[GATES[3]] = 'missing INTEGRATION_PROJECTION_DSN'
@@ -374,9 +407,7 @@ class Runner:
         self.spawn('ui', [str(ROOT / '.tools/dashboard-venv/bin/python'), '-m', 'dashboard', '--port', '18096', '--api-url', self.args.api_url], ui_env)
         self.spawn('projection', [str(ROOT / '.tools/member4-venv/bin/python'), '-m', 'member4', 'consume'], env)
 
-    def finish_projection(self):
-        if not hasattr(self, 'store'):
-            return
+    def projected_journal(self):
         expected = {e['event_id']: e for key in ('loads', 'actions', 'commands', 'results', 'telemetry') for e in self.evidence[key]}
         def projected():
             with self.store.transaction() as db:
@@ -392,27 +423,16 @@ class Runner:
             client.refresh(self.store, [baseline], ['ev-001','meter-001','solar-001'])
         finally:
             client.close()
-        token = Path(self.args.bearer_file).read_text().strip() if self.args.bearer_file else self.token
-        headers = {'Authorization': 'Bearer ' + token}
-        final = next((e['payload'] for e in reversed(self.evidence['actions']) if e['payload']['status'] == 'COMPLETED'), None)
-        require(final is not None, 'no completed action to verify over HTTP')
-        actual = http(self.args.api_url + '/actions/' + final['action_id'], headers=headers)
-        self.evidence['api_action'] = actual
-        self.evidence['api_action_equal'] = actual == final
-        # A foreign cursor requires snapshot reset; start from the durable pre-action cursor instead.
+        return expected
+
+    def finish_projection(self):
+        if not hasattr(self, 'store'):
+            return
+        expected = self.projected_journal()
         with self.store.transaction() as db:
             generation = db.execute('SELECT generation FROM projection_meta').fetchone()[0]
-        request = Request(self.args.api_url + '/events', headers=dict(headers, **{'Last-Event-ID': generation + ':0'}))
-        with urlopen(request, timeout=20) as stream:
-            deadline = time.monotonic() + 20
-            while time.monotonic() < deadline:
-                line = stream.readline().decode().strip()
-                if line.startswith('data: '):
-                    event = json.loads(line[6:])
-                    if event['event_type'] == 'action.updated' and event['payload'] == final:
-                        self.evidence['sse_action'] = event
-                        self.evidence['sse_action_equal'] = True
-                        break
+        token = Path(self.args.bearer_file).read_text().strip() if self.args.bearer_file else self.token
+        final = verify_http(self.args.api_url, self.evidence, token, generation)
         if self.args.ui_url:
             self.command([str(ROOT / '.tools/dashboard-test-venv/bin/python'), '-m',
                 'tools.integration_browser', '--url', self.args.ui_url, '--action', final['action_id'],
@@ -483,7 +503,7 @@ class Runner:
                       git_commit=self.command(['git', 'rev-parse', 'HEAD']).strip(),
                       contract_sha256=hashlib.sha256((ROOT / 'schemas/v1/bundle.json').read_bytes()).hexdigest(),
                       gates=gates, full_loop={'status': 'PASS' if passed else 'FAIL', 'runtime': 'host-compose'},
-                      required_kind={'status': 'BLOCKED', 'reason': 'full kind application packaging is not implemented'},
+                      required_kind={'status': 'BLOCKED', 'reason': 'host/Compose evidence does not establish the kind workload gate'},
                       expected_kw=dict(normal=13.2, overload=20.2, throttled=15, recovery=8, restored=13.2),
                       failure=failure, cleanup_errors=cleanup, commands=self.commands, evidence=self.evidence,
                       owner_signoff='pending human review',

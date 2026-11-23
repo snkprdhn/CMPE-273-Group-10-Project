@@ -59,7 +59,7 @@ Never commit `.env` files, passwords, tokens, private keys, database volumes, ge
 
 ## 7. Class MVP controls
 
-The Kubernetes deployment plans a local OIDC provider with Viewer, Operator, and Administrator roles; Kubernetes ServiceAccounts/RBAC; NetworkPolicies; Secrets; non-root containers; minimal ports; and negative authorization tests. The browser accesses only the Gateway/API boundary, while data and broker services remain cluster-internal. The Copilot Service has restricted model-provider egress and can call only the read-only Tool Gateway. Full Kafka SASL/TLS/ACL administration is documented non-required hardening rather than a completion requirement.
+The [local kind deployment](../../infra/kind/README.md) configures a local OIDC provider with Viewer, Operator, and Administrator roles; Kubernetes ServiceAccounts/RBAC; NetworkPolicies; Secrets; non-root containers; minimal ports; and negative authorization tests. The browser uses the loopback NiceGUI and public realm routes. NiceGUI contacts the API and Keycloak over cluster DNS. Data and broker services stay cluster-internal. The Copilot Service has restricted model-provider egress and can call only the read-only Tool Gateway. Full Kafka SASL/TLS/ACL administration is documented non-required hardening rather than a completion requirement.
 
 ## 8. Future production considerations
 

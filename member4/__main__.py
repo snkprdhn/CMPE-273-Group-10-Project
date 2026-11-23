@@ -12,6 +12,7 @@ def main():
     parser.add_argument('command', choices=['migrate', 'replay', 'rebuild', 'serve', 'consume'])
     parser.add_argument('--fixtures', type=Path, default=Path(__file__).with_name('fixtures.json'))
     parser.add_argument('--port', type=int, default=18084)
+    parser.add_argument('--bind', default='127.0.0.1', choices=['127.0.0.1', '0.0.0.0'])
     args = parser.parse_args()
     store = Store(os.environ['PROJECTION_DSN'])
     if args.command == 'migrate':
@@ -32,9 +33,10 @@ def main():
         import uvicorn
         from member4.api import create_app
         identities = json.loads(os.environ['MEMBER4_MOCK_IDENTITIES']) if os.environ.get('MEMBER4_AUTH_MODE') == 'mock' else None
-        app = create_app(store, identities)
-        # Explicit loopback-only standalone mock identity boundary.
-        uvicorn.run(app, host='127.0.0.1', port=args.port, timeout_keep_alive=5)
+        app = create_app(store, identities, live=os.getenv('GRID_LOCAL_KIND') == '1')
+        if identities is not None and args.bind != '127.0.0.1':
+            parser.error('Mock identities require a loopback bind')
+        uvicorn.run(app, host=args.bind, port=args.port, timeout_keep_alive=5, timeout_graceful_shutdown=20)
 
 
 if __name__ == '__main__':

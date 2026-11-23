@@ -1,13 +1,14 @@
 """Validate Keycloak JWTs using a fixed issuer, audience and signing algorithm."""
 import math
+import os
 
 import jwt
 from jwt import PyJWKClient
 
+from identity.realm import CLIENT, AUDIENCE
+
 ROLES = ('Viewer', 'Operator', 'Administrator')
 ISSUER = 'http://127.0.0.1:18080/realms/smart-grid'
-CLIENT = 'smart-grid-ui'
-AUDIENCE = 'smart-grid-api'
 
 
 class Denied(Exception):
@@ -24,8 +25,11 @@ def require(actor, minimum):
 
 class OIDC:
     def __init__(self):
-        self.issuer = ISSUER
-        self.keys = PyJWKClient(ISSUER + '/protocol/openid-connect/certs', timeout=3)
+        # The named kind profile keeps the browser issuer exact and fetches keys by cluster DNS.
+        kind = os.getenv('GRID_LOCAL_KIND') == '1'
+        self.issuer = 'http://127.0.0.1:18086/realms/smart-grid' if kind else ISSUER
+        self.backchannel = 'http://keycloak:8080/realms/smart-grid' if kind else self.issuer
+        self.keys = PyJWKClient(self.backchannel + '/protocol/openid-connect/certs', timeout=3)
 
     def claims(self, token, audience=AUDIENCE):
         try:

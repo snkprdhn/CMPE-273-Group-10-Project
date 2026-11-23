@@ -26,7 +26,7 @@ def frame(event):
     return f"id: {event['cursor']}\nevent: {event['event_type']}\ndata: {json.dumps(event, allow_nan=False)}\n\n"
 
 
-def create_app(store, identities=None, mocks=None, oidc=None):
+def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
     if identities is None and oidc is None:
         from identity.auth import OIDC
         oidc = OIDC()
@@ -37,7 +37,8 @@ def create_app(store, identities=None, mocks=None, oidc=None):
             raise ValueError('Mock tokens must have at least 16 characters')
         validate('Id', actor['actor'])
         validate('Role', actor['role'])
-    mocks = mocks or ContractMocks()
+    if mocks is None and not live:
+        mocks = ContractMocks()
     app = FastAPI(title='Member_4 operations', docs_url=None,
                   redoc_url=None, openapi_url=None)
 
@@ -198,7 +199,7 @@ def create_app(store, identities=None, mocks=None, oidc=None):
         context = dict(actor, idempotency_key=key, request_id=request.state.request_id,
                        authorized_at=stamp(utc()),
                        traceparent=traceparent or ('00-' + uuid4().hex + '-' + uuid4().hex[:16] + '-01'),
-                       service_identity='member4.api.mock', deadline_ms=3000)
+                       service_identity='member4.api' if live else 'member4.api.mock', deadline_ms=3000)
         with store.transaction() as db:
             prior = db.execute('SELECT fingerprint,status,response FROM projection_operations WHERE actor=%s AND key=%s',
                                (actor['actor'], key)).fetchone()
@@ -216,6 +217,8 @@ def create_app(store, identities=None, mocks=None, oidc=None):
                 status = 200
                 store._emit(db, 'alert.updated', entity, result, now)
             else:
+                if mocks is None:
+                    raise ApiError(503, 'Live scenario and policy adapters are unavailable')
                 status, result = mocks.call(db, operation, entity, body, context, now)
                 validate('Policy' if operation == 'policy' else 'ScenarioRun', result)
                 if operation == 'policy':

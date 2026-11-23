@@ -110,6 +110,16 @@ def test_internal_failure_mapping(store, records, failure, status):
         assert db.execute('SELECT count(*) FROM projection_operations').fetchone()[0] == 0
 
 
+def test_live_scenario_does_not_report_mock_success(store):
+    with TestClient(create_app(store, IDENTITIES, live=True)) as client:
+        response = client.post('/api/v1/scenario-runs', headers=HEADERS,
+                               json={'scenario': 'normal', 'seed': 0, 'scale': 1, 'duration_seconds': 60})
+        assert response.status_code == 503
+        validate('HttpError', response.json())
+    with store.transaction() as db:
+        assert db.execute('SELECT count(*) FROM projection_operations').fetchone()[0] == 0
+
+
 def test_scenario_concurrent_replicas_and_acknowledgement(store, records, client):
     body = {'scenario':'normal', 'seed':0, 'scale':1, 'duration_seconds':60}
     def start(_):
