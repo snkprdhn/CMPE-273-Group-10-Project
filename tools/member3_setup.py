@@ -33,7 +33,8 @@ def main():
     from confluent_kafka.admin import AdminClient, NewTopic
     client = AdminClient({'bootstrap.servers': '127.0.0.1:19092'})
     existing = client.list_topics(timeout=5).topics
-    names = ['local-m3.' + topic for topic in ('grid.action.v1', 'grid.charger-command.v1', 'grid.transformer-load.v1', 'grid.command-result.v1')]
+    names = ['local-m3.' + topic for topic in ('grid.action.v1', 'grid.charger-command.v1', 'grid.transformer-load.v1',
+             'grid.command-result.v1', 'grid.telemetry.v1', 'grid.alert.v1')]
     names += ['__debezium-heartbeat.local-dev.member3.cdc']
     missing = [NewTopic(n, num_partitions=1, replication_factor=1) for n in names if n not in existing]
     if missing:

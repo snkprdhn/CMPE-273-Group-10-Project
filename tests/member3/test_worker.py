@@ -1,4 +1,5 @@
 """Worker input/cleanup boundaries without live dependencies."""
+from io import StringIO
 import threading
 
 import pytest
@@ -27,7 +28,8 @@ def setup_worker(monkeypatch, empty=False, revoke_fails=False):
     calls = []
     stopped = threading.Event()
     monkeypatch.setenv('CONTROL_DSN', 'unused')
-    monkeypatch.delenv('CONTROL_SNAPSHOTS', raising=False)
+    monkeypatch.setenv('CONTROL_SNAPSHOTS', 'test-snapshots.json')
+    monkeypatch.setattr(worker, 'open', lambda _: StringIO('[]'), raising=False)
     monkeypatch.setattr(worker.threading, 'Event', lambda: stopped)
     monkeypatch.setattr(worker.signal, 'signal', lambda *_: None)
 
@@ -63,7 +65,7 @@ def setup_worker(monkeypatch, empty=False, revoke_fails=False):
             calls.append('close')
 
     class Control:
-        def __init__(self, *args):
+        def __init__(self, *args, **kwargs):
             pass
         def reconcile(self, now):
             pass

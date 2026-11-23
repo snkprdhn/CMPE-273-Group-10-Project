@@ -58,8 +58,8 @@ monitoring on the frozen ActionStatus wire enum. Partial/time-out late results
 remain in review; approved operator compensation remains a future API milestone.
 
 Registry v1 supplies capabilities, not online/session/current-rate telemetry.
-Fixture snapshots provide those observations explicitly; a future live adapter
-must supply equally fresh evidence. Restore needs two distinct consecutive
+Fixture snapshots provide those observations explicitly. The live worker
+joins those capabilities with recent validated Kafka charger observations. Restore needs two distinct consecutive
 post-confirmation COMPLETE windows, verified current rates/capabilities and
 projected restored load below critical. Missing/stale state cannot satisfy any
 of those conditions. Automatic restore never releases a reviewed unknown outcome.

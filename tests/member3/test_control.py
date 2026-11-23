@@ -358,3 +358,21 @@ def test_final_retry_deadline_requires_review_before_ttl(control):
     assert state['actions'][0]['status'] == 'NEEDS_OPERATOR_REVIEW'
     assert state['actions'][0]['confirmed'] == 25
     assert state['transformers']['tx-fixture']['health'] == 'SAFE_HOLD'
+
+
+def test_recovery_survives_watermark_gap_between_fresh_windows(control):
+    case = deepcopy(CASES[10])
+    first, second = case['steps'][4], case['steps'][7]
+    first['now'] = '2026-11-22T18:30:28Z'
+    second['now'] = '2026-11-22T18:30:33Z'
+    for snapshot in case['steps'][6]['values']:
+        snapshot['device']['updated_at'] = second['now']
+        snapshot['telemetry']['observed_at'] = second['now']
+    replay(control, dict(steps=case['steps'][:5]))
+    control.tick(instant('2026-11-22T18:30:31Z'))
+    state = control.inspect()
+    assert state['transformers']['tx-fixture']['health'] == 'SAFE_HOLD'
+    assert len(state['commands']) == 2
+    state = replay(control, dict(steps=case['steps'][6:8]))
+    assert state['actions'][0]['status'] == 'RESTORE_DISPATCHED'
+    assert len(state['commands']) == 4

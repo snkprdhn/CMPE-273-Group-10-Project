@@ -144,13 +144,16 @@ def test_committed_rows_survive_connect_death_and_duplicates(control):
 
 
 @pytest.mark.skipif(not os.getenv('MEMBER3_KIND_TEST'), reason='worker test also requires kind')
-def test_worker_graceful_loss_and_restart_reconciliation(control):
+def test_worker_graceful_loss_and_restart_reconciliation(control, tmp_path):
     import signal
     import sys
     from member3.control import Control
     name = 'test-worker-' + uuid4().hex[:12]
     replay(control, dict(steps=CASES[0]['steps'][:2]))
-    env = dict(os.environ, CONTROL_DSN=control.dsn, LEASE_NAME=name)
+    # This restart test deliberately uses the standalone fixture boundary.
+    snapshots = tmp_path / 'snapshots.json'
+    snapshots.write_text('[]')
+    env = dict(os.environ, CONTROL_DSN=control.dsn, LEASE_NAME=name, CONTROL_SNAPSHOTS=str(snapshots))
     child = None
     try:
         for expected_epoch in (2, 3):

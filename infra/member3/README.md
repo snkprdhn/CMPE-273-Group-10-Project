@@ -13,6 +13,7 @@ From the repository root with the existing dependencies running:
 
 ```sh
 .tools/member3-venv/bin/python -m pip install --require-hashes -r member3/requirements.txt
+make bindings
 curl -fL -o .tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz https://repo.maven.apache.org/maven2/io/debezium/debezium-connector-postgres/3.0.8.Final/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz
 shasum -a 256 .tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz
 export CONTROL_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control
@@ -28,7 +29,7 @@ Expected archive SHA-256:
 `600806875b810abb96b3774f789d9ed33dbe4ac687d3ed9454bc0caa76b7279c`.
 The image build enforces it. Setup is additive/idempotent: creates the isolated
 `member3_delivery` schema, restricted `member3_cdc` replication role/publication,
-`member1_gateway` role/schema and four `local-m3.grid.*` topics plus heartbeat.
+`member1_gateway` role/schema and six `local-m3.grid.*` topics plus heartbeat.
 Disposable local credentials are versioned examples, never deployment secrets.
 Do not run `compose down`, `--remove-orphans`, reset volumes, delete replication
 slots/internal topics, or replace a Lease UID as a recovery shortcut.
@@ -60,12 +61,12 @@ The header `id` identifies a physical row; dedup by JSON `event_id`/`command_id`
 Action projections additionally compare `saga_version`.
 
 The following long-running commands are available for manual integration;
-startup/shutdown/restart of the worker is covered by the live test. A complete
-live observation/aggregation-to-device scenario is a later gate. Use separate
-terminals for two workers; one holds leadership. Default snapshots are empty
-and safely yield insufficient-capacity hold. Optional `CONTROL_SNAPSHOTS` names
-a JSON list with the same explicit capability/telemetry shape as Member_3 fixtures;
-static snapshots become stale and never provide a live-observation substitute.
+startup/shutdown/restart of the worker is covered by the live test. Use separate terminals for two workers. One holds leadership. The worker defaults
+to live Registry capabilities and Kafka telemetry. Set `REGISTRY_ACTION_TOKEN`
+for the configured Registry service identity. Set `CONTROL_SNAPSHOTS` to a JSON
+list to opt into the standalone fixture adapter. See the
+[isolated closed-loop runbook](../../docs/implementation/LOCAL_INTEGRATION.md)
+for a fresh run without historical input records.
 
 ```sh
 export CONTROL_DSN='postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control?options=-csearch_path%3Dmember3_delivery'

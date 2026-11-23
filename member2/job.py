@@ -58,6 +58,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bootstrap', default='kafka:9092')
     parser.add_argument('--run', required=True)
+    parser.add_argument('--prefix', help='explicit shared integration topic namespace')
     parser.add_argument('--topology', default='/app/member2/topology.json')
     parser.add_argument('--checkpoint', default='file:///checkpoints')
     parser.add_argument('--checkpoint-ms', type=int, default=2000)
@@ -67,6 +68,8 @@ def main():
         parser.error('bootstrap must contain Kafka host:port endpoints')
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,48}', args.run):
         parser.error('run must be 1-48 ASCII letters/digits/underscore/hyphen')
+    if args.prefix is not None and not re.fullmatch(r'[A-Za-z0-9_-][A-Za-z0-9_.-]{0,79}\.', args.prefix):
+        parser.error('prefix must be a bounded Kafka namespace ending in a period')
     if not 1000 <= args.checkpoint_ms <= 60000:
         parser.error('checkpoint-ms must be between 1000 and 60000')
     with open(args.topology) as fixture:
@@ -86,7 +89,7 @@ def main():
     env.get_checkpoint_config().set_externalized_checkpoint_retention(ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION)
     tables = StreamTableEnvironment.create(env)
     tables.get_config().get_configuration().set_string('pipeline.name', f'member2-{args.run}')
-    prefix = f'm2-{args.run}.'
+    prefix = args.prefix if args.prefix is not None else f'm2-{args.run}.'
     # Raw formats permit malformed payloads and null/wrong keys to reach the DLQ.
     tables.execute_sql(f"""CREATE TABLE telemetry (
         kafka_key STRING, body STRING,

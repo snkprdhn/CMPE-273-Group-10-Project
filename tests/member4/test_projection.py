@@ -147,3 +147,27 @@ def test_migration_repeatable_and_source_checkpoints_durable(store, records):
     with store.transaction() as db:
         assert db.execute('SELECT version FROM projection_migrations').fetchall() == [(1,)]
         assert db.execute('SELECT offset_value FROM projection_offsets').fetchone()[0] == 10
+
+
+def test_positive_normal_classification_requires_exact_owner_marker_and_revision(store, records):
+    store.context(records)
+    events = records['events']
+    load = deepcopy(next(r for r in events if TOPICS[r['topic']] == 'Load'))
+    load['event']['event_id'] = str(uuid4())
+    load['event']['payload']['revision'] = 1
+    feed(store, [load])
+    assert view(store)['transformers'][0]['state'] == 'STALE'
+
+    alert = deepcopy(next(r for r in events if TOPICS[r['topic']] == 'Alert'))
+    alert['event']['event_id'] = str(uuid4())
+    alert['event']['payload'].update(alert_id='classification-fixture', status='RESOLVED',
+                                      load_revision=1, message='Operator resolved alert')
+    feed(store, [alert])
+    assert view(store)['transformers'][0]['state'] == 'STALE'
+
+    alert['event']['event_id'] = str(uuid4())
+    alert['event']['event_time'] = '2026-11-09T18:30:06Z'
+    alert['event']['payload']['message'] = 'Authoritative load classification: NORMAL'
+    feed(store, [alert])
+    assert view(store)['transformers'][0]['state'] == 'NORMAL'
+    assert view(store, NOW + timedelta(seconds=16))['transformers'][0]['state'] == 'STALE'

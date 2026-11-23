@@ -105,8 +105,9 @@ Registry/Control table reads. v1 has no inventory/policy/state/health/scenario
 Kafka events. Unknown device/transformer events remain journaled but cannot invent
 inventory or policy. Overview/inventory freshness becomes partial when events
 reference unknown context, with a degraded `system.health` notification for live
-clients. A production feed for that context is an explicit integration
-gate. No control thresholds or recovery state machine are implemented here.
+clients. The [local integration profile](../docs/implementation/LOCAL_INTEGRATION.md)
+fetches device capabilities from Registry gRPC using explicit topology IDs and
+initializes the transformer context with a committed Flink load. No control thresholds or recovery state machine are implemented here.
 
 Loads order by window end and revision; action transitions use `saga_version`;
 telemetry uses event-time/sequence, then boot/event identity for a deterministic
@@ -118,7 +119,8 @@ fails without committing either the input checkpoint or the journal. A recorded
 load that conflicts with the same version of its fixture snapshot also fails,
 regardless of which was loaded first. Future event/load timestamps beyond the
 five-second clock allowance are rejected rather than remaining falsely fresh.
-An unresolved alert classifies only its matching load window/revision. Missing
+An unresolved alert classifies only its matching load window/revision. The
+explicit owner NORMAL classification also applies only to its exact revision. Missing
 classification for a new load yields `state=STALE` and at best `freshness=PARTIAL`;
 old/STALE completeness yields stale data. The API never infers NORMAL or recovery
 from absent alerts. The frozen schema has no RECOVERING Transformer state.

@@ -6,7 +6,8 @@ The requested outbox/fencing gate is implemented under
 [ADR-029](../decisions/ADR-029-outbox-and-fencing.md): local Kafka Connect/Debezium,
 kind Lease leadership, durable epochs and atomic PostgreSQL simulated gateway
 effects. See the [delivery runbook](../../infra/member3/README.md). This does not
-claim full Phase 3/4 integration or live charger observation acquisition.
+claim full Phase 4 deployment. Follow the [local integration runbook](LOCAL_INTEGRATION.md)
+for the Phase 3 component acceptance profile and its separate kind deployment limit.
 
 ## 1. Purpose
 

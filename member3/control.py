@@ -15,11 +15,12 @@ class Conflict(ValueError):
 
 
 class Control:
-    def __init__(self, dsn, registry, leader_epoch=1, leadership=None):
+    def __init__(self, dsn, registry, leader_epoch=1, leadership=None, publish_alerts=False):
         if isinstance(leader_epoch, bool) or not isinstance(leader_epoch, int) or leader_epoch < 1:
             raise ValueError('positive leader epoch required')
         self.dsn, self.registry, self.epoch = dsn, registry, leader_epoch
         self.leadership = leadership
+        self.publish_alerts = publish_alerts
 
     @contextmanager
     def transaction(self, migration=False):
@@ -86,7 +87,7 @@ class Control:
     def outbox(self, db, event, schema, key, delivery=None):
         validate(schema, event)
         db.execute('INSERT INTO action_outbox(id,aggregatetype,aggregateid,type,payload) VALUES (%s,%s,%s,%s,%s)',
-                   (delivery or event['event_id'], 'grid.action.v1' if schema == 'Action' else 'grid.charger-command.v1',
+                   (delivery or event['event_id'], {'Action':'grid.action.v1','Command':'grid.charger-command.v1','Alert':'grid.alert.v1'}[schema],
                     key, event['event_type'], Jsonb(event)))
 
     def envelope(self, kind, payload, now, eid, action, cause):
@@ -165,6 +166,20 @@ class Control:
             policy = state['policy']
             state['health'] = ('SAFE_HOLD' if not valid else 'CRITICAL' if p['utilization_pct'] >= policy['critical_pct']
                                else 'WARNING' if p['utilization_pct'] >= policy['warning_pct'] else 'NORMAL')
+            if self.publish_alerts and valid:
+                health = state['health']
+                alert = dict(alert_id=identity(f"classification/{p['window_id']}"), transformer_id=key,
+                    severity='CRITICAL' if health == 'CRITICAL' else 'WARNING',
+                    status='OPEN' if health in ('WARNING','CRITICAL') else 'RESOLVED',
+                    load_window_id=p['window_id'], load_revision=p['revision'],
+                    message='Authoritative load classification: ' + health, opened_at=stamp(now))
+                if alert['status'] == 'RESOLVED':
+                    alert['resolved_at'] = stamp(now)
+                envelope = dict(event_id=identity(f"classification/{p['window_id']}/{p['revision']}"),
+                    event_type='alert.transition', schema_version=1, source='member3.action',
+                    event_time=stamp(now), ingested_at=stamp(now), correlation_id=event['correlation_id'],
+                    causation_id=event['event_id'], payload=alert)
+                self.outbox(db, envelope, 'Alert', key)
             a = self.active(db, key)
             if a:
                 self.recovery(db, a, state, previous, now, event['event_id'])
@@ -331,7 +346,10 @@ class Control:
             for (a,) in db.execute('SELECT state FROM action_plans WHERE active ORDER BY id').fetchall():
                 version, state = self.transformer(db, a['tx'])
                 if state['latest'] and not fresh(state['latest'], now):
-                    state['health'], state['recovery'], state['recovery_end'] = 'SAFE_HOLD', 0, None
+                    # A window can age out before the next contiguous window
+                    # clears the watermark. Only a new unsafe/gapped window
+                    # breaks the streak; a timer can never dispatch restore.
+                    state['health'] = 'SAFE_HOLD'
                 kind = 'RESTORE' if a['status'] == 'RESTORE_DISPATCHED' else 'THROTTLE'
                 if a['status'] in ('ACKS_PENDING', 'RESTORE_DISPATCHED'):
                     timed_out = False

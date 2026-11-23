@@ -180,6 +180,11 @@ class Store:
                         a['status'] != 'RESOLVED']
             if matching:
                 t['state'] = max(matching, key=lambda a: a['severity'] == 'CRITICAL')['severity']
+            elif any(a['transformer_id'] == t['transformer_id'] and
+                     a['load_window_id'] == p['window_id'] and a['load_revision'] == p['revision'] and
+                     a['status'] == 'RESOLVED' and
+                     a['message'] == 'Authoritative load classification: NORMAL' for a in alerts):
+                t['state'] = 'NORMAL'
             elif p != base['load']:
                 # Classification belongs to Control; missing evidence is never NORMAL.
                 t['state'] = 'STALE'

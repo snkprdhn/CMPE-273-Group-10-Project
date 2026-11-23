@@ -16,6 +16,7 @@ From the repository root, create the independent environment (Python 3.12.9):
 ```sh
 .venv/bin/python -m venv .tools/member3-venv
 .tools/member3-venv/bin/python -m pip install --require-hashes -r member3/requirements.txt
+make bindings
 ```
 
 The lock reuses accepted versions/hashes; offline installation can add
@@ -124,7 +125,9 @@ commits authorization/effect/dedup/result outbox in one PostgreSQL transaction.
 See [delivery runbook](../infra/member3/README.md) for executed failure checks and
 local commands. The SQLite standalone simulator retains its narrower guarantee.
 
-Live observation acquisition, authenticated operator reconciliation/compensation,
+The live worker combines Registry capabilities with fresh Kafka charger telemetry.
+See the [closed-loop runbook](../docs/implementation/LOCAL_INTEGRATION.md).
+Authenticated operator reconciliation/compensation,
 full kind workload packaging, metrics, backup/export and database-server restart
 acceptance remain future milestones. Reviewed sagas deliberately remain held
 until that explicit operator workflow exists. No cloud/model calls are needed.

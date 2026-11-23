@@ -1,11 +1,12 @@
 # Implementation status
 
-Updated **2026-11-22 (America/Los_Angeles)** for Member_4 local Keycloak/OIDC identity acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-22 (America/Los_Angeles)** for local component integration acceptance. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
 ## Completed milestones
 
 | Milestone | Result | Evidence |
 |---|---|---|
+| Local component integration | Four boundary assertions and deterministic closed loop pass on host/Compose with the kind Lease | [Runbook](LOCAL_INTEGRATION.md), executed evidence below |
 | Repository/machine preparation | Accepted small Python/container stack, ADRs, manual prerequisites, resource profiles and root conventions | [Matrix](VERSION_MATRIX.md), [prerequisites](LOCAL_PREREQUISITES.md), [preparation evidence](PREPARATION_VERIFICATION.md) |
 | Existing local prerequisites/empty cluster | Managed Python 3.12.9, isolated preparation venv, pinned native tools, Docker Desktop with built-in Kubernetes disabled, empty kind Kubernetes 1.34.0 | Read-only inventory reconfirmed below; earlier setup commands/digests retained in preparation evidence |
 | Minimum local development infrastructure | One Kafka broker, PostgreSQL primary, on-demand Toxiproxy; isolated stores, real smoke checks, restart persistence, guarded reset | [Compose runbook](../../infra/compose/README.md), executed acceptance below |
@@ -19,6 +20,104 @@ Updated **2026-11-22 (America/Los_Angeles)** for Member_4 local Keycloak/OIDC id
 | Member_4 projections and API | Replay-safe Kafka/SQL projections, migrations/rebuild, REST snapshots/filters/pages, durable cross-replica SSE/reset, freshness and internal contract mocks | [Runbook](../../member4/README.md), [ADR-030](../decisions/ADR-030-member4-projections-api.md), executed evidence below |
 
 ## Current milestone and verification
+
+**Local component integration and the deterministic closed loop pass in the
+host/Compose profile.** The Action worker acquires its Lease from local kind.
+Member_1 owns simulation/Registry/observability, Member_2 Kafka/PyFlink,
+Member_3 control/PostgreSQL/Debezium, and Member_4 projection/API/UI/identity/Copilot.
+See the [runbook](LOCAL_INTEGRATION.md) and [ADR-033](../decisions/ADR-033-live-component-integration.md).
+
+### Executed closed-loop evidence
+
+Run `loop03` started at `2026-11-23T03:11:24.103932Z` and finished at
+`2026-11-23T03:13:07.785648Z`. Its report and browser capture are under
+`.tools/integration/loop03/`. Seed 273 and 276 emitted input readings are
+recorded in the report. The 20 kW topology yielded 16 COMPLETE loads and
+89 completed checkpoints.
+
+| Phase | Expected kW | Observed kW |
+|---|---:|---:|
+| Normal | 13.2 | 13.2 |
+| Critical overload | 20.2 | 20.2 |
+| Throttled, original meter demand | 15 | 15 |
+| Recovery while throttled | 8 | 8 |
+| After safe restore | 13.2 | 13.2 |
+
+- Action `254170d5-e9b5-5d25-9e2c-6aa3adeb0f8f` reached COMPLETED
+  in seven transitions at Lease epoch 1. The confirmed reduction was 5.2 kW.
+- Throttle `557dc3d5-5e91-5609-b929-d379c55cad77` applied 2 kW.
+  Replaying it produced ALREADY_APPLIED without another effect.
+- Restore `9a9d36ed-d76c-5753-b92a-e34f17fcaae8` applied 7.2 kW after
+  two consecutive fresh recovery windows. The charger finished at 7.2 kW
+  with exactly two durable effects.
+- Kafka journal replay reproduced current projection rows. REST and SSE matched
+  the completed Action payload. Chromium verified the Action ID, COMPLETED
+  status and applied result in the real dashboard. The harness used its local
+  configured Viewer identity. All four gate assertions ran separately over
+  the shared live capture. Independent live deployments per gate were not run.
+
+| Exact command | Result |
+|---|---|
+| `.tools/member3-venv/bin/python -m tools.integration_setup --run loop03` | Created run-owned SQL state and CDC connector |
+| `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/member3-venv/bin/python -m tools.integration --run loop03 --config .tools/integration-config/loop03.json --start-flink` | Four gates and host/Compose closed loop PASS, no cleanup errors |
+| `.tools/member3-venv/bin/python -m tools.integration --check-gate "$gate" --report .tools/integration/loop03/report.json` for `member1-member2`, `member2-member3`, `member3-member1`, `members23-member4` | Each invocation PASS |
+| `make contracts BASE_REF=HEAD` | 214 passed |
+| `make member1-live` | 23 passed, plus binding generation and 214 contract checks |
+| `make member2-test` | 43 passed |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | 85 passed, three opt-in checks skipped |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control MEMBER3_KIND_TEST=1 MEMBER3_CDC_TEST=1 .tools/member3-venv/bin/python -m pytest -q tests/member3/test_cdc_live.py::test_worker_graceful_loss_and_restart_reconciliation tests/member3/test_worker.py` | 4 passed |
+| `make identity-api-test` | 37 passed including the classification regression |
+| `make dashboard-test` | 29 passed |
+| `.venv/bin/python -m pytest -q tests/test_integration_evidence.py tests/test_preparation_docs.py` | 7 passed |
+| `.venv/bin/python -m compileall -q member2 member3 member4 tools` and `git diff --check` | Passed |
+
+`loop01` found that a missing Debezium heartbeat topic blocked outbox delivery.
+`loop02` verified throttle and duplicate acknowledgement, but a timer reset
+the recovery streak while the next load was still behind the Flink watermark.
+The timer now marks aged loads held while a fresh contiguous load is required
+to advance the streak. Both failures are retained in their run reports. A fresh setup attempt
+(`loop05`) found a transient Connect status 404 during assignment. Setup now
+waits for the assigned task. In `loop06`, a heartbeat could update the Registry
+just after Action captured the evaluation timestamp, leaving the latest
+heartbeat too new for that query. The runner now reports the completed sample
+interval with a two-second observation lag, within the 15-second freshness limit.
+
+The repeat run `loop04` passed all four gates and the full host/Compose loop
+at `2026-11-23T03:16:27.898119Z`. It recorded 387 input readings, 24 COMPLETE
+windows, 126 completed checkpoints and a final 13.2 kW load at 66% utilization.
+Action `8f6f155d-f3ab-56a1-9626-303d3d5cc3b7` completed. Throttle
+`978c5f2e-49aa-5347-9168-6ca9e60e1495` returned APPLIED and ALREADY_APPLIED.
+Restore `a00bf720-04c5-55c3-9bd7-f76fe802abc6` returned APPLIED. The final
+charger rate was 7.2 kW with two effects. The report includes the matching REST
+and SSE payloads and the Chromium assertion under `.tools/integration/loop04/`.
+
+- `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/member3-venv/bin/python -m tools.integration --run loop04 --config .tools/integration-config/loop04.json --start-flink` passed after restoring connector capacity and handling already provisioned topics. The first setup attempt hit the four replication sender limit. The failed attempts were preserved. The four `--check-gate` invocations above each passed again with `loop04/report.json`.
+- `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection MEMBER4_TEST_KAFKA=127.0.0.1:19092 .tools/member4-venv/bin/python -m pytest -q tests/member4/test_kafka_live.py tests/member4/test_stream_live.py` passed all six tests.
+- The run-owned CDC connectors and inactive replication slots were removed after retaining SQL/Kafka evidence. The existing `member3-outbox` connector and `member2-review02` job remained running.
+
+The final verification run `loop07` went from `2026-11-23T03:19:49.713870Z`
+to `2026-11-23T03:21:28.528690Z`. It passed fresh provisioning, all four
+boundary assertions, the closed loop, and cleanup. Seed 273 produced 258
+recorded input readings and 15 committed load windows with 72 completed
+checkpoints. The final load was 13.2 kW. Action
+`004d6640-d9f4-50b9-a645-2cfef2f7c590` completed. Throttle
+`e3cecdc1-81b1-5e6d-b621-5bbb60d73408` applied 2 kW and replay returned
+ALREADY_APPLIED. Restore `266bac56-c746-564a-99f3-5a678cbd174a` applied
+7.2 kW, with exactly two total charger effects. The report, matching REST
+and SSE payloads, and Chromium screenshot are under `.tools/integration/loop07/`.
+
+| Exact command | Result |
+|---|---|
+| `.tools/member3-venv/bin/python -m tools.integration_setup --run loop07` | Provisioned fresh topics, schemas, publication and running connector |
+| `PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/member3-venv/bin/python -m tools.integration --run loop07 --config .tools/integration-config/loop07.json --start-flink` | Exit 0. All four gates and full loop PASS. Flink job CANCELED during teardown and no cleanup errors. |
+| `.tools/member3-venv/bin/python -m tools.integration --check-gate "$gate" --report .tools/integration/loop07/report.json` for `member1-member2`, `member2-member3`, `member3-member1`, `members23-member4` | Four independent assertion invocations PASS |
+
+**Next recommended milestone:** package and run the closed loop in the local
+kind integration namespace, then verify the kind deployment gates. Live
+operator policy and scenario mutation delivery and Copilot remain separate.
+No cloud resources, paid calls, commits or pushes were made.
+
+## Previous milestone — Member_4 local identity
 
 **Member_4 local Keycloak/OIDC identity and application authorization are implemented
 in the standalone local profile.** See [ADR-032](../decisions/ADR-032-member4-local-identity.md)
