@@ -1,5 +1,7 @@
 # Acceptance and Final Demonstration Plan
 
+The original design targets and broader failure demonstrations are retained below. Use the [final demo](FINAL_DEMO.md) for the runnable local sequence and the [design audit](DESIGN_AUDIT.md) for delivered and open gates.
+
 ## Proposed success criteria
 
 The final submission must distinguish proposed targets from measured results. Measurements include the demo machine, configuration, event rate, duration, and raw evidence location.

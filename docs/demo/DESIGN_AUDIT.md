@@ -1,0 +1,31 @@
+# Design-to-delivery audit
+
+Scope comes from the [system design](../design/SYSTEM_DESIGN.md), [delivery boundaries](../design/PROJECT_SCOPE.md), [acceptance plan](ACCEPTANCE_PLAN.md) and [accepted ADRs](../decisions/README.md). The status for a feature distinguishes implementation from its wider acceptance goal. Historical verification is indexed in the [implementation status](../implementation/IMPLEMENTATION_STATUS.md).
+
+| Design item | Status | Delivered behavior and evidence boundary |
+|---|---|---|
+| FR-01 EV, meter, solar, Registry enrollment/heartbeat | Implemented | Seeded devices, owned registry persistence, gRPC timeouts and validated topology. |
+| FR-02 Event identity, device and arrival times, compatible contracts | Implemented | Executable v1 contracts, generated Protobuf bindings and golden examples. [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) |
+| FR-03 Kafka partitioning and consumers | Implemented | Transformer keys, three partitions/domain topic, owned groups, read-committed replay. Dev RF1 and review RF3/minISR2. |
+| FR-04 Net load, utilization, watermarks, revisions, DLQ | Changed through ADR | Fixed v1 topology, one aggregation task and bounded dedup state. Golden and standalone late/correction/checkpoint evidence. [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md) |
+| FR-05 Normal, warning, critical, stale and recovery | Changed through ADR | Recovery follows the Action lifecycle. Projections use owner classification for matching load revisions. [ADR-030](../decisions/ADR-030-member4-projections-api.md) |
+| FR-06 Charger selection, throttle, hysteresis and restore | Implemented | Kind smoke exercises the deterministic saga and checks unsafe demand, safe reduction and return to 7.2 kW. |
+| FR-07 Device results, duplicate and uncertain outcomes | Changed through ADR | Kind commits the simulated effect and result outbox in PostgreSQL. Standalone uses SQLite. The guarantee applies to logical simulated device effects. [ADR-029](../decisions/ADR-029-outbox-and-fencing.md) |
+| FR-08 History/configuration and owned persistence | Implemented | Transactional control/inbox/outbox, journaled projections, Registry and identity stores. Live policy writes tracked separately below. |
+| FR-09 Live browser with REST, SSE and scenario controls | Changed through ADR | NiceGUI, explicit stale states and OIDC. Live scenario/policy write adapters return 503. Contract mocks exercise validation and concurrency. [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md), [ADR-032](../decisions/ADR-032-member4-local-identity.md), [ADR-034](../decisions/ADR-034-local-kind-deployment.md) |
+| FR-10 Late, duplicate, restart and degradation demonstrations | Implemented | Standalone PyFlink TaskManager recovery and late fixtures, closed-loop dedup, projection replay and bounded SQL lock incident. Wider fault gates below. |
+| FR-11 Kubernetes runtime and replication | Changed through ADR | Single Docker Desktop kind node, Calico, scoped Helm/Kustomize, dev/review profiles and PVCs. Partial proof of resilience on a common host. [ADR-034](../decisions/ADR-034-local-kind-deployment.md) |
+| FR-12 Action leader transfer and stale-epoch rejection | Unverified | Lease/fencing and component rejections exist. Complete live review leader kill → transfer → stale command → new valid command remains open. |
+| FR-13 Correlated telemetry and investigation | Changed through ADR | Trace context across principal boundaries, bounded metrics and structured logs. The seeded SQL incident packet documents a projection dependency fault. [ADR-035](../decisions/ADR-035-local-observability.md) |
+| FR-14 Grounded and authorized Investigator | Changed through ADR | Seven typed handlers, deterministic mock, scoped citations, budgets, audit and explicit uncertainty. Live kind Operator, Viewer and write-denial checks passed. Kind metric/trace tool wiring remains open. [ADR-036](../decisions/ADR-036-grid-incident-investigator.md) |
+| Role and service authorization | Implemented | Keycloak Viewer/Operator/Admin, RBAC restrictions and real Calico ingress/egress checks. |
+| Full production transport/operational security | Deferred | Plaintext local Kafka under NetworkPolicy, loopback HTTP, and synthetic credentials. Kafka TLS/ACLs and production ingress are future work. |
+| Live policy optimistic conflict and scenario commands | Deferred | Mock/independent domain conflict coverage exists. Live adapters and their failure evidence remain open. |
+| Broker loss, API replica readiness loss, action failover, exporter loss | Unverified | Topology and recovery mechanisms exist. Component or deployment readiness evidence cannot establish these live failure outcomes. |
+| Flink rescaling, autoscaling, multi-node resilience | Deferred | Single aggregation task and one kind node are the ADR baseline. |
+| UI reconnect and stale UX | Implemented | Fixture-browser behavior and projection cursor/retention tests. The live UI freshness target remains unmeasured. |
+| Policy/storage recovery | Implemented | Four logical archives restored into disposable PostgreSQL databases with exact row and sequence comparisons. Fresh-cluster CDC/WAL cutover remains unverified. |
+| Scale and SLO targets | Unverified | The three-device run offered 3/9/30 events/s and achieved 2.9/7.2/22.9. Concurrent HTTP/SSE expired its token. The corrected HTTP-only baseline passed. 100-device/100 events/s, p95 freshness, soak, and SLO attainment remain open. [Load report](../testing/LOAD_TEST_REPORT.md) |
+| Mock-provider timeout, invalid citations and prompt injection | Implemented | Independent deterministic provider failure/denial tests. Control-loop exercise under live provider or Copilot outage remains unverified. |
+| Cloud, external model API, real utility equipment and production HA | Deferred | Local synthetic data and deterministic mock only. See the [full exclusions](../design/PROJECT_SCOPE.md#explicitly-excluded). |
+| CI, signing and publication | Unverified | Workflows use standard hosted runners, image builds, render checks, scans and SBOMs. Hosted execution requires a PR or push. Signing, image publishing and automatic local deployments are deferred. |

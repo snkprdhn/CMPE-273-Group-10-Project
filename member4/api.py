@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 
 from observability import HTTPMiddleware, boundary, sse_reset
 
-from member4.contracts import ApiError, BUNDLE, FORMATS, OPENAPI, instant, stamp, utc, validate
+from member4.contracts import ApiError, BUNDLE, FORMATS, OPENAPI, TOPICS, instant, stamp, utc, validate
 from member4.operations import ContractMocks
 from member4.store import freshness
 
@@ -303,10 +303,13 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
             raise ApiError(400, 'Exactly one entity scope required')
         field, entity = next(iter(q.items()))
         validate('Id', entity)
+        kinds = ('Action', 'Alert') if field == 'transformer_id' else ('Action', 'Command', 'Result')
+        topics = [topic for topic, kind in TOPICS.items() if kind in kinds]
         with store.transaction() as db:
             # Read only the owned journal; never another member's domain tables.
-            rows = db.execute("SELECT event FROM projection_events WHERE event->'payload'->>%s=%s ORDER BY (event->>'event_time')::timestamptz LIMIT 201",
-                              (field, entity)).fetchall()
+            rows = db.execute("SELECT event FROM projection_events WHERE topic=ANY(%s) AND event->'payload'->>%s=%s "
+                              "ORDER BY (event->>'event_time')::timestamptz LIMIT 201",
+                              (topics, field, entity)).fetchall()
             if len(rows) > 200:
                 raise ApiError(429, 'Projection history exceeds bounded read')
             events = [r[0] for r in rows]

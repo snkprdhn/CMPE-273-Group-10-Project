@@ -146,3 +146,32 @@ The measured development node used 4680–4857 MiB and the review node used
 6956–7296 MiB during their six acceptance samples. Run profiles separately.
 Docker Desktop can restart existing kind nodes after its VM is restarted.
 Inspect `docker ps` and stop competing nodes before starting the next profile.
+
+## Delivery rehearsal and troubleshooting
+
+Use the [README](../../README.md#reproduce-the-local-demo) for the full acceptance
+suite and [local recovery](../../docs/runbooks/LOCAL_RECOVERY.md) for backups,
+projection rebuild, and Flink checks. A name such as
+`smart-grid-kind-dev-demo01` gets `.tools/kind-dev-demo01.kubeconfig`,
+`.tools/kind-dev-demo01/` and its own Docker image tags. Temporary acceptance
+forwards bind only to loopback. Close any earlier UI/API/Investigator or
+observability forwards before running the suite.
+
+When startup stalls, read the most recent pod events and operator status for
+the exact named cluster before retrying. Cold upstream image downloads can
+leave a pod in `ContainerCreating` for a few minutes.
+
+```sh
+grid_kubeconfig=".tools/${KIND_NAME#smart-grid-}.kubeconfig"
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" get nodes
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" get pods -A
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" get events -A --sort-by=.lastTimestamp
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" -n platform get kafkaconnector,flinkdeployment,lease,pvc
+```
+
+If the node lost connectivity, check Docker context, free VM memory,
+Calico/CoreDNS and PVC status first. Retry the failed install/deploy stage
+after its dependency is healthy. Once the simulator Job exists, preserve
+its report and use a fresh name to replay the scenario. Use
+`make kind-stop` for retention and `make kind-reset CONFIRM="$KIND_NAME"`
+to discard the named node and remove only its rehearsal tags after export.

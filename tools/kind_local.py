@@ -56,6 +56,15 @@ def download(path, url, expected):
     return digest(path, expected)
 
 
+def chart_archive(chart):
+    filename, checksum, source = CHARTS[chart]
+    DOWNLOAD.mkdir(parents=True, exist_ok=True)
+    path = DOWNLOAD / filename
+    if not path.exists():
+        run(BIN / 'helm', 'pull', *source, '--destination', DOWNLOAD)
+    return digest(path, checksum)
+
+
 def calico_manifest(path):
     body = path.read_text()
     edits = {
@@ -134,8 +143,9 @@ class Cluster:
         if not re.fullmatch(prefix + r'(-[a-z0-9]{1,16})?', self.name):
             raise ValueError(f'Cluster name must be {prefix} or append a lowercase alphanumeric suffix.')
         self.node = self.name + '-control-plane'
-        self.directory = ROOT / '.tools' / ('kind-' + profile)
-        self.kubeconfig = ROOT / '.tools' / ('kind-' + profile + '.kubeconfig')
+        name = self.name.removeprefix('smart-grid-')
+        self.directory = ROOT / '.tools' / name
+        self.kubeconfig = self.directory.with_suffix('.kubeconfig')
         self.kubectl = [BIN / 'kubectl', '--kubeconfig', self.kubeconfig, '--context', 'kind-' + self.name]
         self.helm = [BIN / 'helm', '--kubeconfig', self.kubeconfig, '--kube-context', 'kind-' + self.name]
 
@@ -207,12 +217,7 @@ class Cluster:
             self.api_policy()
 
     def chart(self, chart, release, namespace):
-        filename, checksum, source = CHARTS[chart]
-        DOWNLOAD.mkdir(parents=True, exist_ok=True)
-        path = DOWNLOAD / filename
-        if not path.exists():
-            run(BIN / 'helm', 'pull', *source, '--destination', DOWNLOAD)
-        run(*self.helm, 'upgrade', '--install', release, digest(path, checksum),
+        run(*self.helm, 'upgrade', '--install', release, chart_archive(chart),
             '-n', namespace, '--create-namespace', '-f', INFRA / 'charts' / (chart + '.yaml'),
             '--wait', '--timeout', '7m')
 
@@ -224,26 +229,16 @@ class Cluster:
             '--context', 'kind-' + self.name, '--kubeconfig', self.kubeconfig)
 
     def build(self):
-        download(ROOT / '.tools/downloads/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz',
-                 'https://repo.maven.apache.org/maven2/io/debezium/debezium-connector-postgres/3.0.8.Final/debezium-connector-postgres-3.0.8.Final-plugin.tar.gz',
-                 '600806875b810abb96b3774f789d9ed33dbe4ac687d3ed9454bc0caa76b7279c')
-        run('make', 'bindings')
-        builds = [
-            ('registry:v1', 'member1/Dockerfile', 'registry'),
-            ('action:v1', 'infra/kind/Dockerfile', 'action'), ('api:v1', 'infra/kind/Dockerfile', 'api'),
-            ('copilot:v1', 'infra/kind/Dockerfile', 'copilot'),
-            ('ui:v1', 'infra/kind/Dockerfile', 'ui'), ('acceptance:v1', 'infra/kind/Dockerfile', 'acceptance'),
-            ('connect:3.0.8-v1', 'infra/member3/Dockerfile.connect', 'strimzi'),
-            ('aggregation:2.2.1-v1', 'member2/Dockerfile', None),
-        ]
-        images = []
-        for tag, file, target in builds:
-            image = 'smart-grid-kind/' + tag
-            run('docker', 'build', '--provenance=false', '-f', file, '-t', image, *(['--target', target] if target else []), '.')
-            images.append(image)
+        from tools.delivery_images import build
+
+        repository = 'smart-grid-kind' if self.name == 'smart-grid-kind-' + self.profile else self.name
+        images = build(repository, self.directory / 'images.json')
         # Export separately to keep peak memory and temporary disk usage bounded.
-        for image in images:
+        for image, details in images.items():
             run(BIN / 'kind', 'load', 'docker-image', '--name', self.name, image)
+            if image != details['manifest_image']:
+                run('docker', 'exec', self.node, 'ctr', '-n', 'k8s.io', 'images', 'tag', '--force',
+                    'docker.io/' + image, 'docker.io/' + details['manifest_image'])
 
     def credentials(self):
         path = self.directory / 'local.json'
@@ -322,7 +317,7 @@ class Cluster:
         try:
             self.k('--request-timeout=10s', 'cordon', self.node)
             # Let workers flush and release authority before their Kafka and SQL dependencies.
-            for group in ('simulator,ui,api,projection,action,registry,keycloak,aggregation,connect,topic-operator',
+            for group in ('simulator,ui,copilot,api,projection,action,registry,keycloak,aggregation,connect,topic-operator',
                           'kafka,postgres'):
                 self.k('--request-timeout=15s', 'delete', 'pods', '-l', f'grid-app in ({group})',
                        '--ignore-not-found', '--timeout=75s')
@@ -393,15 +388,29 @@ class Cluster:
     def open_ui(self):
         self.k('port-forward', '--address', '127.0.0.1', 'svc/ui', '18086:18086')
 
+    def reset(self):
+        run(BIN / 'kind', 'delete', 'cluster', '--name', self.name, '--kubeconfig', self.kubeconfig)
+        from tools.delivery_images import IMAGES
+
+        prefix = self.name + '/'
+        tags = {prefix + tag for tag, *_ in IMAGES}
+        present = set(run('docker', 'image', 'ls', '--format', '{{.Repository}}:{{.Tag}}', capture=True).split())
+        if tags & present:
+            run('docker', 'image', 'rm', *sorted(tags & present))
+        print(f'Kept private evidence in {self.directory}')
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['create', 'install', 'deploy', 'inspect', 'stop', 'smoke', 'policy', 'measure', 'open-ui'])
+    parser.add_argument('command', choices=['create', 'install', 'deploy', 'inspect', 'stop', 'reset', 'smoke', 'policy', 'measure', 'open-ui'])
     parser.add_argument('--profile', choices=['dev', 'review'], default='dev')
-    parser.add_argument('--name', help='Optional profile-specific cluster name for a separate checkout')
+    parser.add_argument('--name', help='Optional profile-specific cluster name with isolated state')
+    parser.add_argument('--confirm', help='Repeat the exact named cluster for destructive reset')
     args = parser.parse_args()
     try:
         cluster = Cluster(args.profile, args.name)
+        if args.command == 'reset' and (args.confirm != cluster.name or cluster.name == 'smart-grid-kind-' + cluster.profile):
+            parser.error('Reset requires a dedicated cluster name with a suffix and matching --confirm')
         if run('docker', 'info', '--format', '{{.OperatingSystem}}', capture=True).strip() != 'Docker Desktop':
             raise RuntimeError('Select the Docker Desktop engine for the local kind profile.')
         if args.command == 'smoke':

@@ -1,28 +1,27 @@
-# Member_1 isolated local load tools; resolved on macOS ARM64/Python 3.12.9.
-# Locust selected pin: 2.33.2. Cross-platform/hash verification remains open.
-blinker==1.9.0
-brotli==1.2.1
-certifi==2026.11.20
-charset-normalizer==3.5.3
-click==8.5.1
-ConfigArgParse==1.10.2
-Flask==3.1.3
-flask-cors==6.0.5
-Flask-Login==0.6.3
-gevent==26.9.0
-geventhttpclient==2.6.2
-greenlet==3.5.6
-idna==3.20
-itsdangerous==2.2.0
-Jinja2==3.1.6
-locust==2.33.2
-MarkupSafe==3.0.4
-msgpack==1.2.4
-psutil==7.2.2
-pyzmq==27.3.0
-requests==2.34.2
-setuptools==84.2.1
-urllib3==2.8.0
-Werkzeug==3.1.9
-zope.event==6.2
-zope.interface==8.7
+# Member_1 isolated local load tools; hash-locked for macOS ARM64/Python 3.12.9.
+blinker==1.9.0 --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
+brotli==1.2.1 --hash=sha256:3975fb11f63e212b87a087e4a910187b522c6969a4989ca362d6f85f9dc36acd
+certifi==2026.11.20 --hash=sha256:7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f
+charset-normalizer==3.5.3 --hash=sha256:92bf85ecec3ad6374ae50d870bd1deb34de12bc1158b5fd09036d4c435c6f58c
+click==8.5.1 --hash=sha256:8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37
+ConfigArgParse==1.10.2 --hash=sha256:926e28ca8262f066dfeb6585e227a78f01bd3d7f3fb63fad1c8045c5da1401ac
+Flask==3.1.3 --hash=sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c
+flask-cors==6.0.5 --hash=sha256:68fcf75693e961f3af26683b23c4b9a8fb6b64de17d20d0c37b95e8de7ab2ed8
+Flask-Login==0.6.3 --hash=sha256:849b25b82a436bf830a054e74214074af59097171562ab10bfa999e6b78aae5d
+gevent==26.9.0 --hash=sha256:979caf5b96f5806cb5b66fd2c7972f1043cc4069d1ee8b2998c42cb0b39dc445
+geventhttpclient==2.6.2 --hash=sha256:80d124a565e83b600f80b5ecdff82b6b7ae2ca5ad4198bac4170d5117c84e13c
+greenlet==3.5.6 --hash=sha256:a5876d0a60355af98d535c47f6cd6eb0f8a432396dab26845d380b92f8412422
+idna==3.20 --hash=sha256:ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c
+itsdangerous==2.2.0 --hash=sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef
+Jinja2==3.1.6 --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67
+locust==2.33.2 --hash=sha256:a2f3b53dcd5ed22cecee874cd989912749663d82ec9b030637d3e43044e5878e
+MarkupSafe==3.0.4 --hash=sha256:0930db9bdc62d22944e10b066448bb65dc9abe9112880c7cab8da54db4284d5f
+msgpack==1.2.4 --hash=sha256:112933726919f4239646cca9572e2c2fa5626358c670da8440aac09403100a48
+psutil==7.2.2 --hash=sha256:1a7b04c10f32cc88ab39cbf606e117fd74721c831c98a27dc04578deb0c16979
+pyzmq==27.3.0 --hash=sha256:15155fd8f308d3bd47f67a8f6cc809f9db90abbf63c514c384a17622e2cf080f
+requests==2.34.2 --hash=sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0
+setuptools==84.2.1 --hash=sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2
+urllib3==2.8.0 --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3
+Werkzeug==3.1.9 --hash=sha256:6392e50c78460ba618e5b21f08a71f59c99ce99cdc6cf6e3dd7e6ccca8754fab
+zope.event==6.2 --hash=sha256:5e755153ac4faf64c10a4b6dd3307680166a3edf65b38df22df592610f8fa874
+zope.interface==8.7 --hash=sha256:85c30b18b8fd75ccd1b8ad202e9130ca6f8997a574ee2a7d1619e4138d3acb0a

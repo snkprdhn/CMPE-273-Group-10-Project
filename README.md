@@ -1,329 +1,50 @@
 # Smart Grid / EV Fleet Energy Balancing Platform
 
-> **Status:** The deterministic closed loop passes in the host/Compose integration profile. Local Keycloak identity is verified in its standalone profile. The lightweight and three-broker kind deployment profiles are packaged, and Calico policy enforcement is verified in kind. Developer and three-broker review kind closed loops pass, including real browser authentication. See [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md), [pinned stack](docs/implementation/VERSION_MATRIX.md), and [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md). Python application and test code runs in virtual environments. Infrastructure JVMs stay in containers.
+A local Kubernetes demonstration of a simulated transformer overload. EV, meter, and solar readings flow through Kafka and PyFlink. The Action service commits a throttle plan and outbox records to PostgreSQL. Debezium publishes the commands, the fenced simulated gateway applies them, and measured EV demand falls before charging is restored. FastAPI and NiceGUI show the resulting state and action history. Operators can open a read-only investigation backed by a deterministic mock.
 
-Run `make member2-test`, `make member2-build`, then `make member2-live` for [standalone aggregation](member2/README.md). Run `make contracts` for the offline contract gate; see the [bundle guide](schemas/README.md) for setup, fixtures and compatibility checks.
+## Reproduce the local demo
 
-Run `make dashboard-fixtures` and `make dashboard-demo` in separate terminals for the [standalone operator console](dashboard/README.md), then open [GridBalance](http://127.0.0.1:18086).
+Use Docker Desktop on Apple Silicon with its built-in Kubernetes disabled. The documented demo budget is **8 CPUs and 10 GiB** for Docker Desktop. Stop competing profiles and keep the host awake during the run. Follow [local prerequisites](docs/implementation/LOCAL_PREREQUISITES.md#recreating-the-environment) for Python 3.12.9, kind 0.30.0, kubectl 1.34.0, and Helm 3.19.0. Run these commands from the repository root after creating `.venv` and installing those tools.
 
-Use the [local kind runbook](infra/kind/README.md) to create, install, deploy, inspect, smoke-test, measure and stop the platform on Docker Desktop.
+```sh
+.venv/bin/python -m venv .tools/contracts-venv
+.tools/contracts-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r requirements-contracts.txt
+.venv/bin/python -m venv .tools/dashboard-test-venv
+.tools/dashboard-test-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r dashboard/requirements-test.txt
+PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/dashboard-test-venv/bin/python -m playwright install chromium
+.venv/bin/python -m venv .tools/copilot-venv
+.tools/copilot-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r copilot/requirements.txt
+.venv/bin/python -m venv .tools/member4-venv
+.tools/member4-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r member4/requirements.txt -r observability/requirements.txt
 
-## Abstract
-
-This project proposes a distributed platform for monitoring and balancing electricity usage across neighborhood transformers. Thousands of simulated EV chargers, smart meters, and residential solar systems will publish time-series telemetry containing their current power demand or generation. The platform will ingest these events through Apache Kafka, process them in event-time windows, and maintain a continuously updated view of the load assigned to each transformer.
-
-When a transformer approaches or exceeds its safe operating limit, an action service will select flexible EV charging loads and publish throttling commands. Charger simulators will apply those commands, report their updated demand, and later return to their normal charging rate when the transformer has recovered. This closed feedback loop demonstrates both monitoring and automated control instead of stopping at alert generation.
-
-The design focuses on the distributed-systems problems behind this workflow: partitioned event ingestion, out-of-order telemetry, stateful stream processing, recovery from service failures, and duplicate-safe control actions. Flink checkpoints provide exactly-once state updates inside the stream-processing pipeline. External commands use deterministic IDs and idempotent consumers so that an at-least-once delivery does not throttle a charger twice.
-
-A read-only Grid Incident Investigator complements the deterministic platform. An operator can ask why a transformer is critical or why a control action is incomplete, and the agent gathers versioned grid state, action history, stream health, metrics, and trace summaries through allowlisted tools. Its response separates observations from hypotheses and links every important claim to evidence. It cannot calculate authoritative state, change policy, or publish charger commands.
-
-## Business Value
-
-EV adoption can increase neighborhood demand faster than utilities can replace transformers and distribution equipment. The highest demand often lasts for only a short period, such as the early evening when residents arrive home and begin charging. Coordinating flexible charging loads gives a utility another way to manage those peaks without immediately upgrading every transformer.
-
-The platform will help an operator see where demand is building, identify the transformer at risk, and understand the corrective action taken by the system. For example, fleet vehicles that do not need to depart until the next morning can charge at a lower rate for several minutes while residential demand is high. Once the load returns below a recovery threshold, normal charging can resume automatically.
-
-The project supports grid reliability, cleaner transportation, and better use of existing infrastructure. The evidence-grounded investigator adds operational value by reducing the time needed to assemble load, action, command, metric, and trace evidence without giving a probabilistic model control authority. Although the final demonstration will use synthetic devices and data, the event-driven architecture could later connect to real chargers and meters through utility or IoT gateways.
-
-## MVP at a Glance
-
-| Capability | MVP scope |
-|---|---|
-| Device simulation | Configurable EV charger, smart meter, and solar simulators assigned to multiple transformers |
-| Telemetry ingestion | Kafka topics partitioned by `transformer_id` |
-| Stream processing | Flink event-time windows, watermarks, checkpoints, and late-event handling |
-| Grid state | Net transformer load, utilization percentage, health state, and recent trend |
-| Automated response | Throttle and restore commands for eligible EV chargers |
-| Persistence | Helm-managed PostgreSQL with persistent Kubernetes storage and service-owned schemas |
-| Operator experience | NiceGUI dashboard with live updates, charts, alerts, action history, and scenario controls |
-| Kubernetes runtime | Multi-service deployment, discovery, health probes, reconciliation, scaling, and failure containment |
-| Observability | OpenTelemetry logs/traces, Prometheus metrics, Grafana dashboards, SLIs, SLOs, and error budgets |
-| Distributed coordination | Action-service leader lease and fencing epochs to reject stale workers |
-| Durable workflows | Transactional outbox/inbox and a recoverable control saga |
-| Failure demonstrations | Pod loss, broker loss, delayed/duplicate events, stale leader, and dependency latency |
-| Agent-assisted operations | Evidence-grounded incident investigation using seven typed read-only tools and a deterministic fallback |
-
-### Explicitly out of scope
-
-The MVP will not connect to real utility equipment, control real vehicles, process customer billing, forecast market prices, provide multi-region disaster recovery, implement a custom consensus algorithm, run an autonomous control agent, or claim regulatory compliance. The incident investigator is deliberately read-only. Machine-learning forecasting, multi-agent swarms, mobile applications, service meshes, Consul, and production database failover are excluded. Kubernetes deployment is a core project requirement.
-
-## Proposed Architecture Diagram
-
-```mermaid
-flowchart TB
-    subgraph DEVICES[Simulated Field Devices]
-        EV[EV Chargers and Fleets]
-        METER[Smart Meters]
-        SOLAR[Home Solar Systems]
-    end
-
-    subgraph K8S[Kubernetes Cluster]
-        subgraph EVENTING[Replicated Kafka Event Backbone]
-            TELEMETRY[(grid.telemetry.v1)]
-            LOADS[(grid.transformer-load.v1)]
-            ALERTS[(grid.alert.v1)]
-            ACTIONS[(grid.action.v1)]
-            COMMANDS[(grid.charger-command.v1)]
-            RESULTS[(grid.command-result.v1)]
-        end
-
-        subgraph PROCESSING[Stream and Control Plane]
-            FLINK[Flink Cluster<br/>event-time state and checkpoints]
-            ACTION[Action Service Replicas<br/>leader lease, fencing, control saga]
-            REGISTRY[gRPC Device Registry<br/>typed contract and deadlines]
-            API[Projection and Query API<br/>CQRS views, REST, SSE]
-            TOOLS[Read-Only Agent Tool Gateway<br/>typed and bounded evidence]
-            CONNECT[Kafka Connect + Debezium<br/>outbox change capture]
-        end
-
-        subgraph DATA[Durable State and Observability]
-            DB[(PostgreSQL<br/>service-owned logical stores)]
-            OTEL[OpenTelemetry Collector]
-            PROM[Prometheus]
-            TEMPO[Tempo]
-            LOGS[Structured Kubernetes Logs]
-            GRAFANA[Grafana]
-        end
-
-        subgraph EXPERIENCE[Operator Experience]
-            UI[NiceGUI Operations Dashboard]
-            COPILOT[Grid Incident Investigator<br/>provider-neutral agent]
-            IDP[Local OIDC Provider]
-        end
-    end
-
-    MODEL[Configured LLM Provider<br/>or deterministic mock]
-
-    EV -->|usage telemetry| TELEMETRY
-    METER -->|demand telemetry| TELEMETRY
-    SOLAR -->|generation telemetry| TELEMETRY
-    EV -->|register and heartbeat| REGISTRY
-    REGISTRY -->|registry role| DB
-    TELEMETRY --> FLINK
-    FLINK --> LOADS
-    LOADS --> ACTION
-    ACTION -->|control role: state + outbox| DB
-    DB -->|outbox change data| CONNECT
-    CONNECT --> ALERTS
-    CONNECT --> ACTIONS
-    CONNECT --> COMMANDS
-    ACTION -->|capability lookup| REGISTRY
-    COMMANDS --> EV
-    EV --> RESULTS
-    RESULTS --> ACTION
-    API -->|projection role| DB
-    ALERTS --> API
-    ACTIONS --> API
-    LOADS --> API
-    RESULTS --> API
-    UI <-->|REST and Server-Sent Events| API
-    UI -->|investigation request| COPILOT
-    COPILOT -->|allowlisted calls| TOOLS
-    COPILOT -->|audit role| DB
-    TOOLS --> API
-    TOOLS --> PROM
-    TOOLS --> TEMPO
-    COPILOT <-->|tool calls and structured answer| MODEL
-    UI -->|sign in| IDP
-    FLINK -.telemetry.-> OTEL
-    ACTION -.telemetry.-> OTEL
-    API -.telemetry.-> OTEL
-    REGISTRY -.telemetry.-> OTEL
-    COPILOT -.telemetry.-> OTEL
-    OTEL --> PROM
-    OTEL --> TEMPO
-    OTEL --> LOGS
-    PROM --> GRAFANA
-    TEMPO --> GRAFANA
-    LOGS -.optional aggregation.-> GRAFANA
+export KIND_NAME=smart-grid-kind-dev-demo01
+make kind-create
+make kind-install
+make kind-deploy
+make local-acceptance
+make kind-inspect
+make kind-open-ui
 ```
 
-Telemetry is partitioned by `transformer_id`, keeping a transformer’s readings ordered within one Kafka partition while allowing different transformers to be processed in parallel. Solar generation is represented as negative demand. The aggregation job calculates net load over event-time windows and publishes a transformer-load event. The action service uses separate warning, critical, and recovery thresholds to avoid repeatedly throttling and restoring chargers when the load is close to a boundary.
+Open [GridBalance](http://127.0.0.1:18086). Sign in as `operator` with the password in `.tools/kind-dev-demo01/local.json`. Open **Alerts & actions**, select the completed action, and choose **Investigate action**. The one-shot scenario runs under `make local-acceptance`. Scenario and policy writes in the live console return 503.
+Once the simulator stops reporting, the dashboard can mark current telemetry stale while retaining the completed action and its history.
 
-Kubernetes is the target runtime. Services use stable cluster DNS, readiness/liveness/startup probes, resource limits, rolling updates, and multiple replicas where state ownership permits. The Action Service uses a Kubernetes Lease plus a monotonically increasing fencing epoch so a stale leader cannot issue a valid command. Docker Compose may remain as a lightweight developer profile, but the architecture review and final demonstration use Kubernetes.
+Acceptance checks the closed loop, duplicate-safe effects, projection replay, live REST/SSE and browser sign-in, NetworkPolicy and RBAC, grounded mock investigation, Flink TaskManager recovery, PostgreSQL export and restore, and a correlated SQL timeout incident. Results and screenshots are under `.tools/kind-dev-demo01/`. Keep that directory private. The [demo script and evidence index](docs/demo/FINAL_DEMO.md) explain what to show and where to find it. The [implementation status](docs/implementation/IMPLEMENTATION_STATUS.md) records what ran and any open gates.
 
-The NiceGUI dashboard is the primary project UI. Grafana is reserved for engineering evidence across metrics, traces, and structured logs. The Grid Incident Investigator is a required bounded extension, but it is isolated from the control path and integrated only after the deterministic telemetry-to-command loop and observability queries are stable. A deterministic mock provider keeps tests and the final demonstration independent of an external model API.
+Press Ctrl+C to close the UI port-forward. Stop the cluster to retain its storage, or reset after keeping the evidence and backups you need.
 
-Detailed diagrams and rationale are available in the [system design](docs/design/SYSTEM_DESIGN.md), [data-flow design](docs/design/DATA_FLOW.md), [failure-handling design](docs/design/FAILURE_HANDLING.md), and [UI design](docs/design/UI_DESIGN.md).
-
-## Build Versus Reuse
-
-The team will build the parts that express the grid use case: device behavior, transformer aggregation, overload policy, fenced control workflow, projections, operator experience, and the bounded incident-investigation workflow. Mature open-source projects will provide the surrounding platform. Strimzi will operate Kafka, the Flink Kubernetes Operator will manage stream jobs, and Debezium/Kafka Connect will publish transactional outbox records. Versioned JSON Schemas and fixtures in Git will be checked in CI instead of operating a separate schema-registry service. PostgreSQL will use a pinned Helm deployment with persistent storage and service-owned schemas. Keycloak, OpenTelemetry, Prometheus, Grafana, Tempo, Locust, Toxiproxy, Testcontainers, official model SDKs, and schema-validation libraries cover identity, operations, testing, and model connectivity.
-
-This still requires real distributed-systems work. The team owns partition and replication choices, event-time correctness, idempotency, fencing, failure recovery, security policy, SLOs, and measured failure experiments. It will not spend project time creating a broker, operator, schema registry, identity provider, telemetry collector, consensus algorithm, or generic test framework. The complete boundary and dependency criteria are in the [open-source reuse plan](docs/design/OPEN_SOURCE_STACK.md).
-
-## Core Workflow
-
-```mermaid
-sequenceDiagram
-    participant Device as EV Charger Simulator
-    participant Kafka as Kafka
-    participant Flink as Flink Aggregator
-    participant Action as Action Service
-    participant DB as PostgreSQL Outbox
-    participant CDC as Debezium / Kafka Connect
-    participant API as Projection API
-    participant UI as Operator Dashboard
-
-    Device->>Kafka: Publish power telemetry
-    Kafka->>Flink: Deliver partitioned event
-    Flink->>Flink: Update event-time window
-    Flink->>Kafka: Publish transformer load
-    Kafka->>Action: Deliver calculated load
-    Action->>Action: Compare limits and select chargers
-    Action->>DB: Commit action and outbox row
-    DB->>CDC: Capture committed outbox row
-    CDC->>Kafka: Publish throttle command
-    CDC->>Kafka: Publish alert and action events
-    Kafka->>API: Update read projections
-    API-->>UI: Stream alert and action update
-    Kafka->>Device: Deliver command
-    Device->>Device: Apply reduced charging rate
-    Device->>Kafka: Publish command result and new telemetry
-    Kafka->>API: Project command result and new load
+```sh
+make kind-stop
+make kind-reset CONFIRM="$KIND_NAME"
 ```
 
-Additional workflow diagrams cover late telemetry, command deduplication, recovery, and UI updates in the linked design documents.
+Reset deletes the named node and its PVCs, removes the rehearsal's image tags, and keeps local evidence. Use a new suffix for a new acceptance run. See [kind troubleshooting](infra/kind/README.md) and [recovery](docs/runbooks/LOCAL_RECOVERY.md).
 
-## Agentic Investigation Workflow
+## Development and design
 
-```mermaid
-sequenceDiagram
-    actor Operator
-    participant UI as Operations Dashboard
-    participant Agent as Incident Investigator
-    participant Model as Configured LLM
-    participant Tools as Read-Only Tool Gateway
+- Run `make contracts` for offline schema, fixture, and compatibility checks. See the [contract bundle](schemas/README.md).
+- Run `make delivery-render`, `make delivery-images`, and `make delivery-scan` for the packaging checks. GitHub Actions runs contract, component, lightweight Kafka/PostgreSQL, browser, image and manifest checks on standard runners. The full suite uses local Docker Desktop.
+- Run a selected [independent component](docs/testing/INDEPENDENT_COMPONENT_TESTING.md) or use the [three-broker review profile](infra/kind/README.md#three-broker-review-profile).
+- See the [implemented architecture and ownership](docs/demo/FINAL_ARCHITECTURE.md) and the [design audit](docs/demo/DESIGN_AUDIT.md) for supported behavior and remaining gates. The [version matrix](docs/implementation/VERSION_MATRIX.md) records the selected pins.
 
-    Operator->>UI: Why is TX-07 still critical?
-    UI->>Agent: Start scoped investigation
-    Agent->>Model: Instructions and allowed tool schemas
-    Model-->>Agent: Request snapshot and load history
-    Agent->>Tools: Execute validated read-only calls
-    Tools-->>Agent: Versioned evidence with freshness
-    Agent->>Model: Return evidence as untrusted data
-    Model-->>Agent: Request action and command results
-    Agent->>Tools: Execute additional bounded calls
-    Tools-->>Agent: Action, health, metric, or trace evidence
-    Agent->>Model: Produce structured evidence-backed answer
-    Agent-->>UI: Stream progress, answer, unknowns, and evidence links
-    UI-->>Operator: Display AI-generated investigation
-```
-
-The model has no write-capable tool and the Copilot Service has no access to domain database tables, Kafka, shell, Kubernetes, or raw observability queries. Its application role can persist only bounded investigation/audit records. Provider failure returns a clear unavailable or partial result and never affects load balancing.
-
-## Technology baseline
-
-| Layer | Selected technology | Purpose |
-|---|---|---|
-| Simulators and services | Python 3.12 | Device behavior, scenarios, action logic, and supporting services |
-| Messaging | Apache Kafka operated by Strimzi | Durable partitioned telemetry, derived events, commands, and Kubernetes-native lifecycle |
-| Stream processing | Apache Flink Python API (PyFlink) with the Flink Kubernetes Operator | Event-time aggregation, watermarks, state, checkpoints, upgrades, and recovery |
-| Contracts and CDC | Versioned JSON Schema fixtures in CI, Kafka Connect, and Debezium | Producer/consumer compatibility and transactional outbox publication without a runtime schema-registry service |
-| Internal RPC | gRPC and Protocol Buffers | Typed device registration/capability contract with deadlines |
-| Control API | FastAPI | CQRS projections, configuration, query APIs, health, and Server-Sent Events |
-| Operational database | PostgreSQL installed from a pinned Helm chart | Durable service-owned schemas for registry, control, projections, and agent audit data |
-| Web UI | NiceGUI (Python) with built-in charts | Simple, responsive, professional, and dynamic operator dashboard |
-| Observability | Helm-managed OpenTelemetry Collector, Prometheus Operator, Grafana, Tempo, and structured Kubernetes logs | Correlated metrics, traces, logs, SLIs, SLOs, and incident evidence |
-| Target runtime | Local kind, packaged with Helm and Kustomize; cloud deployment deferred | Reproducible local integration/review, discovery, replicas, probes, scaling, and failure testing |
-| Developer runtime | Docker Compose | Optional lightweight local profile; not the final deployment target |
-| Identity and policy | OIDC/Keycloak, Kubernetes RBAC, NetworkPolicies, and Secrets | User and workload authorization with least privilege |
-| Agent-assisted operations | Provider-neutral Copilot Service, typed function tools/MCP-compatible facade, and deterministic mock provider | Read-only incident investigation with evidence, auditability, and model portability |
-| Testing | Pytest, Testcontainers Python, Playwright Python, Locust, and Toxiproxy | Unit, integration, UI, load, latency, and deterministic fault testing |
-| CI | GitHub Actions | Linting, contract validation, tests, and build verification |
-
-The preparation baseline is accepted in the [version matrix](docs/implementation/VERSION_MATRIX.md) and [ADRs](docs/decisions/README.md). Component implementations and runtime compatibility remain unverified until their gates pass.
-
-## Repository Organization
-
-```text
-CMPE-273-Group-10-Project/
-├── README.md
-├── CONTRIBUTING.md
-├── docs/
-│   ├── design/       # Architecture, data flow, failures, data, security, and UI
-│   ├── contracts/    # Canonical event and HTTP interfaces
-│   ├── course/       # Curriculum-to-feature traceability
-│   ├── security/     # Threat model and security verification
-│   ├── testing/      # Failure and load-test plans
-│   ├── runbooks/     # Operational diagnosis and recovery
-│   ├── team/         # Ownership, milestones, and individual work plans
-│   ├── decisions/    # Open decisions and future ADRs
-│   └── demo/         # Acceptance and final demonstration plan
-├── schemas/          # Planned machine-readable event schemas
-├── simulators/       # Planned EV, meter, solar, and scenario simulators
-├── services/
-│   ├── aggregation/  # Planned stream-processing component
-│   ├── action/       # Planned threshold and control component
-│   ├── registry/     # Planned internal gRPC device registry
-│   ├── api/          # Planned operator-facing API and read-only tool gateway
-│   └── copilot/      # Planned evidence-grounded incident investigator
-├── dashboard/        # Planned NiceGUI operator UI
-├── infra/            # Planned Kubernetes, developer Compose, and observability assets
-└── tests/            # Planned unit, integration, failure, load, and UI tests
-```
-
-All component directories currently contain design notes only. Their READMEs must be updated with verified setup commands when implementation begins.
-
-## Team Ownership
-
-| Team member | Distributed-systems workstream | Additional responsibility |
-|---|---|---|
-| Member_1 | Distributed device simulation, telemetry ingestion, gRPC registry, and reliability tooling | Reliable producers/consumers, CI scenario runner, load/fault harness, contract fixtures, and shared observability installation |
-| Member_2 | Kafka platform and stateful Flink aggregation | Event-time correctness, schemas, checkpoints, replay, and transformer-load publication |
-| Member_3 | Distributed action processing, coordination, PostgreSQL, and CDC | Leader leases, fencing, saga/outbox/inbox, service-owned persistence, and recovery |
-| Member_4 | Real-time projections, operator UI, identity/Gateway, and incident agent | SSE recovery, read-only tools, agent orchestration, evidence validation, product SLOs, and UI integration |
-
-Ownership boundaries, milestones, and collaborative tests are defined in the [team overview](docs/team/TEAM_OVERVIEW.md).
-
-## Proposed Acceptance Demonstration
-
-The final demonstration will run in Kubernetes and show normal operation, overload control, leader failover with stale-command rejection, a pod or broker failure, checkpoint recovery, SSE reconnection, correlated metrics/logs/traces, and one evidence-grounded agent investigation. The control demonstration remains successful when the external model is disabled. The complete sequence and proposed measurements are in [docs/demo/ACCEPTANCE_PLAN.md](docs/demo/ACCEPTANCE_PLAN.md).
-
-## Project Documentation
-
-- [Documentation index](docs/README.md)
-- [Master implementation guide](docs/implementation/MASTER_IMPLEMENTATION_GUIDE.md)
-- [System design](docs/design/SYSTEM_DESIGN.md)
-- [Data flow and stream semantics](docs/design/DATA_FLOW.md)
-- [Data model](docs/design/DATA_MODEL.md)
-- [Failure handling and recovery](docs/design/FAILURE_HANDLING.md)
-- [UI/UX design](docs/design/UI_DESIGN.md)
-- [Security and privacy design](docs/design/SECURITY_AND_PRIVACY.md)
-- [Kubernetes deployment design](docs/design/KUBERNETES_DEPLOYMENT.md)
-- [Communication and resilience](docs/design/COMMUNICATION_AND_RESILIENCE.md)
-- [Transactions and control saga](docs/design/TRANSACTIONS_AND_SAGAS.md)
-- [Coordination and fencing](docs/design/COORDINATION_AND_FENCING.md)
-- [Replication and consistency](docs/design/REPLICATION_AND_CONSISTENCY.md)
-- [Observability and SLOs](docs/design/OBSERVABILITY_AND_SLOS.md)
-- [Project scope and delivery boundaries](docs/design/PROJECT_SCOPE.md)
-- [Open-source reuse and build boundary](docs/design/OPEN_SOURCE_STACK.md)
-- [Dependency minimization and independent workstreams](docs/design/DEPENDENCY_MINIMIZATION.md)
-- [Evidence-grounded Grid Incident Investigator](docs/design/AGENTIC_COPILOT.md)
-- [Event contracts](docs/contracts/EVENT_CONTRACTS.md)
-- [Stream semantics v1](docs/contracts/STREAM_SEMANTICS_V1.md)
-- [HTTP API contracts](docs/contracts/API_CONTRACTS.md)
-- [Agent tool and evidence contracts](docs/contracts/AGENT_TOOL_CONTRACTS.md)
-- [gRPC registry contract](docs/contracts/GRPC_CONTRACTS.md)
-- [Team work allocation](docs/team/TEAM_OVERVIEW.md)
-- [Acceptance plan](docs/demo/ACCEPTANCE_PLAN.md)
-- [Open decisions](docs/decisions/README.md)
-- [Course alignment](docs/course/CURRICULUM_ALIGNMENT.md)
-- [Threat model](docs/security/THREAT_MODEL.md)
-- [Failure-injection matrix](docs/testing/FAILURE_INJECTION_MATRIX.md)
-- [Load-test plan](docs/testing/LOAD_TEST_PLAN.md)
-- [Agent evaluation plan](docs/testing/AGENT_EVALUATION_PLAN.md)
-- [Independent component testing plan](docs/testing/INDEPENDENT_COMPONENT_TESTING.md)
-- [Incident runbook](docs/runbooks/INCIDENT_DIAGNOSIS.md)
-
-## Security and Project Hygiene
-
-No real customer, utility, location, or vehicle data will be used. Secrets, access tokens, private keys, database files, and generated telemetry must not be committed. Example configuration should contain safe placeholders only. The platform is an educational simulation and must never be connected to real charging or grid equipment without a separate safety and security review.
-
-## Local dependency development
-
-Run `make infra-up`, `make infra-health`, `make infra-smoke`, and `make infra-down`
-with Docker Desktop and the preparation `.venv`. See the [Compose runbook](infra/compose/README.md)
-for persistence verification, service-owned stores/topics, optional Toxiproxy and the
-explicit project-only reset. This does not start application services or monitoring.
+The demo uses synthetic devices on one computer. Cloud deployment, external model calls, and real utility equipment are deferred. The [measured load report](docs/testing/LOAD_TEST_REPORT.md) retains the failed concurrent performance experiment and its corrected standalone HTTP baseline.

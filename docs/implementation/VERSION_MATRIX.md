@@ -266,3 +266,22 @@ pin. Existing application requirements remain unchanged. Check executed SDK,
 container, collection and incident evidence in implementation status; the
 historical preparation-only “not verified” list above describes that earlier
 phase, not the current milestone.
+
+## Delivery verification tooling
+
+- Standard hosted jobs select Ubuntu 24.04 and Python 3.12.9. Checkout,
+  setup-python, and artifact upload actions are pinned by commit. kubectl 1.34.0
+  and Helm 3.19.0 use the matching amd64 SHA-256s from the existing version
+  baseline. The component locks include the selected Linux amd64 wheels as
+  well as the original Mac/Linux ARM64 artifacts where used.
+- Trivy 0.69.3 uses published binary archive SHA-256s for macOS ARM64 and
+  Linux amd64. Vulnerability DB snapshots refresh from public feeds. The
+  project reports findings without suppressing unfixed vulnerabilities and
+  fails on scanner errors or detected secrets. [Trivy release](https://github.com/aquasecurity/trivy/releases/tag/v0.69.3)
+- Dockerfile bases and the kind node use digests. Helm archives and the Calico
+  manifest use SHA-256s. Some upstream chart/operator images use explicit
+  release tags. The run records actual image identities in
+  `runtime-images.json`. Local application tags are scoped per named
+  rehearsal. PyFlink's container build still acquires OS build tools from
+  Debian repositories. These pins establish versioned inputs, with upstream
+  tag mutability and OS build tooling as limits on byte-for-byte rebuilds.

@@ -100,6 +100,10 @@ PROFILE ?= dev
 kind-create kind-install kind-deploy kind-smoke kind-policy kind-inspect kind-measure kind-open-ui kind-stop:
 	.venv/bin/python -m tools.kind_local $(patsubst kind-%,%,$@) --profile "$(PROFILE)" $(if $(KIND_NAME),--name "$(KIND_NAME)")
 
+.PHONY: kind-reset
+kind-reset:
+	.venv/bin/python -m tools.kind_local reset --profile "$(PROFILE)" --name "$(KIND_NAME)" --confirm "$(CONFIRM)"
+
 # Member_1 local observability; explicit kind context, no cloud dependencies.
 OBSERVABILITY_CONTEXT ?= kind-smart-grid-kind-dev
 OBSERVABILITY_KUBECONFIG ?= .tools/kind-dev.kubeconfig
@@ -117,3 +121,16 @@ copilot:
 	$(COPILOT_PYTHON) -m copilot
 copilot-test:
 	$(COPILOT_PYTHON) -m pytest -q tests/copilot
+
+.PHONY: delivery-images delivery-render delivery-scan local-acceptance
+delivery-images:
+	.venv/bin/python -m tools.delivery_images
+
+delivery-render:
+	$(CONTRACT_PYTHON) -m tools.delivery_checks render
+
+delivery-scan:
+	.venv/bin/python -m tools.delivery_checks scan $(if $(IMAGE_INVENTORY),--inventory "$(IMAGE_INVENTORY)")
+
+local-acceptance:
+	.venv/bin/python -m tools.delivery --profile "$(PROFILE)" --name "$(KIND_NAME)"

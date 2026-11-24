@@ -106,7 +106,9 @@ def main():
             write_private(directory/(name+'.json'),json.dumps(data,indent=2))
         stack.enter_context(cluster.forwards(('ui',18086,18086),('api',18094,18084)))
         env=dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(Path('.tools/playwright').resolve()))
-        subprocess.run(['.tools/dashboard-test-venv/bin/python','-m','tools.load_identity',str(token_path)],env=env,check=True,timeout=60)
+        acquire_token = ['.tools/dashboard-test-venv/bin/python', '-m', 'tools.load_identity',
+                         str(token_path), str(cluster.directory / 'local.json')]
+        subprocess.run(acquire_token, env=env, check=True, timeout=60)
         env['GRID_LOAD_TOKEN_FILE']=str(token_path.resolve())
         logfile=stack.enter_context((directory/'locust.log').open('w'))
         load_process=subprocess.Popen(['.tools/load-venv/bin/locust','-f','tools/load_http.py','--headless','--host','http://127.0.0.1:18094','--users','3','--spawn-rate','1','--run-time','200s','--csv',str(directory/'http'),'--csv-full-history'],env=env,stdout=logfile,stderr=subprocess.STDOUT)
@@ -115,7 +117,7 @@ def main():
             next_auth=start+60
             while time.monotonic()-start < 160:
                 if time.monotonic() >= next_auth:
-                    subprocess.run(['.tools/dashboard-test-venv/bin/python','-m','tools.load_identity',str(token_path)],env=env,check=True,timeout=60)
+                    subprocess.run(acquire_token, env=env, check=True, timeout=60)
                     report.setdefault('reauth_elapsed',[]).append(time.monotonic()-start)
                     next_auth=time.monotonic()+60
                 time.sleep(5)
@@ -132,7 +134,7 @@ def main():
             next_auth=start+60
             while time.monotonic()-start<320:
                 if time.monotonic() >= next_auth:
-                    subprocess.run(['.tools/dashboard-test-venv/bin/python','-m','tools.load_identity',str(token_path)],env=env,check=True,timeout=60)
+                    subprocess.run(acquire_token, env=env, check=True, timeout=60)
                     next_auth=time.monotonic()+60
                 state=query('get','job/simulator','-o','json')['status']
                 try:

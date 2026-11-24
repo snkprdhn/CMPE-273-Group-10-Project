@@ -26,7 +26,7 @@ Host Java, Maven, Node.js/npm, grpcurl, k6, AWS CLI, eksctl, and standalone Kust
 Always activate the project venv, or use its Python/binaries by full relative path. Native kind/kubectl/Helm are not Python packages; putting their binaries in the venv's `bin` directory keeps PATH selection local without replacing Homebrew/system tools.
 
 ```sh
-cd /Users/sonit/Documents/Code/CMPE-273/CMPE-273-Group-10-Project
+# Run from the cloned repository root.
 source .venv/bin/activate
 export PIP_REQUIRE_VIRTUALENV=true
 export PIP_CACHE_DIR="$PWD/.tools/pip-cache"
@@ -111,7 +111,9 @@ Use explicit contexts for all later cluster operations. If Testcontainers needs 
 
 For a fresh machine without Docker Desktop, install the Apple Silicon build from the [official Mac instructions](https://docs.docker.com/desktop/setup/install/mac-install/) (or `brew install --cask docker-desktop`), then accept any required first-run prompts yourself. This machine already had the app; it was not reinstalled.
 
-## Resource profiles
+## Historical preparation resource profiles
+
+Use the [current demo sequence](../../README.md#reproduce-the-local-demo) and [kind profile runbook](../../infra/kind/README.md) for delivery. The following numbers describe the original preparation exercise.
 
 Use one container VM at a time. Colima stays stopped. Docker Desktop **Settings → Resources** configures CPU/memory; leave **Settings → Kubernetes → Enable Kubernetes** off. Development settings were applied and verified; the larger review settings remain a planned profile. Existing Docker disk-image capacity was preserved rather than shrunk; 40/80 GiB below are project usage budgets, not a claim that the disk-image limit was changed.
 
@@ -133,7 +135,7 @@ These are **initial planning limits**, not tested resource guarantees. Flink mem
 
 The larger review profile requires changing Desktop settings to 8 CPUs/10 GiB and re-verifying `docker info`; no second concurrent VM is needed. No larger-profile fit or performance result is claimed. Stop Docker Desktop through its UI or `docker desktop stop` when finished; this also stops its local kind nodes. Removing `smart-grid-dev` with `kind delete cluster --name smart-grid-dev` destroys its node-local PVC data, so export needed state/evidence first. Cleanup commands were not run during setup.
 
-## Deferred implementation gates
+## Gates deferred during initial preparation
 
 This environment does not establish application behavior. PyFlink's native Linux ARM64 source build/import/checkpoint test remains pending; no host JDK is needed. Application/component venvs, full dependency locks, infrastructure charts/operators, policy-capable Calico networking, volume read/write/recovery, and the closed-loop system belong to later milestones. Default kind networking is not NetworkPolicy enforcement evidence.
 

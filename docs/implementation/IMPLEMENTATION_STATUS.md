@@ -1,8 +1,100 @@
 # Implementation status
 
-Updated **2026-11-23 (America/Los_Angeles)** for the measured local load-test implementation. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-23 (America/Los_Angeles)** for local delivery and release rehearsal. Member_1 owns simulation, Registry and observability. Member_2 owns Kafka and PyFlink. Member_3 owns control, PostgreSQL and Debezium. Member_4 owns projections, API, UI, identity and Copilot.
 
-## Current milestone — measured local load experiment
+## Current milestone — reproducible local delivery
+
+The [README](../../README.md) is the entry point for the named kind demo. The
+[demo sequence and evidence index](../demo/FINAL_DEMO.md), [implemented architecture
+and ownership](../demo/FINAL_ARCHITECTURE.md), [original design audit](../demo/DESIGN_AUDIT.md)
+and [recovery runbook](../runbooks/LOCAL_RECOVERY.md) describe the delivered workflow.
+
+Delivery adds standard-runner CI, reproducible image builds, Helm/Kustomize
+render checks, dependency/image scans and SBOMs, a one-shot local mock acceptance
+runner, logical restore verification, and a confirmed reset for named resources.
+The source base was cloned into a separate checkout. Candidate changes were
+applied over the clean clone without committing. Native tools and the public
+Chromium and infrastructure caches were reused. Python test environments in the
+rehearsal checkout were freshly installed from their locks.
+
+### Executed verification
+
+| Command | Result |
+|---|---|
+| `make contracts BASE_REF=HEAD` | 214 passed. Schema, OpenAPI and compatibility gate passed. |
+| `make member1-test member2-test` | 16 Member_1 and 43 Member_2 tests passed, plus contract binding verification. |
+| `make copilot-test`, `make dashboard-test`, `make observability-test` | 11, 30 (Chromium) and 8 passed. |
+| `docker compose -p smart-grid-delivery-ci -f infra/compose/compose.yaml up -d --no-build --wait --wait-timeout 150 kafka postgres` | Isolated Kafka and PostgreSQL healthy. |
+| `make member1-live` | 23 passed with real PostgreSQL and Kafka. |
+| `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test` | 86 passed and 3 opt-in kind/CDC tests skipped. |
+| `MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection MEMBER4_TEST_KAFKA=127.0.0.1:19092 make member4-test` | Final 45 passed and 1 opt-in identity skip. The first run found a Kafka test double missing the message headers added by instrumentation. |
+| `make identity-test` | 22 passed. Existing Starlette TestClient deprecation warning. |
+| `docker compose -p smart-grid-delivery-ci -f infra/compose/compose.yaml down --volumes --timeout 30` | Removed the two disposable containers, network and volumes. |
+| `make delivery-render` | Both kind overlays, six Helm charts and Compose validation passed. The first render found a YAML scalar resolver issue with an upstream CRD and was corrected. |
+| `make delivery-scan IMAGE_INVENTORY=.tools/kind-dev-delivery01/images.json` | Completed scans for 16 lockfiles and eight owned images, eight CycloneDX SBOMs, and zero secret matches. After the initial transport failures, the public Trivy Java OCI layer was downloaded separately and verified by SHA-256. The reports contain existing high and critical findings. |
+| `.tools/contracts-venv/bin/python -m pytest -q tests/test_delivery.py tests/test_kind_local.py tests/test_preparation_docs.py` | 18 passed from the isolated candidate checkout. Workflow YAML and shell bodies parsed. |
+| `.venv/bin/python -m pip download --only-binary=:all: --require-hashes --python-version 3.12 --implementation cp --abi cp312 --platform manylinux_2_34_x86_64 --platform manylinux_2_28_x86_64 --platform manylinux2014_x86_64 --platform manylinux1_x86_64 --platform manylinux_2_17_x86_64 --dest .tools/delivery-staging/wheels -r <lock>` | Downloaded verified wheels for the eight locks used by the Ubuntu contract, component, browser and observability checks. |
+| `.tools/delivery-staging/load-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r requirements-load.txt` | Fresh macOS ARM64 install and pip check passed. |
+
+The candidate Investigator journal now counts only action evidence topics against
+the bounded result limit. The real PostgreSQL regression inserts 201 unrelated
+telemetry rows and still requires grounded, bounded action and command evidence.
+Public v1 contracts remain unchanged.
+
+### Clean-checkout rehearsal
+
+The cold named rehearsal used the 8-CPU, 10-GiB Docker Desktop setting
+(10,416,844,800 usable bytes). `make KIND_NAME=smart-grid-kind-dev-delivery01
+kind-create kind-install` and `make KIND_NAME=smart-grid-kind-dev-delivery01
+kind-deploy` passed. The first `make KIND_NAME=smart-grid-kind-dev-delivery01
+local-acceptance` retained a failure after macOS entered clamshell sleep and
+the simulator hit a Registry heartbeat deadline. RBAC and Calico checks
+passed before the fault. The standalone mock checks, Flink checkpoint
+restore, four PostgreSQL export/restore comparisons, and correlated SQL
+incident also passed. The browser and live Investigator gates depended on
+the scenario and did not complete. The failure evidence and backups are
+retained privately in `.tools/delivery-rehearsal/delivery01/`.
+
+A fresh named cluster reran the complete suite on AC power with idle sleep
+inhibited and cached or prefetched versioned images. All eight rebuilt image
+IDs matched the scanned inventory. The source remained an uncommitted candidate
+over `6f4a26f0432544c15506466705b3491e5728fccc`. The runner captured the file
+hashes and deployed image identities in `.tools/delivery-rehearsal/delivery02/`.
+
+| Command | Result |
+|---|---|
+| `make KIND_NAME=smart-grid-kind-dev-delivery02 kind-create kind-install kind-deploy local-acceptance` | Passed 10 of 10 gates. The 20.2 kW peak drove one completed action, two durable charger effects despite duplicate delivery, and restore to 7.2 kW. Live REST/SSE, projection replay equality, Calico policy and Action RBAC passed. |
+| Same suite, Investigator and observability gates | Real Keycloak Operator and Viewer checks, grounded mock answer with applied-command evidence, write denial and Chromium evidence passed. The seeded SQL fault produced a correlated HTTP error, metric, trace and logs. |
+| Same suite, recovery gates | Flink restored checkpoint 220 and completed 222 under the same job. Logical PostgreSQL scratch restores matched archived rows and sequences for Registry, control, Keycloak and projection. |
+| `make KIND_NAME=smart-grid-kind-dev-delivery02 kind-inspect` | Listed the running workloads, PVCs, operators, Kafka and Flink resources. |
+| `KIND_NAME=smart-grid-kind-dev-delivery02 make kind-open-ui` | Local HTTP 307 to sign-in. Ctrl+C closed the forward and printed the existing Python interrupt traceback. |
+| `.venv/bin/kubectl --kubeconfig .tools/kind-dev-delivery02.kubeconfig --context kind-smart-grid-kind-dev-delivery02 -n platform exec deploy/projection -- /opt/venv/bin/python -m member4 rebuild` | Rebuilt the views and rotated the SSE generation. |
+| `make KIND_NAME=smart-grid-kind-dev-delivery02 kind-stop` | Graceful workload shutdown followed by Docker node stop. |
+| `make KIND_NAME=smart-grid-kind-dev-delivery02 CONFIRM=smart-grid-kind-dev-delivery02 kind-reset` | Removed the named cluster and tags. The same stop/reset lifecycle passed for `delivery01`. The private evidence and backups remain available. |
+| `.tools/contracts-venv/bin/python -m pytest -q tests/test_delivery.py tests/test_kind_local.py tests/test_preparation_docs.py tests/test_integration_evidence.py tests/test_load_preflight.py tests/test_load_test.py` | 27 passed. |
+
+Original workstation state was restored using
+`bash .tools/delivery-staging/restore-desktop.sh`. Docker reported four CPUs
+and 6,210,510,848 usable bytes with its built-in Kubernetes disabled. The
+running container inventory matched the original, the existing kind node
+reported Ready, and the standalone `member2-review02` job restored savepoint
+checkpoint 2858 and completed a new checkpoint. Both rehearsal clusters were
+absent. The restoration log is in `.tools/delivery-rehearsal/restore-original.log`.
+
+### Decisions, limitations and next milestone
+
+GitHub Actions has not run the candidate because no commit or push was made.
+Vulnerability reports are triage inputs. Triage the recorded project image findings before public release. Explicit upstream release tags,
+OS build inputs and refreshed vulnerability indexes limit byte-for-byte
+reproduction. AWS, registry publishing and external models remain deferred.
+
+The next verification milestone is hosted PR execution, vulnerability triage,
+review-profile failure exercises, and a fresh corrected concurrent load run. The design audit retains open broker-loss,
+Action leader-handover, API replica failover, provider-outage control-flow,
+capacity and SLO gates. Licensing remains an owner decision before public
+release.
+
+## Previous milestone — measured local load experiment
 
 The bounded load experiment and report are delivered, including **failed
 acceptance evidence**. This is not a passing sustained-capacity gate. See

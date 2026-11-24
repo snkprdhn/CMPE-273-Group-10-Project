@@ -22,6 +22,13 @@ class Identity:
 def test_seeded_projection_investigation(store,records,tmp_path,monkeypatch):
     store.context(records)
     feed(store,records['events'],now=utc())
+    # A normal demo publishes more than 200 readings. Only action/alert
+    # records should count against the transformer's action evidence limit.
+    with store.transaction() as db:
+        db.execute("""WITH ids AS (SELECT gen_random_uuid()::text AS id FROM generate_series(1,201))
+            INSERT INTO projection_events
+            SELECT id, topic, event || jsonb_build_object('event_id', id) FROM ids CROSS JOIN
+            (SELECT topic,event FROM projection_events WHERE topic='grid.telemetry.v1' LIMIT 1) AS reading""")
     app=create_app(store,IDENTITIES)
     original=httpx.AsyncClient
     def client(*args,**kwargs):

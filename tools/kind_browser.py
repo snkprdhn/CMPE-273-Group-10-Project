@@ -21,16 +21,16 @@ OIDC = ISSUER + '/protocol/openid-connect'
 API = 'http://127.0.0.1:18094/api/v1'
 
 
-def login(page, password):
+def login(page, password, username='viewer'):
     try:
-        page.locator('#username').fill('viewer')
+        page.locator('#username').fill(username)
         page.locator('#password').fill(password)
         page.locator('#kc-login').click()
     except BrowserError:
-        raise RuntimeError('Unable to submit the Viewer login form') from None
+        raise RuntimeError('Unable to submit the local login form') from None
 
 
-def token(browser, http, password):
+def token(browser, http, password, username='viewer'):
     # A separate public PKCE client tests the API without reading BFF tokens.
     verifier = secrets.token_urlsafe(32)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
@@ -45,7 +45,7 @@ def token(browser, http, password):
         page.on('request', capture)
         page.goto(OIDC + '/auth?' + urlencode({'client_id': CLIENT, 'redirect_uri': CALLBACK, 'response_type': 'code',
                   'scope': 'openid', 'state': state, 'code_challenge': challenge, 'code_challenge_method': 'S256'}))
-        login(page, password)
+        login(page, password, username)
         expect(page.get_by_text('Invalid login state', exact=True)).to_be_visible()
         assert len(callbacks) == 1 and callbacks[0].get('state') == [state] and 'code' in callbacks[0]
     response = http.post(OIDC + '/token', data={'client_id': CLIENT, 'grant_type': 'authorization_code',

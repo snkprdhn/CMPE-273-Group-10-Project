@@ -56,13 +56,12 @@ From a prepared, freshly deployed **dedicated** development cluster:
 
 ```sh
 .venv/bin/python -m venv .tools/load-venv
-.tools/load-venv/bin/python -m pip install -r requirements-load.txt
+.tools/load-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r requirements-load.txt
 .tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load01
 .venv/bin/python -m json.tool .tools/load-test/load01/report.json
 ```
 
-The requirements file pins the resolved local macOS environment; hashed
-cross-platform artifact locking remains unverified. The command refuses an
+The requirements file pins versions and wheel hashes for macOS ARM64 with Python 3.12.9. The command refuses an
 existing run directory and existing simulator Job. Do not clear authoritative
 history to rerun it. Use a fresh dedicated cluster; retain failed evidence.
 It requires the separately prepared dashboard test venv/Chromium for existing

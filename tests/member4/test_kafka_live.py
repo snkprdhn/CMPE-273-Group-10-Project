@@ -18,6 +18,7 @@ from member4.contracts import TOPICS
 def test_transport_rejects_poison_without_checkpoint(store):
     class Poison:
         def error(self): return None
+        def headers(self): return None
         def value(self): return b''
         def topic(self): return 'grid.action.v1'
         def key(self): return b'tx-001'

@@ -416,36 +416,15 @@ Testing progresses from cheapest and most isolated to most expensive and integra
 
 ## 14. CI/CD plan
 
-### 14.1 Pull-request pipeline
+### 14.1 Pull requests and pushes
 
-1. Detect affected components and contracts.
-2. Run formatting, linting, type checks, secret scan, and dependency checks.
-3. Validate JSON Schema examples, Protobuf compatibility/generation, OpenAPI, and agent schemas.
-4. Run affected unit and component tests.
-5. Build the component image without publishing a release tag.
-6. Scan the image and generate an SBOM.
-7. Render Helm/Kustomize resources and run policy/schema validation.
+The hosted workflows run on standard Ubuntu runners with read-only permissions. Contract checks run the executable v1 bundle and compare with the PR base or previous push. Component jobs install isolated, hash-checked Python environments. The lightweight integration jobs start disposable Compose Kafka and PostgreSQL for standalone acceptance. Chromium exercises the fixture UI and deterministic Investigator.
 
-### 14.2 Main-branch pipeline
+The delivery workflow renders the Kustomize profiles and checksum-verified Helm charts, checks Compose configuration, builds the local kind images, scans dependency locks and images, and retains vulnerability and CycloneDX reports. A secret finding or scanner execution error fails the scan job. Vulnerability findings are available for triage. Image publishing, signing, automated integration deployment, and scheduled full kind suites are deferred.
 
-1. Repeat required PR checks.
-2. Build and sign/tag immutable images by commit SHA.
-3. Load locally built immutable images into kind; registry publishing is deferred.
-4. Deploy the reviewed digests to the protected `integration` namespace.
-5. Run smoke and pairwise regression tests.
-6. Roll back the deployment if health or smoke checks fail.
-7. Store compact test/evidence artifacts with retention appropriate for the course.
+### 14.2 Explicit local acceptance
 
-### 14.3 Scheduled pipeline
-
-- Full end-to-end suite
-- Failure-injection subset
-- Dependency and container scan
-- Load baseline at controlled times
-- Deterministic mock-agent evaluation and injected provider failures
-- Backup/export and restore verification
-
-CI must not expose secrets to untrusted pull requests. Run local deployment gates deliberately on this computer; no cloud runner or paid model calls are required.
+Run the named Docker Desktop kind profile from the [README](../../README.md). The full local suite adds the closed loop and replay, real Calico and RBAC checks, live mock Investigator, TaskManager recovery, a correlated incident, and an authoritative SQL restore drill. The [design audit](../demo/DESIGN_AUDIT.md) records separate open review and performance gates.
 
 ## 15. Kubernetes implementation checklist per workload
 
@@ -501,8 +480,9 @@ Every major experiment must preserve:
 | State | Treatment |
 |---|---|
 | Registry assignments/capabilities | Backup/export or deterministic re-registration procedure |
-| Control policy, action, inbox/outbox, command, and fencing state | Authoritative; backup/export and tested recovery required |
-| Projection data | Rebuildable from retained Kafka events; document replay procedure |
+| Control policy, action, inbox/outbox, command, fencing and simulated gateway effect state | Authoritative; logical archive and scratch restore drill |
+| Projection views and operator records | Views rebuild from the retained journal or complete source; archive operator annotations and mutation audit with the owned database |
+| Local identity | Archive Keycloak database; retain matching private configuration |
 | Copilot audit | Retain only bounded course evidence; not part of control recovery |
 | Flink state | Recover through configured checkpoints/savepoints and retained sources |
 | Kafka test data | Retain long enough for replay/evidence; not a permanent archive |

@@ -8,7 +8,7 @@ from tools.kind_browser import token
 
 if __name__ == '__main__':
     target = Path(sys.argv[1])
-    password = json.loads(Path('.tools/kind-dev/local.json').read_text())['viewer']
+    password = json.loads(Path(sys.argv[2]).read_text())['viewer']
     with httpx.Client(trust_env=False, timeout=5) as http, sync_playwright() as playwright:
         with playwright.chromium.launch() as browser:
             bearer = token(browser, http, password)
