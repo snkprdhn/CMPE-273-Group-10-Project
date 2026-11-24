@@ -9,7 +9,7 @@ import subprocess
 import time
 
 from tools.integration import GATES, verdicts
-from tools.kind_local import PYTHON_IMAGE, ROOT, run, write_private
+from tools.kind_local import ROOT, run, write_private
 
 SOCKET_CHECK = """
 import socket, sys
@@ -51,7 +51,7 @@ def policy_pod(cluster, namespace, name, labels, port=None):
         'spec': {
             'restartPolicy': 'Never', 'automountServiceAccountToken': False,
             'containers': [{
-                'name': 'probe', 'image': PYTHON_IMAGE, 'imagePullPolicy': 'Never',
+                'name': 'probe', 'image': cluster.probe_image, 'imagePullPolicy': cluster.probe_pull_policy,
                 'command': command,
                 'resources': {'requests': {'cpu': '10m', 'memory': '16Mi'},
                               'limits': {'cpu': '100m', 'memory': '48Mi'}},
@@ -83,7 +83,22 @@ def enforce_network(cluster):
         cluster.k('exec', inside, '--', *command, target_ip, '5432', 'allowed', outside_ip, '8080', 'denied')
         cluster.k('-n', 'default', 'exec', outside, '--', *command,
                   outside_ip, '8080', 'allowed', target_ip, '5432', 'denied')
-    print('Calico NetworkPolicy ingress and egress checks passed')
+    print('NetworkPolicy ingress and egress checks passed')
+
+
+def browser_check(cluster, after_restart=False):
+    services = [('api', 18094, 18084)]
+    flags = []
+    if cluster.origin:
+        flags = ['--origin', cluster.origin, '--professor']
+    else:
+        services.append(('ui', 18086, 18086))
+    if after_restart:
+        flags.append('--after-restart')
+    with cluster.forwards(*services):
+        env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(ROOT / '.tools/playwright'))
+        subprocess.run([ROOT / '.tools/dashboard-test-venv/bin/python', '-m', 'tools.kind_browser',
+                        cluster.directory, *flags], cwd=ROOT, env=env, check=True, timeout=150)
 
 
 def smoke(cluster):
@@ -125,10 +140,7 @@ def smoke(cluster):
         write_private(cluster.directory / 'evidence.json', json.dumps(evidence))
         # Temporary operator-owned loopback API connection for REST/SSE assertions.
         # Ordinary dashboard users only need the UI route.
-        with cluster.forwards(('ui', 18086, 18086), ('api', 18094, 18084)):
-            env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(ROOT / '.tools/playwright'))
-            subprocess.run([ROOT / '.tools/dashboard-test-venv/bin/python', '-m', 'tools.kind_browser',
-                            cluster.directory], cwd=ROOT, env=env, check=True, timeout=125)
+        browser_check(cluster)
         evidence = json.loads((cluster.directory / 'evidence.json').read_text())
     except Exception as exc:
         failure = str(exc)
@@ -136,7 +148,7 @@ def smoke(cluster):
     passed = network and rbac and not failure and all(g['status'] == 'PASS' for g in gates.values())
     statuses = {True: 'PASS', False: 'FAIL', None: 'NOT_RUN'}
     report = dict(profile=cluster.profile, started_at=started, finished_at=datetime.now(timezone.utc).isoformat(),
-                  git_base=run('git', 'rev-parse', 'HEAD', capture=True).strip(), runtime='kind',
+                  git_base=run('git', 'rev-parse', 'HEAD', capture=True).strip(), runtime=cluster.runtime,
                   network_policy=statuses[network], action_rbac=statuses[rbac],
                   gates=gates, full_loop='PASS' if passed else 'FAIL', failure=failure, evidence=evidence)
     write_private(cluster.directory / 'report.json', json.dumps(report, indent=2) + '\n')

@@ -12,6 +12,7 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse, PlainTextResponse, HTMLResponse
 
 from identity.auth import CLIENT, Denied, OIDC
+from identity.realm import public_origin
 
 ORIGIN = 'http://127.0.0.1:18086'
 COOKIE = 'grid_session'
@@ -20,6 +21,8 @@ COOKIE = 'grid_session'
 class BrowserLogin:
     def __init__(self, app):
         self.oidc = OIDC()
+        self.origin = public_origin(ORIGIN)
+        self.secure = self.origin.startswith('https://')
         self.sessions = {}
         self.pending = {}
         self.http = httpx.AsyncClient(timeout=5, trust_env=False)
@@ -51,9 +54,9 @@ class BrowserLogin:
         self.pending[state] = dict(verifier=verifier, nonce=nonce, until=time.time()+300)
         challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
         response = RedirectResponse(self.oidc.issuer + '/protocol/openid-connect/auth?' + urlencode(dict(
-            client_id=CLIENT, redirect_uri=ORIGIN+'/auth/callback', response_type='code',
+            client_id=CLIENT, redirect_uri=self.origin+'/auth/callback', response_type='code',
             scope='openid', state=state, nonce=nonce, code_challenge=challenge, code_challenge_method='S256')))
-        response.set_cookie('grid_login', state, httponly=True, samesite='lax', max_age=300, path='/auth')
+        response.set_cookie('grid_login', state, httponly=True, secure=self.secure, samesite='lax', max_age=300, path='/auth')
         return response
 
     async def exchange(self, data):
@@ -81,7 +84,7 @@ class BrowserLogin:
             return PlainTextResponse('Login expired or already used', status_code=400)
         try:
             tokens, actor = await self.exchange(dict(grant_type='authorization_code',
-                code=request.query_params.get('code', ''), redirect_uri=ORIGIN+'/auth/callback',
+                code=request.query_params.get('code', ''), redirect_uri=self.origin+'/auth/callback',
                 code_verifier=pending['verifier']))
             claims = await asyncio.to_thread(self.oidc.claims, tokens['id_token'], CLIENT)
             if claims.get('nonce') != pending['nonce'] or claims['sub'] != actor['actor'] or claims.get('azp', CLIENT) != CLIENT:
@@ -97,7 +100,7 @@ class BrowserLogin:
         self.sessions[sid] = dict(tokens=tokens, actor=actor, until=time.time()+1800,
                                   lock=asyncio.Lock(), csrf=secrets.token_urlsafe(32))
         response = RedirectResponse('/', status_code=303)
-        response.set_cookie(COOKIE, sid, httponly=True, samesite='lax', max_age=1800)
+        response.set_cookie(COOKIE, sid, httponly=True, secure=self.secure, samesite='lax', max_age=1800)
         response.delete_cookie('grid_login', path='/auth')
         response.headers['Cache-Control'] = 'no-store'
         return response
@@ -143,7 +146,7 @@ class BrowserLogin:
             return PlainTextResponse('Invalid logout request', status_code=400)
         self.sessions.pop(sid, None)
         response = RedirectResponse(self.oidc.issuer+'/protocol/openid-connect/logout?'+urlencode(dict(
-            client_id=CLIENT, id_token_hint=session['tokens']['id_token'], post_logout_redirect_uri=ORIGIN+'/')))
+            client_id=CLIENT, id_token_hint=session['tokens']['id_token'], post_logout_redirect_uri=self.origin+'/')))
         response.delete_cookie(COOKIE)
         response.headers['Cache-Control'] = 'no-store'
         return response

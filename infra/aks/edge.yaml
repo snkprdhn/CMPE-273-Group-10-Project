@@ -1,0 +1,151 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: grid-ssd
+  labels: {grid-owner: Member_3, grid-stage: policy}
+provisioner: disk.csi.azure.com
+parameters: {skuName: StandardSSD_LRS}
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: lease-and-topic-api
+  namespace: platform
+  labels: {grid-owner: Member_3, grid-stage: policy}
+spec:
+  endpointSelector:
+    matchExpressions:
+      - {key: grid-app, operator: In, values: [action, topic-operator]}
+  egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+            - {port: "6443", protocol: TCP}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: review-caddy
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: edge}
+data:
+  Caddyfile: |
+    {
+      admin off
+      persist_config off
+      log {
+        exclude http.log.error
+      }
+    }
+
+    {$REVIEW_HOST} {
+      header Strict-Transport-Security "max-age=86400"
+      @private path /admin* /api/* /docs* /redoc* /metrics* /openapi.json
+      respond @private 404
+      reverse_proxy ui:18086
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: review-tls
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: edge}
+spec:
+  storageClassName: grid-ssd
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 1Gi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-edge
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: edge}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {grid-app: review-edge}
+  template:
+    metadata:
+      labels: {grid-app: review-edge, grid-owner: Member_4}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: caddy
+          image: docker.io/library/caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+          env:
+            - name: REVIEW_HOST
+              valueFrom:
+                configMapKeyRef: {name: review-endpoint, key: host}
+          ports:
+            - {name: http, containerPort: 80}
+            - {name: https, containerPort: 443}
+          readinessProbe: {tcpSocket: {port: https}}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL], add: [NET_BIND_SERVICE]}
+          volumeMounts:
+            - {name: config, mountPath: /etc/caddy, readOnly: true}
+            - {name: scratch, mountPath: /config}
+            - {name: tls, mountPath: /data}
+      volumes:
+        - {name: config, configMap: {name: review-caddy}}
+        - {name: scratch, emptyDir: {sizeLimit: 16Mi}}
+        - {name: tls, persistentVolumeClaim: {claimName: review-tls}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-edge
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: edge}
+  annotations:
+    service.beta.kubernetes.io/azure-pip-name: review-ingress
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector: {grid-app: review-edge}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+    - {name: https, port: 443, targetPort: https}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: review-edge
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: review-edge}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports: [{port: 80, protocol: TCP}, {port: 443, protocol: TCP}]
+  egress:
+    - to: [{podSelector: {matchLabels: {grid-app: ui}}}]
+      ports: [{port: 18086, protocol: TCP}]
+    - to: [{ipBlock: {cidr: 0.0.0.0/0}}]
+      ports: [{port: 443, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: review-ui-ingress
+  namespace: platform
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: ui}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {grid-app: review-edge}}}]
+      ports: [{port: 18086, protocol: TCP}]

@@ -54,7 +54,10 @@ class MockProvider:
             evidence_ids=[e['evidence_id'] for e in evidence])}
 
 class Service:
-    def __init__(self, tools, audit_path, provider=None, *, deadline=30, model_timeout=5):
+    def __init__(self, tools, audit_path, provider=None, *, deadline=30, model_timeout=5, retention_days=1):
+        if type(retention_days) is not int or not 1 <= retention_days <= 9:
+            raise ValueError('Audit retention must be between one and nine days')
+        self.retention_seconds = retention_days * 86400
         self.tools, self.provider = tools, provider or MockProvider()
         self.deadline, self.model_timeout = min(30, deadline), min(5, model_timeout)
         self.db = sqlite3.connect(audit_path)
@@ -72,8 +75,9 @@ class Service:
         self.failures, self.open_until = 0, 0
 
     def prune(self):
-        self.db.execute('DELETE FROM investigations WHERE created < ?', (time.time()-86400,))
-        self.db.execute('DELETE FROM denials WHERE observed < ?', (time.time()-86400,))
+        cutoff = time.time() - self.retention_seconds
+        self.db.execute('DELETE FROM investigations WHERE created < ?', (cutoff,))
+        self.db.execute('DELETE FROM denials WHERE observed < ?', (cutoff,))
         self.db.execute('DELETE FROM events WHERE created < ?', (time.time()-300,))
         self.db.commit()
 

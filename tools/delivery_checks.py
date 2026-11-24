@@ -50,9 +50,11 @@ def verify_manifests(path):
 def render():
     directory = OUTPUT / 'manifests'
     directory.mkdir(exist_ok=True)
-    for profile in ('dev', 'review'):
+    overlays = {'dev': INFRA / 'dev', 'review': INFRA / 'review',
+                'hosted': ROOT / 'infra/hosted', 'aks': ROOT / 'infra/aks'}
+    for profile, overlay in overlays.items():
         path = directory / (profile + '.yaml')
-        path.write_text(run(BIN / 'kubectl', 'kustomize', INFRA / profile, capture=True))
+        path.write_text(run(BIN / 'kubectl', 'kustomize', overlay, capture=True))
         verify_manifests(path)
     platform_charts = [('flink-operator' if name == 'flink' else name,
                         chart_archive(name), INFRA / 'charts' / (name + '.yaml')) for name in CHARTS]

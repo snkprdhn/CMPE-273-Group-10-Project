@@ -91,7 +91,7 @@ def write_private(path, contents):
         file.write(contents)
 
 
-def runtime_secrets(passwords):
+def runtime_secrets(passwords, origin=None):
     def dsn(role, database, options=''):
         return f'postgresql://{role}:{passwords[role]}@postgres:5432/{database}{options}'
 
@@ -115,7 +115,7 @@ def runtime_secrets(passwords):
                               'REGISTRY_API_TOKEN': registry_tokens['REGISTRY_API_TOKEN']},
         'cdc-runtime': {'password': passwords['member3_cdc']},
         'keycloak-runtime': {'KC_DB_PASSWORD': passwords['keycloak']},
-        'keycloak-realm': {'realm.json': json.dumps(realm(passwords))},
+        'keycloak-realm': {'realm.json': json.dumps(realm(passwords, origin, review=True) if origin else realm(passwords))},
     }
 
 
@@ -136,6 +136,12 @@ def connector():
 
 
 class Cluster:
+    origin = None
+    probe_image = PYTHON_IMAGE
+    probe_pull_policy = 'Never'
+    postgres_values = ()
+    runtime = 'kind'
+
     def __init__(self, profile, name=None):
         self.profile = profile
         prefix = 'smart-grid-kind-' + profile
@@ -156,8 +162,8 @@ class Cluster:
         flags = ('--server-side',) if server_side else ()
         self.k('apply', *flags, '-f', '-', data=json.dumps(resource))
 
-    def stage(self, name):
-        self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=' + name)
+    def stage(self, name, selector=''):
+        self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=' + name + selector)
 
     def ready(self, *resources, timeout=360):
         self.k('wait', '--for=condition=Ready', *resources, f'--timeout={timeout}s')
@@ -216,10 +222,10 @@ class Cluster:
         if self.k('get', 'networkpolicy/lease-and-topic-api', '--ignore-not-found', '-o', 'name', capture=True).strip():
             self.api_policy()
 
-    def chart(self, chart, release, namespace):
+    def chart(self, chart, release, namespace, *values):
         run(*self.helm, 'upgrade', '--install', release, chart_archive(chart),
             '-n', namespace, '--create-namespace', '-f', INFRA / 'charts' / (chart + '.yaml'),
-            '--wait', '--timeout', '7m')
+            *values, '--wait', '--timeout', '7m')
 
     def install(self):
         self.apply({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': 'platform'}})
@@ -247,8 +253,8 @@ class Cluster:
         if self.k('get', 'secret/postgres-admin', '--ignore-not-found', '-o', 'name', capture=True):
             raise RuntimeError(f'Restore the original {path} before redeploying this persistent cluster.')
         names = ('local_admin', 'registry', 'control', 'projection', 'keycloak', 'member3_cdc',
-                 'member1_gateway', 'rpc_api', 'rpc_action', 'rpc_simulator', 'cursor',
-                 'viewer', 'operator', 'administrator')
+                 'member1_gateway', 'rpc_api', 'rpc_action', 'rpc_simulator', 'cursor')
+        names += ('professor',) if self.origin else ('viewer', 'operator', 'administrator')
         passwords = {name: secrets.token_urlsafe(24) for name in names}
         write_private(path, json.dumps(passwords, indent=2) + '\n')
         return passwords
@@ -271,13 +277,13 @@ class Cluster:
                                  {'port': 443, 'protocol': 'TCP'}, {'port': 6443, 'protocol': 'TCP'}]}]}})
 
     def provision(self):
-        for name, values in runtime_secrets(self.credentials()).items():
+        for name, values in runtime_secrets(self.credentials(), self.origin).items():
             self.apply({'apiVersion': 'v1', 'kind': 'Secret', 'type': 'Opaque',
                         'metadata': {'name': name, 'namespace': 'platform'},
                         'data': {k: base64.b64encode(v.encode()).decode() for k, v in values.items()}}, server_side=True)
         self.stage('policy')
         self.api_policy()
-        self.chart('postgres', 'postgres', 'platform')
+        self.chart('postgres', 'postgres', 'platform', *self.postgres_values)
         # The idempotent bootstrap also applies additive control/projection migrations.
         self.k('delete', 'job/database-bootstrap', '--ignore-not-found', '--timeout=60s')
         self.stage('bootstrap')
@@ -301,9 +307,9 @@ class Cluster:
 
     def apps(self):
         # Bring up dependencies before starting the next pod on the local node.
-        self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=apps,!grid-app')
+        self.stage('apps', ',!grid-app')
         for name in ('registry', 'action', 'projection', 'api', 'keycloak', 'copilot', 'ui'):
-            self.k('apply', '-k', INFRA / self.profile, '-l', 'grid-stage=apps,grid-app=' + name)
+            self.stage('apps', ',grid-app=' + name)
             self.k('rollout', 'status', 'deployment/' + name, '--timeout=360s')
 
     def inspect(self):
@@ -327,7 +333,6 @@ class Cluster:
         run('docker', 'stop', '--timeout', '60', self.node)
 
     def measure(self, quiet=False):
-        cpus, memory = map(int, run('docker', 'info', '--format', '{{.NCPU}} {{.MemTotal}}', capture=True).split())
         stats = json.loads(self.k('get', '--raw', f'/api/v1/nodes/{self.node}/proxy/stats/summary', capture=True))
         def sample(entity):
             cpu = entity.get('cpu', {}).get('usageNanoCores')
@@ -335,9 +340,11 @@ class Cluster:
             return {'cpu_millicores': round(cpu / 1e6) if cpu is not None else None,
                     'memory_mib': round(working_set / 2**20) if working_set is not None else None}
         result = {'time': datetime.now(timezone.utc).isoformat(), 'profile': self.profile,
-                  'docker_cpus': cpus, 'docker_memory_mib': round(memory / 2**20),
                   'node': sample(stats['node']),
                   'pods': {pod['podRef']['namespace'] + '/' + pod['podRef']['name']: sample(pod) for pod in stats['pods']}}
+        if self.runtime == 'kind':
+            cpus, memory = map(int, run('docker', 'info', '--format', '{{.NCPU}} {{.MemTotal}}', capture=True).split())
+            result.update(docker_cpus=cpus, docker_memory_mib=round(memory / 2**20))
         with (self.directory / 'resources.jsonl').open('a') as output:
             output.write(json.dumps(result) + '\n')
         if not quiet:

@@ -5,6 +5,7 @@ import math
 import os
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
+from time import monotonic
 
 from jsonschema import ValidationError
 
@@ -14,6 +15,9 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse
 
 from dashboard.client import DEFINITIONS, Operations, error_text, instant
+from dashboard.flow_demo import INTERVAL, PHASES, SCENARIOS, frame
+from dashboard.grid_view import render_grid
+from dashboard.grid_map import MAP_CSS, render_flow_map
 
 CSS = '''
 :root { --navy:#142a43; --ink:#172f49; --muted:#52657b; --line:#dbe3ec; }
@@ -47,7 +51,7 @@ h3 { font-size:17px; font-weight:700; margin:0; }
 COLORS = {'NORMAL': ('check_circle', '#166344'), 'WARNING': ('warning', '#805000'),
           'CRITICAL': ('error', '#b42332'), 'STALE': ('schedule', '#52657b'),
           'FRESH': ('check_circle', '#166344'), 'PARTIAL': ('warning', '#805000')}
-NAV = [('Overview', 'space_dashboard'), ('Transformers', 'electrical_services'),
+NAV = [('Overview', 'space_dashboard'), ('Flow Map', 'account_tree'), ('Transformers', 'electrical_services'),
        ('Alerts & actions', 'notifications_active'), ('Devices', 'ev_station'),
        ('Scenarios', 'science'), ('System health', 'monitor_heart'), ('Settings', 'settings')]
 
@@ -149,7 +153,7 @@ def configure(fixture=False, api_url=None):
             install(app)
     elif not token:
         raise ValueError('Set DASHBOARD_API_TOKEN for explicit mock mode')
-    ui.add_css(CSS, shared=True)
+    ui.add_css(CSS + MAP_CSS, shared=True)
 
     @ui.page('/investigations/{investigation_id}')
     async def investigation_page(investigation_id: str, request: Request):
@@ -188,6 +192,29 @@ def configure(fixture=False, api_url=None):
         active_action = {'id': None, 'fingerprint': None}
         last_notice = {'fingerprint': None}
         expanded = {}
+        map_expanded = {}
+        playback = {'scenario': None, 'phase': 0, 'next_at': None, 'started': None}
+
+        def draw_playback():
+            last['fingerprint'] = None
+            render()
+
+        def start_playback(scenario):
+            playback.update(scenario=scenario, phase=0, next_at=monotonic()+INTERVAL,
+                            started=datetime.now(timezone.utc))
+            draw_playback()
+
+        def next_phase():
+            scenario = playback['scenario']
+            if scenario and playback['phase'] < len(PHASES[scenario]) - 1:
+                playback['phase'] += 1
+                playback['next_at'] = monotonic()+INTERVAL
+                draw_playback()
+
+        def live_map():
+            playback.update(scenario=None, next_at=None)
+            draw_playback()
+
         ui.link('Skip to main content', '#main').classes('nicegui-skip-link')
         with ui.header().classes('items-center justify-between px-5 py-3'):
             with ui.row().classes('items-center gap-3'):
@@ -317,12 +344,14 @@ def configure(fixture=False, api_url=None):
         track_reading(detail_body, 'detail')
 
         def investigate(entity=None, action=None, alert=None):
-            scope_label.set_text(f'Scope: {entity or "grid"} · action {action or "all"} · alert {alert or "all"} · last {source.range_minutes} minutes · UTC')
             investigation_scope.clear()
-            if entity:
-                investigation_scope['transformer_id'] = entity
-            elif action:
+            if action:
                 investigation_scope['action_id'] = action
+                scope_label.set_text(f'Scope: action {action} · retained command evidence')
+            else:
+                if entity:
+                    investigation_scope['transformer_id'] = entity
+                scope_label.set_text(f'Scope: {entity or "grid"} · alert {alert or "all"} · last 15 minutes · UTC')
             run_button.set_enabled(bool(investigation_scope))
             investigation_output.clear()
             investigator.open()
@@ -330,7 +359,7 @@ def configure(fixture=False, api_url=None):
         def investigate_action():
             action = next((a for a in items('actions') if a['action_id'] == active_action['id']), None)
             if action:
-                investigate(action['transformer_id'], action['action_id'])
+                investigate(action=action['action_id'])
 
         async def fixture_change(body):
             async with httpx.AsyncClient(trust_env=False) as fixture_client:
@@ -366,7 +395,13 @@ def configure(fixture=False, api_url=None):
                     ui.select(['All', 'OPEN', 'ACKNOWLEDGED', 'RESOLVED'] + DEFINITIONS['ActionStatus']['enum'], value=selected['status'], label='Status',
                               on_change=lambda e: set_filter('status', e.value)).classes('w-48')
                     ui.select({15: 'Last 15 minutes', 60: 'Last hour'}, value=source.range_minutes,
-                              label='History range', on_change=range_change).classes('w-48')
+                              label='Alert history range', on_change=range_change).classes('w-48')
+                if page == 'Flow Map':
+                    scenario = ui.select(SCENARIOS, value='overload', label='Demo scenario').classes('w-60')
+                    ui.button('Run simulation', icon='play_arrow', on_click=lambda: start_playback(scenario.value))
+                    ui.button('Next phase', icon='skip_next', on_click=next_phase).props('outline')
+                    ui.button('Return to live grid', on_click=live_map).props('flat')
+                    ui.label('Timed synthetic playback for this tab only.').classes('muted text-sm')
                 if page == 'Scenarios':
                     scenario_form()
             last['fingerprint'] = None
@@ -508,6 +543,19 @@ def configure(fixture=False, api_url=None):
             with content:
                 page = selected['page']
                 ts = items('transformers')
+                if page == 'Flow Map' and playback['scenario']:
+                    scenario, phase = playback['scenario'], playback['phase']
+                    phases = PHASES[scenario]
+                    with ui.card().classes('w-full'):
+                        heading(SCENARIOS[scenario])
+                        ui.label(f'{phase + 1} / {len(phases)} · {phases[phase]}').props('role=status aria-live=polite')
+                        if phase == len(phases) - 1:
+                            ui.label('Simulation complete').classes('font-bold')
+                        ui.label('Synthetic scenario · no live grid commands').classes('muted')
+                    transformer, devices, actions = frame(scenario, phase, playback['started'])
+                    render_flow_map([transformer], devices, actions, True, kw, badge, None, map_expanded,
+                                    simulation=True)
+                    return
                 if not source.data:
                     ui.label('Waiting for API data. Check connection and identity.').classes('muted')
                     return
@@ -533,13 +581,19 @@ def configure(fixture=False, api_url=None):
                         with ui.column().classes('w-full'):
                             heading('Platform response')
                             action_list(items('actions')[:3])
-                    heading('Transformers requiring attention')
-                    with ui.element('div').classes('tx-grid'):
-                        for t in sorted(ts, key=lambda t: ({'CRITICAL':0,'WARNING':1,'STALE':2,'NORMAL':3}[t['state']], -(t['load']['utilization_pct'] or 0))):
-                            transformer_card(t)
+                    heading('Transformer status')
                     if not ts:
                         ui.label('No transformers available.').classes('muted')
+                    with ui.element('div').classes('tx-grid'):
+                        for t in ts:
+                            transformer_card(t)
                     alerts_view(items('alerts')[:3])
+                elif page == 'Flow Map':
+                    ranked = sorted(ts, key=lambda t: ({'CRITICAL':0,'WARNING':1,'STALE':2,'NORMAL':3}[t['state']],
+                                                       -(t['load']['utilization_pct'] or 0)))
+                    render_flow_map(ranked, items('devices'), items('actions'),
+                                    source.status == 'Live' and 'transformers' not in source.errors,
+                                    kw, badge, lambda tx: navigate('Transformers', tx), map_expanded)
                 elif page == 'Transformers':
                     if selected['transformer']:
                         transformer = next((t for t in ts if t['transformer_id'] == selected['transformer']), None)
@@ -554,13 +608,13 @@ def configure(fixture=False, api_url=None):
                         if not ts:
                             ui.label('No transformers available.')
                 elif page == 'Alerts & actions':
-                    def matches(row):
+                    def matches(row, all_history=False):
                         time = row.get('transition_time', row.get('resolved_at', row.get('opened_at')))
                         age = (datetime.now(timezone.utc)-datetime.fromisoformat(time.replace('Z', '+00:00'))).total_seconds() if time else 0
-                        return selected['search'].lower() in json.dumps(row).lower() and (selected['status'] == 'All' or row['status'] == selected['status']) and age <= source.range_minutes*60
+                        return selected['search'].lower() in json.dumps(row).lower() and (selected['status'] == 'All' or row['status'] == selected['status']) and (all_history or age <= source.range_minutes*60)
                     alerts_view([a for a in items('alerts') if matches(a) and (selected['severity'] == 'All' or a['severity'] == selected['severity'])])
-                    heading('Action and command history')
-                    action_list([a for a in items('actions') if matches(a)])
+                    heading('All action and command history')
+                    action_list([a for a in items('actions') if matches(a, all_history=True)])
                 elif page == 'Devices':
                     devices_view([d for d in items('devices') if selected['search'].lower() in json.dumps(d).lower()])
                 elif page == 'Scenarios':
@@ -630,7 +684,13 @@ def configure(fixture=False, api_url=None):
             transformer_card(t)
             load = t['load']
             history_matches = source.data.get('history_transformer') == t['transformer_id'] and source.data.get('history_minutes') == source.range_minutes
-            history = items('loads') if history_matches else []
+            history = items('loads') if history_matches and 'loads' not in source.errors else []
+            transformer_id = t['transformer_id']
+            actions = [a for a in items('actions') if a['transformer_id'] == transformer_id]
+            devices = [d for d in items('devices') if d['device']['transformer_id'] == transformer_id]
+            render_grid(t, devices, actions, history,
+                        source.status == 'Live' and 'transformers' not in source.errors,
+                        kw, expansion, open_action, source.data.get('grid_commands', []))
             with ui.card().classes('w-full'):
                 heading('Load and policy thresholds')
                 if not history_matches:
@@ -644,7 +704,6 @@ def configure(fixture=False, api_url=None):
                     table(history, [('window_end','Window end UTC'),('net_load_kw','Net kW'),('utilization_pct','Utilization %'),('revision','Revision'),('completeness','Completeness')], 'window_id')
             heading('Action plan and outcomes')
             action_list([a for a in items('actions') if a['transformer_id'] == t['transformer_id']])
-            devices_view([d for d in items('devices') if d['device']['transformer_id'] == t['transformer_id']])
             heading('Published event timeline')
             timeline = [dict(time=p['window_end'], event=f'Load {kw(p["net_load_kw"])} · {p["completeness"]}', reference=p['window_id']) for p in history]
             timeline += [dict(time=a['transition_time'], event=a['status'].replace('_',' '), reference=a['action_id']) for a in items('actions') if a['transformer_id'] == t['transformer_id']]
@@ -678,8 +737,14 @@ def configure(fixture=False, api_url=None):
                 last_notice['fingerprint'] = notice_fingerprint
             fingerprint = json.dumps([source.data, source.errors, source.status, source.health], sort_keys=True)
             changed = fingerprint != last['fingerprint']
-            pending.set_visibility(changed and reading['content'])
-            if changed and not reading['content']:
+            playing = selected['page'] == 'Flow Map' and playback['scenario']
+            if playing and playback['next_at'] is not None and monotonic() >= playback['next_at']:
+                if playback['phase'] == len(PHASES[playback['scenario']]) - 1:
+                    playback['next_at'] = None
+                elif not reading['content']:
+                    next_phase()
+            pending.set_visibility(bool(changed and reading['content'] and not playing))
+            if changed and not reading['content'] and not playing:
                 render()
                 last['fingerprint'] = fingerprint
             if details.value:

@@ -119,12 +119,32 @@ class Operations:
                     data[name] = value
                 except (httpx.HTTPError, ValueError, KeyError, ValidationError) as exc:
                     errors[name] = error_text(exc)
+            data.pop('grid_commands', None)
             target = self.transformer or next((t['transformer_id'] for t in data.get('overview', {}).get('highest_risk', [])), None)
             if target:
                 try:
                     now = datetime.now(timezone.utc)
+                    start = now - timedelta(minutes=minutes)
+                    if self.transformer:
+                        actions = data.get('actions', {}).get('items', [])
+                        transitions = [instant(a['transition_time']) for a in actions
+                                       if a['transformer_id'] == target]
+                        if transitions:
+                            latest = max((a for a in actions if a['transformer_id'] == target),
+                                         key=lambda a: instant(a['transition_time']))
+                            start = min(start, instant(latest['transition_time']) - timedelta(minutes=15))
+                            try:
+                                endpoint = self.http.base_url.join('/internal/investigator/projection')
+                                evidence = decode_json((await self.get(endpoint, {'action_id': latest['action_id']})).content)
+                                commands = evidence['commands']
+                                for command in commands:
+                                    validate('CommandPayload', command)
+                                data['grid_commands'] = [c for c in commands if c['action_id'] == latest['action_id']
+                                                         and c['transformer_id'] == target]
+                            except (httpx.HTTPError, ValueError, KeyError, TypeError, ValidationError):
+                                pass  # Viewer and standalone fixture can still inspect public evidence.
                     loads = await self.collection(f'/transformers/{target}/loads',
-                        {'start': stamp(now-timedelta(minutes=minutes)), 'end': stamp(now+timedelta(seconds=5))})
+                        {'start': stamp(start), 'end': stamp(now+timedelta(seconds=5))})
                     data.update(loads=loads, history_transformer=target, history_minutes=minutes)
                 except (httpx.HTTPError, ValueError, KeyError, ValidationError) as exc:
                     errors['loads'] = error_text(exc)

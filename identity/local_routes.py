@@ -4,6 +4,7 @@ import re
 
 import httpx
 from fastapi import Request, Response
+from identity.realm import public_origin
 
 KEYCLOAK = 'http://keycloak:8080'
 REALM = '/realms/smart-grid'
@@ -33,6 +34,7 @@ def allowed(path, method):
 
 def install(app):
     http = httpx.AsyncClient(timeout=5, trust_env=False)
+    origin = public_origin(None)
     app.on_shutdown(http.aclose)
 
     @app.get('/healthz')
@@ -60,6 +62,8 @@ def install(app):
             if len(body) > 65536:
                 return Response(status_code=413)
         headers = {k: v for k, v in request.headers.items() if k in REQUEST_HEADERS}
+        if origin:
+            headers.update({'x-forwarded-proto': 'https', 'x-forwarded-host': origin.removeprefix('https://')})
         # Never send the dashboard's session or PKCE state to the IdP.
         cookies = [part.strip() for part in request.headers.get('cookie', '').split(';')
                    if part.strip().partition('=')[0] in

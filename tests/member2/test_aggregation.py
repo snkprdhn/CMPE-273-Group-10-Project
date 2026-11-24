@@ -178,3 +178,18 @@ def test_rfc3339_validation_does_not_depend_on_optional_jsonschema_extras(field,
     (e['payload'] if field == 'departure_time' else e)[field] = value
     assert engine.reading(e, 'tx-001')[0][0] == DLQ
     assert not engine.windows and not engine.seen
+
+
+def test_non_string_timestamp_is_dead_lettered_even_with_trace_extraction():
+    from member2.tracing import remember
+
+    engine = Aggregator(CASES[0]['topology'])
+    event = deepcopy(CASES[0]['steps'][0]['event'])
+    event['event_time'] = 123
+    raw = json.dumps(event)
+    # The managed-state operator parses the timestamp before dispatching to the engine.
+    with pytest.raises(ValueError, match='Timestamp must be a string'):
+        instant(event['event_time'])
+    assert engine.reading(raw, 'tx-001')[0][0] == DLQ
+    remember(engine, raw, {})
+    assert not engine.windows

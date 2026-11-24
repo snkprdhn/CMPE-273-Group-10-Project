@@ -5,7 +5,7 @@ import os
 import jwt
 from jwt import PyJWKClient
 
-from identity.realm import CLIENT, AUDIENCE
+from identity.realm import CLIENT, AUDIENCE, public_origin
 
 ROLES = ('Viewer', 'Operator', 'Administrator')
 ISSUER = 'http://127.0.0.1:18080/realms/smart-grid'
@@ -27,7 +27,7 @@ class OIDC:
     def __init__(self):
         # The named kind profile keeps the browser issuer exact and fetches keys by cluster DNS.
         kind = os.getenv('GRID_LOCAL_KIND') == '1'
-        self.issuer = 'http://127.0.0.1:18086/realms/smart-grid' if kind else ISSUER
+        self.issuer = public_origin('http://127.0.0.1:18086') + '/realms/smart-grid' if kind else ISSUER
         self.backchannel = 'http://keycloak:8080/realms/smart-grid' if kind else self.issuer
         self.keys = PyJWKClient(self.backchannel + '/protocol/openid-connect/certs', timeout=3)
 

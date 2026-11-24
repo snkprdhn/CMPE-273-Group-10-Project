@@ -35,6 +35,7 @@ class Fixture:
         self.acknowledged = False
         self.operations = {}
         self.history = []
+        self.grid_base = None
         self.changed()
 
     def changed(self):
@@ -75,6 +76,45 @@ class Fixture:
                 d['command_history'].append(dict(command_id='restore-001', action_id='action-001', device_id='ev-001',
                     outcome='APPLIED', previous_rate_kw=7, applied_rate_kw=28, result_time=stamp(self.time)))
         data['loads'] = deepcopy(self.history) if self.history else [t['load']]
+        if self.fault.startswith('grid-'):
+            base = self.grid_base
+            ack = self.fault == 'grid-ack'
+            slot = 0 if ack or self.step == 1 else 2 if self.step == 2 else 4
+            start = base + timedelta(seconds=5 * slot)
+            t['load'].update(window_id=f'grid-window-{slot}', window_start=stamp(start),
+                             window_end=stamp(start + timedelta(seconds=5)))
+            if action:
+                a = data['actions'][0]
+                a.update(trigger_window_id='grid-window-0', transition_time=stamp(start))
+                if self.step >= 2:
+                    d['command_history'][0]['result_time'] = stamp(base + timedelta(seconds=6))
+                if self.step == 3:
+                    d['command_history'][1]['result_time'] = stamp(base + timedelta(seconds=16))
+                if ack:
+                    a.update(status='ACKS_PENDING', acknowledged_device_count=1)
+                    d['command_history'] = [deepcopy(BASE['devices'][0]['command_history'][0])]
+                    d['command_history'][0]['result_time'] = stamp(base + timedelta(seconds=6))
+            if self.fault == 'grid-history':
+                t.update(state='STALE', freshness='STALE', data_age_seconds=120)
+                d['freshness'] = 'STALE'
+            if self.fault == 'grid-scale':
+                data['transformers'], data['devices'] = [], []
+                for i in range(1, 26):
+                    tx = f'tx-{i:03}'
+                    transformer = deepcopy(t)
+                    transformer.update(transformer_id=tx)
+                    transformer['load'].update(transformer_id=tx, window_id=f'scale-{tx}', expected_device_count=100,
+                                               good_device_count=100)
+                    data['transformers'].append(transformer)
+                    for j in range(100):
+                        kind = 'SMART_METER' if j < 55 else 'EV_CHARGER' if j < 90 else 'SOLAR'
+                        device = dict(d['device'], device_id=f'{tx}-device-{j:03}', transformer_id=tx,
+                                      device_type=kind, controllable=kind == 'EV_CHARGER')
+                        data['devices'].append(dict(device=device, freshness='UNKNOWN',
+                                                    latest_telemetry=None, command_history=[]))
+        if self.fault == 'historical':
+            for row in data['actions']:
+                row['transition_time'] = stamp(self.time-timedelta(days=8))
         if self.fault in ('stale', 'partial'):
             t['freshness'] = self.fault.upper()
             if self.fault == 'stale':
@@ -113,18 +153,44 @@ def create_fixture_app():
         body = await request.json()
         if body.get('clear_history'):
             state.history.clear()
+            state.grid_base = None
             state.active = None
             state.acknowledged = False
             state.operations.clear()
         if 'step' in body:
             state.step = int(body['step']) % 4
         state.fault = body.get('fault', '')
+        if state.fault.startswith('grid-') and state.grid_base is None:
+            state.grid_base = datetime.now(timezone.utc).replace(second=0, microsecond=0) - timedelta(minutes=1)
         if body.get('gap'):
             state.gaps += 1
         if body.get('disconnect'):
             state.disconnect += 1
         state.changed()
         return {'step': state.step, 'version': state.version}
+
+    @app.get('/internal/investigator/projection')
+    async def command_evidence(request: Request, action_id: str):
+        if request.headers.get('Authorization') != 'Bearer fixture-operator-token':
+            return fixture_error(403)
+        if action_id != 'action-001' or state.fault not in ('grid-ack', 'grid-live', 'grid-history'):
+            return fixture_error(404)
+        if state.step == 1 and state.fault != 'grid-ack':
+            return fixture_error(404)
+        commands = [
+            ('command-001', 'THROTTLE', 7, 5, 'Overload'),
+            ('restore-001', 'RESTORE', 28, 16, 'Safe load'),
+        ]
+        output = []
+        for command_id, kind, target, offset, reason in commands[:2 if state.step == 3 else 1]:
+            issued = state.grid_base + timedelta(seconds=offset)
+            command = dict(command_id=command_id, command_type=kind, target_rate_kw=target,
+                           issued_at=stamp(issued), expires_at=stamp(issued + timedelta(seconds=10)),
+                           action_id=action_id, device_id='ev-001', transformer_id='tx-001',
+                           reason=reason, policy_version=1, leader_epoch=42, saga_version=offset)
+            validate('CommandPayload', command)
+            output.append(command)
+        return {'commands': output}
 
     @app.get('/api/v1/events')
     async def events(request: Request):
@@ -185,20 +251,20 @@ def create_fixture_app():
         return JSONResponse(value, status_code=status)
 
     @app.get('/api/v1/{path:path}')
-    async def snapshot(path: str):
+    async def snapshot(path: str, request: Request):
         data = state.payload()
         if path in ('health', 'ready'):
             return {'status': 'ok', 'observed_at': stamp(state.time)}
         if path == 'overview':
             ts = data['transformers']
             return dict(transformer_count=len(ts), critical_count=sum(t['state'] == 'CRITICAL' for t in ts),
-                        total_net_load_kw=sum(t['load']['net_load_kw'] for t in ts), highest_risk=ts,
+                        total_net_load_kw=sum(t['load']['net_load_kw'] for t in ts), highest_risk=ts[:20],
                         freshness=ts[0]['freshness'] if ts else 'UNKNOWN')
         if path == 'scenarios':
             return {'scenarios': ['normal', 'evening_overload', 'late_correction', 'leader_failover'], 'active_run': state.active}
         parts = path.split('/')
         if path.endswith('/loads'):
-            items = data['loads']
+            items = [w for w in data['loads'] if w['transformer_id'] == parts[1]]
         elif len(parts) == 2 and parts[0] in ('transformers', 'devices', 'actions'):
             field = {'transformers': 'transformer_id', 'devices': 'device_id', 'actions': 'action_id'}[parts[0]]
             return next((i for i in data[parts[0]] if (i.get('device') or i)[field] == parts[1]), fixture_error(404))
@@ -206,7 +272,14 @@ def create_fixture_app():
             if path not in data:
                 return fixture_error(404)
             items = data[path]
-        return {'items': items, 'next_cursor': None, 'freshness': data['transformers'][0]['freshness'] if data['transformers'] else 'UNKNOWN'}
+        if state.fault == 'grid-scale':
+            start = int(request.query_params.get('cursor', '0'))
+            end = start + int(request.query_params.get('limit', '200'))
+            cursor = str(end) if end < len(items) else None
+            items = items[start:end]
+        else:
+            cursor = None
+        return {'items': items, 'next_cursor': cursor, 'freshness': data['transformers'][0]['freshness'] if data['transformers'] else 'UNKNOWN'}
     return app
 
 

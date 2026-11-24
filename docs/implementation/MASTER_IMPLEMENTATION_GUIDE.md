@@ -50,6 +50,10 @@ This guide coordinates the work; it does not replace the detailed design and con
 
 [ADR-006](../decisions/ADR-006-local-kind.md) makes local kind the required integration and demonstration target. All project application/test code is Python; JVM-based infrastructure stays inside containers. Host Java/Maven and Node.js/npm are unnecessary.
 
+The November 2026 professor review has a separate, seven-day Azure for Students
+exception. Its scope and preflight are recorded in the
+[AKS review runbook](../../infra/aks/README.md). The team baseline stays on kind.
+
 | Environment | Purpose | Required characteristics |
 |---|---|---|
 | Standalone lightweight development | One owned slice with fixtures/mocks | Only minimum real dependencies; independently runnable |
@@ -498,7 +502,7 @@ Every major experiment must preserve:
 
 ## 18. Local resource and lifecycle controls
 
-Keep one Docker Desktop resource profile active. Monitor memory pressure, CPU, images, PVCs, checkpoints, and evidence disk use. Stop idle components between exercises. Preserve authoritative state/evidence before deleting kind clusters; PVCs on kind nodes disappear with those nodes. No cloud resources or external model calls are authorized.
+Keep one Docker Desktop resource profile active. Monitor memory pressure, CPU, images, PVCs, checkpoints, and evidence disk use. Stop idle components between exercises. Preserve authoritative state/evidence before deleting kind clusters; PVCs on kind nodes disappear with those nodes. The temporary AKS review follows its [separate lifecycle](../../infra/aks/README.md). Use deterministic model mocks in both environments.
 
 ## 19. Troubleshooting order
 

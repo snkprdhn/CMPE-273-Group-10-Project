@@ -32,6 +32,8 @@ LATE = 'grid.telemetry.late.v1'
 
 
 def instant(value):
+    if not isinstance(value, str):
+        raise ValueError('Timestamp must be a string')
     return datetime.fromisoformat(value.replace('Z', '+00:00'))
 
 
@@ -81,6 +83,8 @@ class Aggregator:
         if max_events < 1:
             raise ValueError('INVALID_RUN_LIMIT')
         self.max_events = max_events
+        self.device_types = {key: {d['device_id']: d['device_type'] for d in t['devices']}
+                             for key, t in self.transformers.items()}
         self.seen = set()
         self.windows = {}
         self.greatest = None
@@ -109,7 +113,7 @@ class Aggregator:
             if p.get('minimum_rate_kw', 0) > p.get('current_rate_kw', math.inf):
                 raise ValueError('RATE_RANGE')
             t = self.transformers.get(key)
-            if t is None or {d['device_id']: d['device_type'] for d in t['devices']}.get(p['device_id']) != p['device_type']:
+            if t is None or self.device_types[key].get(p['device_id']) != p['device_type']:
                 raise ValueError('TOPOLOGY_ASSIGNMENT')
             start = at.replace(second=at.second // 5 * 5, microsecond=0)
             try:

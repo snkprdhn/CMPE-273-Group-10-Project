@@ -1,4 +1,4 @@
-FROM python:3.12.9-slim-bookworm@sha256:40011d5cf225eb43b650ec158d4a59ca3110e6566ddfd3f506824db6153761cf AS build
+FROM python:3.12.9-slim-bookworm@sha256:48a11b7ba705fd53bf15248d1f94d36c39549903c5d59edcfa2f3f84126e7b44 AS build
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential openjdk-17-jdk-headless curl && rm -rf /var/lib/apt/lists/*
 RUN python -m venv /opt/venv
 COPY member2/requirements.txt /requirements.txt

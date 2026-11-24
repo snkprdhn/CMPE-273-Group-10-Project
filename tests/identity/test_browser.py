@@ -9,7 +9,28 @@ import pytest
 
 from identity.auth import CLIENT, Denied
 from identity.browser import BrowserLogin, COOKIE
+from identity.realm import realm
 from tests.identity.test_auth import signing
+
+
+def test_hosted_review_realm_and_https_login(monkeypatch):
+    origin = 'https://grid-review.westus.cloudapp.azure.com'
+    monkeypatch.setenv('GRID_PUBLIC_ORIGIN', origin)
+    monkeypatch.setenv('GRID_LOCAL_KIND', '1')
+    configured = realm({'professor': 'synthetic-password'}, origin, review=True)
+    assert [(user['username'], user['realmRoles']) for user in configured['users']] == [('professor', ['Operator'])]
+    callback = origin + '/auth/callback'
+    assert configured['clients'][0]['redirectUris'] == [callback]
+    app = FastAPI()
+    login = BrowserLogin(app)
+    with TestClient(app, base_url=origin) as client:
+        response = client.get('/auth/login', follow_redirects=False)
+    location = urlsplit(response.headers['location'])
+    assert response.status_code == 307
+    assert login.oidc.backchannel == 'http://keycloak:8080/realms/smart-grid'
+    assert location.path.startswith('/realms/smart-grid/') and location.netloc == urlsplit(origin).netloc
+    assert parse_qs(location.query)['redirect_uri'] == [callback]
+    assert 'Secure' in response.headers['set-cookie'] and 'HttpOnly' in response.headers['set-cookie']
 
 
 def test_pkce_callback_state_replay_and_logout(signing):

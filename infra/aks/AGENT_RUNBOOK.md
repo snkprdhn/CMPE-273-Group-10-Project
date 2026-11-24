@@ -22,8 +22,7 @@ context. Keep local az/kubectl access scoped to the approved workstation.
 Use private, ignored files under `.tools/aks-review/` for evidence and credentials.
 The folder is workstation-local and does not come with a repository checkout.
 If it is missing, obtain access and retained artifacts from the owner. Confirm
-that the checkout also includes the hosted overlay and AKS helper described
-below. They may live in the deployment workspace until published separately.
+that the checkout includes the hosted overlay and AKS helper described below.
 
 ```bash
 export REVIEW_GROUP=rg-smart-grid-professor-review
@@ -98,7 +97,7 @@ flowchart LR
   claims hold PostgreSQL, Kafka, Flink checkpoints, Investigator SQLite audit
   and Caddy TLS. Kafka and Investigator review evidence have nine-day retention.
 - Kustomize inheritance is
-  `infra/aks/kustomization.yaml` → `infra/hosted/kustomization.yaml` →
+  [AKS](kustomization.yaml) → [hosted](../hosted/kustomization.yaml) →
   [kind dev](../kind/dev/kustomization.yaml) → [kind base](../kind/base/kustomization.yaml).
   Hosted identity and retention changes belong in `infra/hosted`. Azure
   storage, ingress and Cilium changes belong in `infra/aks`. Shared workload
@@ -125,7 +124,7 @@ not an upgrade on a seeded cluster.
 3. Deploy the validated ARM template. Give the kubelet pull access to ACR
    using `az aks update --attach-acr`. In the managed node group, reserve the
    static Standard IPv4 `review-ingress` with the approved DNS label. The
-   `infra/aks/edge.yaml` binds the load balancer to that IP name. Use
+   [edge manifest](edge.yaml) binds the load balancer to that IP name. Use
    the resulting FQDN for TLS and OIDC origins.
 4. Export a dedicated kubeconfig, verify one Ready AMD64 node, then build and
    publish all eight images. Bootstrap secrets are generated in the ignored
@@ -297,7 +296,7 @@ k exec grid-connect-connect-0 -- curl -fsS --max-time 5 \
   approval for those disruptions. Ask before deleting Azure resources.
 
 The primary implementation references are
-`tools/aks_review.py`,
+[tools/aks_review.py](../../tools/aks_review.py),
 [tools/kind_local.py](../../tools/kind_local.py),
 [tools/delivery_images.py](../../tools/delivery_images.py),
 [the final demo guide](../../docs/demo/FINAL_DEMO.md), and

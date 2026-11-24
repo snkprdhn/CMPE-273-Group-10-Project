@@ -40,5 +40,6 @@ def build(repository, inventory):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inventory', type=Path, default=ROOT / '.tools/delivery-images/images.json')
+    parser.add_argument('--repository', default='smart-grid-kind')
     args = parser.parse_args()
-    build('smart-grid-kind', args.inventory)
+    build(args.repository, args.inventory)

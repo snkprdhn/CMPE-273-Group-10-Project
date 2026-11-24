@@ -47,9 +47,10 @@ One aggregation task retains global event IDs and windows for a fixed run
 (maximum 100,000 unique valid input IDs by default, including very-late IDs).
 This preserves global maximum/dedup semantics across the three Kafka partitions.
 At the limit it fails visibly instead of evicting identity or emitting incorrect
-loads. State and full-window scans grow with run length; this profile is for
-bounded deterministic runs, not production throughput. Rescaling and distributed
-watermark coordination are deferred. Restore rejects a changed topology or run
+loads. The scale milestone separates the exact ID index and window snapshots into
+managed MapState. An event updates its own window and evaluates newly eligible
+windows. Retained state still grows up to the finite run limit. Rescaling and
+distributed watermark coordination are deferred. Restore rejects a changed topology or run
 limit. Use a new run/topic/group/transaction prefix for changed topology/capacity;
 never run two jobs with the same run ID. The default topology is copied from the
 shared frozen golden scenario, not fetched from a service.

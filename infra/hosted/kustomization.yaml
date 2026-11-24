@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [../kind/dev]
+patches:
+  - target: {kind: KafkaTopic}
+    patch: |-
+      - op: replace
+        path: /spec/config/retention.ms
+        value: 777600000
+  - target: {kind: Kafka, name: grid}
+    patch: |-
+      - op: replace
+        path: /spec/kafka/config/log.retention.hours
+        value: 216
+  - target: {kind: Deployment, name: 'api|ui|copilot'}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GRID_PUBLIC_ORIGIN
+          valueFrom:
+            configMapKeyRef: {name: review-endpoint, key: origin}
+  - target: {kind: Deployment, name: copilot}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: COPILOT_AUDIT_RETENTION_DAYS, value: "9"}
+  - target: {kind: Deployment, name: keycloak}
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value: [start, --import-realm, --http-enabled=true, --proxy-headers=xforwarded]
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: KC_HOSTNAME
+          valueFrom:
+            configMapKeyRef: {name: review-endpoint, key: origin}

@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import time
+from urllib.request import urlopen
 
 from tools.kind_local import BIN, ROOT, Cluster, run, write_private
 from tools.kind_smoke import smoke
@@ -28,10 +29,18 @@ def capture_inventory(cluster):
 
 
 def flink_recovery(cluster):
-    base = '/api/v1/namespaces/platform/services/aggregation-rest:8081/proxy/jobs/'
+    # Use the authenticated loopback tunnel. AKS NetworkPolicy intentionally
+    # excludes control-plane proxy traffic from the private Flink REST service.
+    with cluster.forwards(('aggregation-rest', 18098, 8081)):
+        _flink_recovery(cluster)
+
+
+def _flink_recovery(cluster):
+    base = 'http://127.0.0.1:18098/jobs/'
 
     def query(path):
-        return json.loads(cluster.k('--request-timeout=8s', 'get', '--raw', base + path, capture=True))
+        with urlopen(base + path, timeout=8) as response:
+            return json.load(response)
 
     job = next((item for item in query('overview')['jobs']
                 if item['name'] == 'member2-kind' and item['state'] == 'RUNNING'), None)
@@ -61,7 +70,7 @@ def flink_recovery(cluster):
                 write_private(cluster.directory / 'flink-recovery.json', json.dumps(evidence, indent=2) + '\n')
                 print('PASS: Flink restored a checkpoint and committed a newer one')
                 return
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, OSError):
             pass
         time.sleep(3)
     raise RuntimeError('Flink did not report checkpoint restore and newer completion within the deadline')

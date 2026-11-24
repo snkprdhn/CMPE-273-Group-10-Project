@@ -97,3 +97,52 @@ saga transitions, telemetry arrival timestamps and component metrics are absent
 from v1. Scenario effects are backend contract mocks. The investigator reports
 unavailable; Copilot execution/evidence, kind packaging, Linux locks,
 full live context feeds and end-to-end platform acceptance remain later gates.
+
+### Grid View
+
+Open **Transformers** or use **Open tx-…** on the overview. **Grid View**
+shows net load, capacity, classification and freshness for that transformer.
+Arrow direction distinguishes demand from generation and line width follows
+the published group kW. Expand **EV charger readings** for individual
+measurements and the highlighted throttle participant.
+
+The historical timeline follows the latest retained action for the transformer.
+It uses the existing Operator-authorized projection evidence route for command
+send time and requested rate when available. The command result shows the
+applied rate. Flow values come from load windows and individual measured draw
+comes from the latest device telemetry. The UI labels missing values as
+unknown. DeviceView has no per-device measurement timestamp or past reading
+series. A window that ends after acknowledgement may straddle it, and changes
+in aggregate demand cannot isolate a charger's contribution. The existing
+action dialog links to the Investigator.
+
+For a local UI walkthrough, run `make dashboard-fixtures` and
+`make dashboard-demo`, open [GridBalance](http://127.0.0.1:18086), select
+`tx-001`, and advance the fixture through Overload, Throttling and Recovery.
+For a local platform walkthrough using the real seeded scenario, follow the
+[final demo guide](../docs/demo/FINAL_DEMO.md) and select the same transformer.
+
+**Flow Map** shows every transformer in the
+published inventory. Each transformer has its own schematic with household,
+solar, and EV branches. Arrow direction shows consumption or generation and
+line width is relative to that transformer's largest branch. Moving lines
+indicate fresh nonzero readings while the REST/SSE connection is live.
+Stale, incomplete, or retained readings remain visible without motion.
+The map is schematic because the API supplies device-to-transformer
+assignments and no feeder links or geographic coordinates. Click household, solar, or EV nodes to expand individual readings on the map.
+Open the transformer node for its incident history.
+
+The Flow Map uses circular transformer nodes and moving dots on directional
+branches. Green shows ordinary flow, teal shows solar input, and a labeled red
+EV branch identifies an applied throttle. Expanded chargers show the applied
+rate separately from measured draw. An acknowledged restore clears the throttle
+highlight. Retained or incomplete readings do not animate.
+
+On **Flow Map**, choose **Evening EV overload**, **Sudden solar drop**, or
+**Steady demand** under **Demo scenario**, then select **Run simulation**.
+The synthetic readings advance every four seconds. **Next phase** advances
+immediately, and **Return to live grid** restores the REST/SSE dashboard.
+The overload scenarios show separate acknowledgement and measurement frames.
+Playback is confined to that browser tab and does not publish telemetry,
+issue charger commands, or alter retained incident evidence. The graph holds
+automatic changes while keyboard focus is inside the map for inspection.

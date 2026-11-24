@@ -1,4 +1,4 @@
-FROM python:3.12.9-slim-bookworm@sha256:40011d5cf225eb43b650ec158d4a59ca3110e6566ddfd3f506824db6153761cf AS base
+FROM python:3.12.9-slim-bookworm@sha256:48a11b7ba705fd53bf15248d1f94d36c39549903c5d59edcfa2f3f84126e7b44 AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/opt/venv/bin:$PATH
 WORKDIR /app
 COPY observability /app/observability

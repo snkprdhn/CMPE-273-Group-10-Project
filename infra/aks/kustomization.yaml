@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [../hosted, edge.yaml]
+patches:
+  - target: {kind: KafkaNodePool, name: brokers}
+    patch: |-
+      - op: add
+        path: /spec/storage/volumes/0/class
+        value: grid-ssd
+  - target: {kind: PersistentVolumeClaim, name: 'checkpoints|copilot-audit'}
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: grid-ssd
+  - target: {kind: Deployment, name: 'registry|action|projection|api|copilot|ui'}
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target: {kind: Job, name: 'database-bootstrap|simulator'}
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target: {kind: FlinkDeployment, name: aggregation}
+    patch: |-
+      - op: replace
+        path: /spec/imagePullPolicy
+        value: IfNotPresent

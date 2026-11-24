@@ -1,8 +1,321 @@
 # Implementation status
 
-Updated **2026-11-23 (America/Los_Angeles)** for local delivery and release rehearsal. Member_1 owns simulation, Registry and observability. Member_2 owns Kafka and PyFlink. Member_3 owns control, PostgreSQL and Debezium. Member_4 owns projections, API, UI, identity and Copilot.
+Updated **2026-11-24 (America/Los_Angeles)** for the AKS review preflight and local delivery. Member_1 owns simulation, Registry and observability. Member_2 owns Kafka and PyFlink. Member_3 owns control, PostgreSQL and Debezium. Member_4 owns projections, API, UI, identity and Copilot.
 
-## Current milestone — reproducible local delivery
+## Publication review — hosted delivery, scale, and Flow Map
+
+Code review found that a non-string telemetry timestamp could raise before
+the new Flink state lookup reached domain validation. The shared timestamp
+parser now rejects the type explicitly, preserving dead-letter and trace
+handling. Regression coverage is in `tests/member2/test_aggregation.py`.
+
+Publication checks passed: `make dashboard-test` (35), `make identity-test`
+(23), `make copilot-test` (12), `make member2-test` (44),
+`make contracts BASE_REF=origin/main` (214), `make delivery-render`, and
+16 focused delivery tests. Prior live benchmark and professor handoff
+evidence is recorded below. This review did not redeploy Azure.
+
+## Flow Map demo playback on AKS
+
+Flow Map now offers Evening EV overload, Sudden solar drop, and Steady
+demand. Frames advance every four seconds or with Next phase. Return to live
+grid restores the live REST/SSE view. Playback is synthetic, per browser tab,
+and never sends events or commands into the shared grid. The overload frames
+separate command acknowledgement from the next measured load update.
+
+`make dashboard-test` passed 35 checks. The AMD64 dashboard image
+`flow-demo-v1` was published to the existing ACR and rolled out by digest.
+Hosted Chromium verified professor sign-in, automatic overload playback,
+throttling before measured reduction, solar scenario switching, return to live,
+the retained action timeline and the MOCK Investigator. The first hosted
+attempt timed out waiting for retained history. The repeat passed after moving
+focus outside the data panel. No new resources or review time were added.
+Azure for Students spending limit was On.
+
+## AKS Flow Map update
+
+The Flow Map now places solar supply on the left, the transformer in the
+center, and household and EV demand on the right. `make dashboard-test`
+passed all 34 checks, including node order and incoming arrow direction.
+The Linux AMD64 dashboard image was published to the existing Basic ACR
+as `flow-map-v1` and deployed by digest with `kubectl set image deployment/ui`.
+The prior digest remains available for rollback.
+
+The published HTTPS endpoint and readiness passed. A Chromium check
+signed in as the professor, read the completed action over REST, connected
+to SSE, expanded the charger group on the Flow Map, opened the retained
+overload/reduction/restore timeline, and ran the MOCK Investigator.
+Flink remains running and stable. The platform check found a failed Debezium
+task with a PostgreSQL connection timeout. A Strimzi task restart recovered
+the existing replication slot. Kafka Connect REST reported connector and task
+RUNNING, all five platform claims were bound, and HTTPS readiness returned
+200 again. The review window stays on the original
+schedule. Azure for Students spending limit is On. This update used the
+existing registry and one-node Base/Free cluster. No extra resources were
+provisioned. The original estimated total remains approximately $74.20
+under the accepted regional pricing assumption. No Git commit or push.
+
+## Local Flow Map visual update
+
+Member_4 redesigned Flow Map with circular transformer nodes, a shared
+connector spine, and directional moving dots. Green marks ordinary flow,
+teal marks solar input, and red identifies the EV group and individual charger
+when the latest successful result on an active action applies a rate decrease.
+A successful restore clears the highlight. The applied rate is displayed
+separately from measured draw and does not change the diagram's measured kW.
+Stale or incomplete readings do not animate. No v1 or Azure changes.
+
+`make dashboard-test` passed all 34 checks, including red indication at
+acknowledgement before measurement, new measured draw, green restored flow,
+and no motion for stale data. Screenshots are under
+`.tools/dashboard-evidence/flow-map*.png`.
+
+## Local dashboard electricity map
+
+Member_4 added a dedicated **Flow Map** navigation tab using the entire
+transformer inventory from the existing REST/SSE client. Device-group nodes
+expand in place to reveal individual readings, and open groups retain their
+state as snapshots refresh. Transformer nodes link to incident detail. Each transformer shows net load, capacity, status, freshness and
+directional household, solar and EV branches. Flow thickness is relative to
+the largest branch at that transformer. Only fresh, nonzero readings animate
+while the connection is live, and the map respects reduced-motion settings.
+Each tile opens the same schematic and individual device readings in Grid View.
+No feeder topology or coordinates are published by the current API. No API
+contract or cloud changes were made.
+
+`make dashboard-test` passed 34 checks, including live flow changes, stale
+motion suppression, mobile layout, and all 25 transformers in the 2,500-device
+fixture. The browser also checks group expansion and an open EV group updating
+when new telemetry arrives. `git diff --check` passed. Local screenshots are
+`.tools/dashboard-evidence/flow-map.png` and `flow-map-live-group.png`.
+Open **Flow Map** in the dashboard navigation.
+
+## Local dashboard Grid View
+
+Member_4 added Grid View to the existing transformer detail route. It shows
+grouped metered demand, solar generation and EV demand using published
+transformer load windows. It highlights throttle participants and displays
+requested, applied and measured kW separately. The action timeline uses
+retained load windows and command results plus send times and requested
+rates from the existing Operator-authorized evidence route when available.
+REST, SSE, v1 contracts and authorization rules are unchanged. Per-device
+reading timestamps and past device samples are unavailable in DeviceView.
+An aggregate window may straddle acknowledgement, and the aggregate change
+does not isolate an individual device contribution.
+
+`make dashboard-test` passed 33 checks. Focused Chromium checks cover
+overload, acknowledgement without a flow change, measured throttling,
+retained restoration and stale status, command evidence availability, action
+navigation, and missing individual measurements across a paged fixture of
+25 transformers and 2,500 devices. This UI fixture is separate from the
+throughput benchmark. Screenshots are under `.tools/dashboard-evidence/grid-*.png`.
+
+A local Chromium replay of retained `.tools/kind-dev/evidence.json` showed
+action `f64ba619-108b-5533-85b4-b55db492ae64` completed, requested throttle
+2.0 kW, measured EV draw 7.2 → 2.0 → 7.2 kW, and net load
+20.2 → 15.0 → 13.2 kW. The replay served captured kind data over local
+fixture endpoints. This milestone did not run a fresh kind deployment.
+No AKS deployment, commit, or push. Open the existing local dashboard and
+select **Transformers → Open tx-001**. For a fresh local platform run,
+follow the final demo guide.
+
+## Local Kafka/PyFlink scale milestone
+
+The Member_1 scale fixture models 25 transformers and 2,500 distinct devices
+(1,375 meters, 875 EV chargers and 250 solar devices). The Member_2 probe uses
+40 accelerated event-time rounds and 100,000 Kafka records, including a
+duplicate and a too-late reading. The aggregation operator stores event IDs
+and window snapshots separately in checkpointed MapState, keeps the existing
+100,000-ID fail-closed limit, and preserves global deduplication and the
+existing late-correction contract. Older windows remain retained for replay.
+The local scale profile uses separate Flink containers and isolated topics on
+the existing broker. No Azure resources were changed.
+
+The corrected `scale100k04` run completed on local Docker Desktop with one
+Kafka broker, three partitions and one Flink aggregation task. The exact
+commands were `docker compose -p grid-scale -f infra/compose/member2-scale.yaml up -d`
+and `docker compose -p grid-scale -f infra/compose/member2-scale.yaml exec -T jobmanager /opt/venv/bin/python -m tests.member2.scale scale100k04`.
+Raw evidence is under `.tools/scale-evidence/scale100k04/`.
+
+| Measured result | Value |
+|---|---:|
+| Kafka acknowledged delivery | 100,000 records in 40.003 s, 2,499.8 records/s |
+| Partition 0 | 5 transformer keys, 20,001 records, 500.0 records/s |
+| Partition 1 | 11 transformer keys, 44,000 records, 1,099.9 records/s |
+| Partition 2 | 9 transformer keys, 35,999 records, 899.9 records/s |
+| Flink checkpointed processing | 100,000 in 212.36 s, 470.9 records/s |
+| Sampled Kafka group lag | Peak 71,670 records, final zero on all partitions |
+| Checkpoints | 42 completed, one startup trigger failure before tasks were running |
+| Checkpoint median / max duration | 2.886 s / 16.738 s |
+| Largest checkpoint / peak TaskManager working set | 56.4 MiB / 1.326 GiB |
+| Correctness | 975 finalized windows matched, one duplicate ignored, one late audit, zero DLQ records |
+
+Committed consumers saw 49,684 distinct output IDs including the late audit.
+Partition skew and the global watermark generated many revisions. The
+verifier checked the latest revision of every finalized window. The 25
+terminal-round windows remained open. The scale workload verifies the
+Kafka/PyFlink path, while the AKS scenario verifies automated throttling
+and recovery. This run did not inject worker or broker failure.
+
+`make member2-test` passed 43 cases and `git diff --check` passed. Earlier
+attempts exposed a stale image missing the observability package, a Kafka
+admin client lifetime bug, and a generator key mutation that misrouted the
+audit record. These were fixed before the passing run. Azure reported the
+student spending limit On and the professor demo readiness returned HTTP 200.
+The scale run added no Azure usage. Next capacity work would focus on the
+single aggregation task and revision volume under skew.
+
+## Current milestone — working AKS MVP professor review
+
+Verified handoff 2026-11-24T20:32:55+00:00. Review ends **December 01, 2026 at 12:32:55 PM PST**
+after 168 hours. URL https://smart-grid-ev-review-9e9.denmarkeast.cloudapp.azure.com. Action `6f9ca30d-12f9-5da4-89e5-f97f9d8f9da2`.
+The owner requested focus on the business MVP, rather than deeper infrastructure
+validation. Base AKS Free uses one Standard_DS3_v2 worker in Denmark East.
+The owner explicitly accepted the unverified regional compute estimate.
+Estimated total is approximately $74.20 including setup, seven days, teardown,
+and a $1 allowance for the deleted VM and earlier registry usage. Spending limit
+On. Last posted Education balance $99.48 with $0.52 November costs.
+
+The seeded overload, EV throttling, recovery and restoration passed. Professor
+login, live REST/SSE, completed action and MOCK Investigator passed, including
+after PostgreSQL, identity and web workload restarts. Initial browser dialog
+check timed out and passed on retry. NetworkPolicy and Action RBAC passed.
+Flink restored a checkpoint and committed a newer one after TaskManager replacement.
+The private REST inspection required a loopback tunnel on AKS. All eight runtime
+image digests match the AMD64 publication inventory. An initial inventory
+assertion incorrectly assumed the container status image field held the registry
+reference. Matching its imageID resolved that reporting issue.
+
+All five platform PVCs are bound. Authoritative SQL exports and evidence are
+private under `.tools/aks-review/`. Evidence is also on the Copilot managed PVC
+at `/data/review-evidence`. Kafka and Investigator retention is nine days.
+The dashboard now keeps completed actions visible beyond its short alert range.
+Dashboard tests passed 31 checks including an eight-day-old completed action.
+Focused deployment tests passed 16 checks. Local kind workflow is preserved.
+Only the web edge service is public. Administrative/data services remain private.
+The old standalone VM, disks and networking were deleted after private backups.
+No commit or push. No external model calls. Ask the owner before Azure teardown.
+Worker, disks, IPs, load balancer and registry continue billing until removed.
+Synthetic telemetry is bounded and ages after the scenario. The live connection
+and retained business evidence remain available for review.
+
+## Previous milestone — verified seven-day Azure VM professor review
+
+Verified handoff **2026-11-24 00:15:22 PST**. Review ends
+**2026-12-01 00:15:22 PST**, after 168 full hours. The owner must approve
+deletion. The approved VM fallback uses Canada Central, a Standard_B4ps_v2
+ARM64 VM, two 64 GiB Standard SSDs, one static public IP and Basic ACR.
+The estimate is **$40.07** for 192 hours including setup and teardown.
+Azure subscription spending limit remains On. The VM is a single burstable
+machine. Disks, public IP, registry and usage can continue billing after
+review ends until resources are removed.
+
+Open https://smart-grid-ev-review-9e9.canadacentral.cloudapp.azure.com and
+use the professor account. Action ID is
+`24274c5d-64e6-517b-b0d8-d886256820ef`. See the
+[hosted runbook](../../infra/hosted/README.md) for credential retrieval,
+availability checks and cleanup. The seeded history stays retained. Live
+API/SSE connections continue, while synthetic telemetry stops after the
+bounded scenario and its freshness indicator ages accordingly.
+
+| Executed verification | Result |
+|---|---|
+| Azure provisioning, disk mount, SSH host-key comparison and TLS | Canada Central VM and Basic registry created. SSH restricted to the approved workstation. Kubernetes API binds to loopback. HTTPS certificate trusted. Docker data and review volumes use the managed data disk. |
+| Eight ARM64 image builds, registry pushes, VM pulls and manifest-to-runtime config comparisons | All eight passed. A transient Connect push failed and succeeded on retry. |
+| Fresh corrected cluster network and scenario gates | NetworkPolicy allowed/denied ingress and egress, Action RBAC, overload, throttle, duplicate protection, recovery, restore and projection replay all passed. |
+| Professor Chromium login and Investigator | Completed action, APPLIED result, REST/SSE agreement, Secure HttpOnly cookie and grounded MOCK Investigator passed. Administrative paths returned 404. |
+| Flink TaskManager replacement | Restored checkpoint and completed a newer checkpoint under the same job. |
+| Keycloak, projection, API, Copilot and UI workload restarts | Rollouts passed. Browser verified completed action equality, live SSE, saved investigation and new investigation. Proxy reconnection required a retry. Saved-result assertion was corrected to read its rendered JSON. |
+| Private SQL export, PVCs and review evidence | Four databases exported. PVCs bound. Evidence retained locally and on VM. Credentials remain in mode-0600 ignored files. |
+| Focused deployment tests, render checks and git diff check | Sixteen tests passed. Local kind, hosted and AKS overlays, six Helm charts and Compose rendered. git diff --check passed. |
+
+The first hosted run failed recovery because a ten-second checkpoint override
+made alternate windows exceed the 15-second freshness limit. Restoring the
+verified one-second cadence required a fresh cluster because the stateless
+Flink restart replayed changed event payloads. The failed cluster is stopped
+and retained on disk, along with its failed evidence. The passing cluster is
+smart-grid-kind-dev-professor2. No passing result is claimed for the first run.
+No commit or push was made. External model calls remain disabled.
+
+## Previous milestone — seven-day AKS preflight
+
+The approved review scope is a temporary Azure for Students deployment
+with the spending limit enabled and an estimated usage ceiling of $75.
+The [AKS runbook](../../infra/aks/README.md) describes the overlay, separate
+kubeconfig, private credential handling, and the review gates.
+
+Provisioning paused at the regional price check. The Azure portal showed
+$100 available, $0.00 in November usage and a November 23, 2027 credit
+expiration. Azure Resource Manager returned the Azure for Students quota
+profile, `spendingLimit: On`, and subscription permissions `actions: ["*"]`
+with no excluded actions. The dedicated resource group and billable resources
+have yet to be created. The review clock starts after verified handoff.
+
+| Executed check | Result |
+|---|---|
+| `az policy assignment list --disable-scope-strict-match` and `az vm list-usage -l <region>` | Effective policy allows West US, Canada Central, France Central, Norway East and Denmark East. Each reported six free regional vCPUs. |
+| `az vm list-skus -l <region> --resource-type virtualMachines --all` cross-checked with the family usage results | Denmark East was the only region with four-core system worker candidates and family quota. `Standard_DS3_v2` has four x64 vCPUs, 14 GiB RAM, Gen 1 and 2 support, four free family vCPUs, and an empty SKU restriction list. `Standard_F4s_v2` and `Standard_A4m_v2` were also examined. |
+| `az aks get-versions -l denmarkeast`, AKS regional usages REST endpoint, and `az network list-usages -l denmarkeast` | Kubernetes 1.34.12 listed. Three managed cluster slots and three public IP slots were free. The no-charge Compute, Network, Storage, AKS and Container Registry providers were registered. |
+| Azure Network `CheckDnsNameAvailability` endpoint and `az acr check-name` | The Denmark East label `smart-grid-ev-review-9e9` and registry name `smartgridevreview9e9` were available when checked. This is a naming check before reservation. |
+| Azure Retail Prices REST API, Azure Pricing Calculator, portal VM-size picker, and student offer `Microsoft.Commerce/RateCard` | Retail rates were available for the registry, managed disks, load balancer and public IPs. Regional Retail Prices returned zero VM rates across the 15 original non-B-series candidates. A second query by exact SKU, meter, and product family also returned zero rows. The calculator omitted Denmark East for `Standard_DS3_v2`, and the signed-in Azure for Students Linux VM picker displayed its cost as **Unavailable**. RateCard rejected the student offer ID. CLI month-to-date usage rejected the offer with HTTP 422. |
+| `az deployment sub validate --location denmarkeast --validation-level Provider --template-file .tools/aks-review/validate-aks-subscription.json` and Azure Resource Validator `ArmFull` | Both passed for AKS Free 1.34.12, one `Standard_DS3_v2` Ubuntu system VMSS worker, managed 64 GiB OS disk, Azure CNI Overlay with Cilium, standard load balancer and API access limited to the workstation. The AKS regional SKU endpoint listed the exact worker. |
+| Azure Resource Validator `ArmFull` controls | Zero workers returned `InvalidParameter` with an effective system-pool minimum of one. Two workers returned `ErrCode_InsufficientVCPUQuota` (8 requested, 6 available). A fictitious worker returned `VMSizeNotSupported`. The priced `Standard_D4s_v5` also failed quota (4 requested, 0 family vCPUs available). |
+| `DOCKER_DEFAULT_PLATFORM=linux/amd64 .venv/bin/python -m tools.delivery_images --repository smart-grid-aks-review --inventory .tools/aks-review/images.json` | Eight Linux amd64 builds passed. The first cross-build used the ARM64-only Python digest and failed on Flink with an executable architecture mismatch. The replacement pinned image index includes the exact original ARM64 image and the correct amd64 image. A network-isolated amd64 PyFlink container initialized the JVM gateway. |
+| `DOCKER_DEFAULT_PLATFORM=linux/arm64 .venv/bin/python -m tools.delivery_images --inventory .tools/aks-review/native-kind-images.json` | Eight native ARM64 builds passed and restored native default kind tags following the first cross-build. |
+| `make identity-test`, `make copilot-test`, `make dashboard-test` | 23, 12, and 30 passed. Copilot needed loopback permission. One concurrent Chromium run failed a keyboard timing assertion and passed on the repeat. |
+| `make delivery-render` and `.tools/contracts-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_delivery.py tests/test_integration_evidence.py` | Both local overlays, the AKS overlay, six Helm charts and Compose passed render checks. The focused suite passed 16 tests. The Caddy configuration passed container validation. |
+| `az group list --query 'length(@)'` and `az resource list --query 'length(@)'` | Both returned zero after preflight. |
+
+The estimate covers 192 hours, with 168 hours from verified handoff and
+another 24 hours for setup and teardown. The Denmark East AKS costs apart from
+compute total **$15.74**. This includes $1.33 for Basic ACR for eight days,
+$3.58 for a conservatively priced 64 GiB Premium SSD OS disk and eight small
+Standard SSD volumes, $1.92 for two Standard IPv4 addresses, $4.80 for Standard
+load-balancer rules, $1.00 for five million disk transactions, $0.10 for 20 GB
+of load-balancer processing, and a $3.00 reserve. Assumptions include hourly
+disk prorating over a 730-hour month, registry layers within Basic's included
+storage, internet egress within Azure's free allowance, and no paid add-ons.
+The exact worker rate must be at most **$0.30866/hour** to fit the ceiling.
+North Europe through Norway East rates for the same SKU imply **$66.23–$73.14**
+as a comparison only. The priced Denmark East `Standard_D4s_v5` would total
+**$59.90** at $0.23/hour if family quota were available.
+
+The cross-check of all five policy-allowed Compute SKU catalogs and family
+quotas found no priced managed AKS worker that meets the demo's capacity
+and quota. Canada Central does list an unrestricted ARM64
+`Standard_B4ps_v2` VM with four vCPUs, 16 GiB RAM, six free regional and
+ten free family vCPUs. The Azure CLI returned Ubuntu 24.04 ARM64 image
+version `24.04.202611170` and the Azure Network DNS check returned available
+for the review label in Canada Central. Azure's Linux VM rate is $0.147/hour.
+The **$40.07** comparison is
+$28.22 compute, $5.55 for two 64 GiB Standard SSDs, $1.33 Basic ACR,
+$0.96 for one Standard IPv4 address, $1.00 disk transactions, and $3.00
+reserve. The VM would terminate HTTPS directly and run the prepared kind
+profile with Calico and disk-backed local volumes. VM capacity, CPU credit
+headroom and hosted workload checks remain unverified. Switching to the VM
+requires approval.
+
+The West US follow-up used the same `ArmFull` preflight with the region and
+worker SKU changed. West US has three cluster slots and six regional vCPUs.
+Azure rejected `Standard_D4as_v6` because its family quota is zero and rejected
+`Standard_D4s_v4` and `Standard_DS3_v2` as unavailable for this subscription
+in West US. `Standard_B4ps_v2` passed provider preflight, but the published AKS
+system-pool requirements exclude B-series workers. The West US catalog and
+quota intersection had only B-series options for the demo. Treat this
+preflight result as insufficient to establish supported AKS deployment. The
+same SKU is a candidate for a standalone West US VM. Its $0.16/hour published
+Linux rate and the same VM assumptions imply **$42.06** for 192 hours, including
+two 64 GiB Standard SSDs at $9.60 per disk-month.
+
+The next AKS gate is an authoritative regional worker price within the approved
+ceiling. Provider validation checked the requested SKU, node count and current
+quota. Actual allocation, current capacity, final billing and runtime
+behavior remain unverified. Runtime evidence still due includes AKS registry pulls, disk bindings,
+policy allow/deny probes, Flink checkpoint recovery, the seeded completed
+action, trusted HTTPS, and professor login and Investigator evidence after
+restart. The project contracts retain their current version.
+
+## Previous milestone — reproducible local delivery
 
 The [README](../../README.md) is the entry point for the named kind demo. The
 [demo sequence and evidence index](../demo/FINAL_DEMO.md), [implemented architecture

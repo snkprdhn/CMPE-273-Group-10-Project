@@ -10,6 +10,16 @@ def enter(page):
     expect(page.get_by_role('status').first).to_contain_text('LIVE', timeout=15000)
 
 
+def test_completed_action_remains_accessible_after_review_week(page, fixture_api):
+    fixture_api.post('/fixture', json={'step': 3, 'fault': 'historical'}).raise_for_status()
+    enter(page)
+    page.get_by_role('button', name='Alerts & actions', exact=True).click()
+    page.get_by_role('button', name='action-001', exact=True).click()
+    dialog = page.get_by_role('dialog', name='Action explanation')
+    expect(dialog.get_by_text('COMPLETED', exact=True)).to_be_visible()
+    expect(dialog.get_by_role('button', name='Investigate action', exact=True)).to_be_visible()
+
+
 def test_business_flow_detail_and_investigation(page, fixture_api):
     enter(page)
     expect(page.get_by_text('72.0 kW', exact=True).first).to_be_visible()

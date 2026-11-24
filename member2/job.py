@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timezone
 import json
+import hashlib
 import pickle
 import re
 
@@ -9,12 +10,28 @@ from pyflink.common import Configuration, Row, Types
 from pyflink.datastream import StreamExecutionEnvironment, CheckpointingMode
 from pyflink.datastream.checkpoint_config import ExternalizedCheckpointRetention
 from pyflink.datastream.functions import KeyedProcessFunction
-from pyflink.datastream.state import ValueStateDescriptor
+from pyflink.datastream.state import MapStateDescriptor, ValueStateDescriptor
 from pyflink.table import StreamTableEnvironment
 
-from member2.aggregation import Aggregator, LOAD, DLQ, LATE
+from member2.aggregation import Aggregator, LOAD, DLQ, LATE, instant
 from observability import setup, boundary, headers, business
 from member2.tracing import remember, output_context
+
+
+class EventIds:
+    def __init__(self, entries, count):
+        self.entries = entries
+        self.count = count
+
+    def __contains__(self, event_id):
+        return self.entries.contains(event_id)
+
+    def __len__(self):
+        return self.count
+
+    def add(self, event_id):
+        self.entries.put(event_id, True)
+        self.count += 1
 
 
 class Aggregate(KeyedProcessFunction):
@@ -24,6 +41,11 @@ class Aggregate(KeyedProcessFunction):
 
     def open(self, runtime_context):
         setup('member2.aggregation')
+        self.engine = Aggregator(self.topology, self.max_events)
+        self.signature = hashlib.sha256(json.dumps([self.topology, self.max_events], sort_keys=True).encode()).digest()
+        self.ids = runtime_context.get_map_state(MapStateDescriptor('event-ids', Types.STRING(), Types.BOOLEAN()))
+        self.windows = runtime_context.get_map_state(MapStateDescriptor('windows', Types.PICKLED_BYTE_ARRAY(), Types.PICKLED_BYTE_ARRAY()))
+        self.metadata = runtime_context.get_state(ValueStateDescriptor('run-meta', Types.PICKLED_BYTE_ARRAY()))
         self.state = runtime_context.get_state(ValueStateDescriptor('run-v1', Types.PRIMITIVE_ARRAY(Types.BYTE())))
         metrics = runtime_context.get_metrics_group()
         self.counts = {name: metrics.counter(name) for name in ('duplicates', 'dlq', 'very_late', 'corrections', 'input', 'output')}
@@ -40,20 +62,60 @@ class Aggregate(KeyedProcessFunction):
             yield from self._process(row, ctx)
 
     def _process(self, row, ctx):
-        stored = self.state.value()
-        engine = pickle.loads(bytes(stored)) if stored is not None else Aggregator(self.topology, self.max_events)
-        if engine.topology != self.topology or engine.max_events != self.max_events:
+        engine = self.engine
+        meta = self.metadata.value()
+        if meta is None:
+            stored = self.state.value()
+            if stored is not None:
+                old = pickle.loads(bytes(stored))
+                if old.topology != self.topology or old.max_events != self.max_events:
+                    raise RuntimeError('TOPOLOGY_CHANGED')
+                for event_id in old.seen:
+                    self.ids.put(event_id, True)
+                for key, window in old.windows.items():
+                    self.windows.put(key, window)
+                meta = self.signature, len(old.seen), old.greatest, {
+                    key for key, window in old.windows.items() if window['revision'] < 0
+                }, sum(w['late'] for w in old.windows.values())
+                self.state.clear()
+        signature, count, engine.greatest, pending, late = meta or (self.signature, 0, None, set(), 0)
+        if signature != self.signature:
             raise RuntimeError('TOPOLOGY_CHANGED: restore only with identical run fixture')
+        engine.seen = EventIds(self.ids, count)
+        engine.windows = {}
+        try:
+            at = instant(json.loads(row[1])['event_time'])
+            key = row[0], at.replace(second=at.second // 5 * 5, microsecond=0)
+        except (TypeError, ValueError, KeyError):
+            key = None
+        if key is not None:
+            window = self.windows.get(key)
+            if window is not None:
+                engine.windows[key] = window
+        previous_late = engine.windows.get(key, {}).get('late', 0)
         before = engine.metrics.copy()
         now = datetime.now(timezone.utc)
         self.counts['input'].inc()
         results = engine.reading(row[1], row[0], now, row[2], row[3])
         remember(engine, row[1], row[4] or {})
+        if key in engine.windows:
+            window = engine.windows[key]
+            late += window['late'] - previous_late
+            if window['revision'] < 0:
+                pending.add(key)
+        if engine.greatest is not None:
+            for ready in pending:
+                if ready not in engine.windows and (engine.greatest - ready[1]).total_seconds() >= 15:
+                    engine.windows[ready] = self.windows.get(ready)
         results += engine.evaluate(now)
-        self.state.update(pickle.dumps(engine, protocol=5))
+        for changed, window in engine.windows.items():
+            self.windows.put(changed, window)
+            if window['revision'] >= 0:
+                pending.discard(changed)
+        self.metadata.update((self.signature, len(engine.seen), engine.greatest, pending, late))
         for name in before:
             self.counts[name].inc(engine.metrics[name] - before[name])
-        self.accepted_late = sum(w['late'] for w in engine.windows.values())
+        self.accepted_late = late
         if engine.greatest:
             self.watermark = int(engine.greatest.timestamp()*1000)-10000
         for topic, key, event in results:

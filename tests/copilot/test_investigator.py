@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import timedelta
 import json
 from pathlib import Path
+import time
 import httpx
 import pytest
 from copilot.contracts import validate, stamp, now
@@ -11,6 +12,28 @@ from copilot.tools import Tools
 from copilot.service import Service, MockProvider
 from copilot.api import create_app
 from identity.auth import Denied
+
+
+def test_review_audit_survives_restart_for_nine_days(tmp_path, monkeypatch):
+    timestamp = time.time()
+    monkeypatch.setattr('copilot.service.time.time', lambda: timestamp)
+    path = tmp_path / 'audit.sqlite'
+    service = Service(None, path, retention_days=9)
+    state = json.dumps({'status': 'COMPLETED'})
+    service.db.executemany('INSERT INTO investigations VALUES (?, ?, ?, ?, ?, ?, ?)', [
+        ('kept', 'professor', 'kept', '', timestamp - 8 * 86400, state, '{}'),
+        ('expired', 'professor', 'expired', '', timestamp - 10 * 86400, state, '{}'),
+    ])
+    service.db.commit()
+    service.db.close()
+
+    restarted = Service(None, path, retention_days=9)
+    actor = {'actor': 'professor', 'role': 'Operator'}
+    assert restarted.get(actor, 'kept')['status'] == 'COMPLETED'
+    with pytest.raises(LookupError, match='Investigation unavailable'):
+        restarted.get(actor, 'expired')
+    restarted.db.close()
+
 
 class Identity:
     def authenticate(self, token):

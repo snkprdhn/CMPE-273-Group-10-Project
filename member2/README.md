@@ -74,3 +74,40 @@ guarantee, cross-topic atomic visibility or RF=1 broker availability. See
 semantics, simplifications and remaining gates. Member_1 retains simulation,
 Registry and observability; Member_3 owns control/PostgreSQL/Debezium; Member_4
 owns projection/API/UI/identity/Copilot.
+
+### Local 100,000-record scale acceptance
+
+The scale fixture models 25 transformers with 100 devices each, including
+meters, EV chargers and solar. It submits 40 accelerated event-time rounds at
+a configurable Kafka delivery target. Readings arrive out of timestamp order.
+One message repeats an event ID and one valid message exceeds its lateness
+deadline. The terminal round advances the watermark so the 39 preceding
+rounds can be compared with independently calculated totals. Its own trailing
+windows remain open.
+
+With the local Kafka dependency running and the Member_2 image built, run:
+
+```sh
+docker compose -p grid-scale -f infra/compose/member2-scale.yaml up -d
+docker compose -p grid-scale -f infra/compose/member2-scale.yaml exec -T jobmanager \
+  /opt/venv/bin/python -m tests.member2.scale scale100k01 --rate 2500
+```
+
+Use a fresh run ID each time. The probe writes checkpoint and lag samples
+and a final report under `/checkpoints/<run>` in the separate Compose volume.
+It uses isolated Kafka topics on the existing local broker. This profile
+measures Kafka and Flink on one machine. The deployed control loop has its
+own acceptance scenario.
+
+The Flink job keeps the exact finite-run ID budget. It stores IDs and window
+snapshots separately in managed MapState and updates only the active window
+and newly eligible windows. It retains older windows to preserve valid
+corrections based on envelope ingestion time even after a Kafka replay.
+Long-running retention and horizontal aggregation remain future work.
+
+For total memory including the Python worker, sample Docker working-set usage
+during the run with `docker stats --no-stream grid-scale-taskmanager-1
+grid-scale-jobmanager-1 smart-grid-local-dev-kafka-1`. The probe's JSONL also
+contains Flink JVM memory and per-partition checkpointed lag. Flink lag is the
+broker end offset minus the consumer group's committed checkpoint offset, so
+it includes work processed since the last completed checkpoint.
