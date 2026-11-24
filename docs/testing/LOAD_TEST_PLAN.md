@@ -20,3 +20,59 @@ Measure accepted/published rate, Kafka lag, watermark delay, checkpoint duration
 6. Run bounded concurrent mock-provider investigations and verify that their bulkhead prevents API, projection, or control starvation.
 
 Targets in the README remain proposed until this report supplies measured results. Percentiles are computed from compatible distributions, not averages of per-instance percentiles.
+
+## Execution status — 2026-11-23
+
+See [the current report](LOAD_TEST_REPORT.md). The gradual telemetry experiment and separate HTTP/SSE baselines ran;
+**the concurrent experiment failed on harness token expiry**. That failed result
+is retained; a full concurrent rerun of the corrected harness remains unverified. Do not interpret that packet or prior
+smoke results as sustained throughput evidence. ADR-027/ADR-034 fix current
+aggregation to one bounded task; partition/parallelism scale-out in this plan is
+not an implemented runtime capability. Start rate experiments on the existing
+three-device topology, and use fresh consistent topology/run state for device
+count experiments. Locust and opt-in simulator rate scheduling are now implemented below.
+
+## Implemented bounded rate experiment
+
+`tools.load_test` reuses the existing Member_1 domain simulator and preserves
+its actual control/edge/aggregation assertions. `GRID_LOAD_STAGES=1` opts the
+one-shot kind scenario into three 60-second reporting stages: 1, 3, and 10
+samples/device/second, or 3, 9, and 30 events/second for the fixed three-device
+topology. The first stage includes the existing normal/overload/intervention/
+recovery sequence; later stages increase reporting rate on the restored system.
+Thus these are equal rate-stage windows, **not equal business-phase windows**.
+The producer records actual sample times after delivery drain, counts and encoded
+payload sizes. Slow producers do not silently claim the scheduled rate. Business
+outcomes remain checked by `tools.integration.evaluate`.
+
+Locust 2.33.2 runs three real Viewer clients via PKCE-authenticated loopback
+port-forwards. Snapshot requests and bounded SSE/reconnect tasks produce CSV
+latency distributions and failures. SSE event age uses projection publication
+time; it does not measure browser rendering. Cursor regression and disconnect
+exceptions are failures. Raw kubelet summaries, Flink checkpoints and selected
+Prometheus signals accompany the scenario evidence. Missing signals are unknown.
+
+From a prepared, freshly deployed **dedicated** development cluster:
+
+```sh
+.venv/bin/python -m venv .tools/load-venv
+.tools/load-venv/bin/python -m pip install -r requirements-load.txt
+.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load01
+.venv/bin/python -m json.tool .tools/load-test/load01/report.json
+```
+
+The requirements file pins the resolved local macOS environment; hashed
+cross-platform artifact locking remains unverified. The command refuses an
+existing run directory and existing simulator Job. Do not clear authoritative
+history to rerun it. Use a fresh dedicated cluster; retain failed evidence.
+It requires the separately prepared dashboard test venv/Chromium for existing
+PKCE login tooling. Credentials travel in a mode-0600 temporary file removed
+on exit, never in CSV or command arguments. Existing global context is unchanged.
+`BUSINESS_PASS_PARTIAL_MEASUREMENTS` is a bounded slice result, not completion
+of all scaling/agent experiments or an achieved production SLO.
+
+The client renews its real Viewer login every 60 seconds and atomically reloads
+the token per request. Its 20-second idle SSE read timeout accommodates the
+implemented 15-second heartbeat. `--http-only` runs a separate 160-second
+populated read baseline with no telemetry or capacity claim. See the report for
+retained token-expiry/client-timeout failures and the corrected baseline result.

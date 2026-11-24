@@ -54,7 +54,7 @@ def bootstrap():
 
 class KindRunner(Runner):
     def __init__(self):
-        self.args = SimpleNamespace(run='kind', prefix=PREFIX, bootstrap=BOOTSTRAP, duration=180,
+        self.args = SimpleNamespace(run='kind', prefix=PREFIX, bootstrap=BOOTSTRAP, duration=180, load_stages=os.getenv('GRID_LOAD_STAGES') == '1',
             registry='registry:50051', flink_url='http://aggregation-rest:8081',
             connect_url='http://grid-connect-connect-api:8083', connector='integration-kind',
             control_dsn=os.environ['CONTROL_DSN'], edge_dsn=os.environ['EDGE_DSN'],

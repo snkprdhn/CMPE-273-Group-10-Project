@@ -7,6 +7,10 @@ The requested outbox/fencing gate is implemented under
 kind Lease leadership, durable epochs and atomic PostgreSQL simulated gateway
 effects. See the [delivery runbook](../../infra/member3/README.md). Follow the [local integration runbook](LOCAL_INTEGRATION.md) for the earlier host/Compose acceptance profile. Use the [kind runbook](../../infra/kind/README.md) for the Phase 4 deployment and check status for executed verification.
 
+The local load-test milestone now has [measured results](../testing/LOAD_TEST_REPORT.md),
+including retained startup and concurrent HTTP failures. It does not establish a
+passing sustained-capacity SLO; see implementation status for remaining gates.
+
 ## 1. Purpose
 
 This is the end-to-end delivery guide for the Smart Grid / EV Fleet Energy Balancing Platform. It preserves Member_1 through Member_4 ownership while implementation happens on one computer. It covers prerequisites, contract freeze, Python application development, local kind packaging, testing, security, observability, failure experiments, release evidence, and final demonstration. Cloud deployment and external model calls are deferred.

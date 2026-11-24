@@ -1,8 +1,81 @@
 # Implementation status
 
-Updated **2026-11-23 (America/Los_Angeles)** for the Grid Incident Investigator implementation. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
+Updated **2026-11-23 (America/Los_Angeles)** for the measured local load-test implementation. Member_1 simulation/Registry, Member_2 aggregation, Member_3 standalone Action domain, the local CDC/Lease/fenced gateway boundary and Member_4 standalone projections/API and NiceGUI dashboard plus local OIDC are implemented. Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium and Member_4 projection/API/UI/identity/Copilot ownership. Historical evidence is preserved below.
 
-## Current milestone — Grid Incident Investigator
+## Current milestone — measured local load experiment
+
+The bounded load experiment and report are delivered, including **failed
+acceptance evidence**. This is not a passing sustained-capacity gate. See
+[measured report](../testing/LOAD_TEST_REPORT.md) and
+[reproduction plan](../testing/LOAD_TEST_PLAN.md). Member_1 retains scenarios/
+Registry/observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium,
+and Member_4 projection/API/UI/identity/Copilot ownership.
+
+### Results and decisions — 2026-11-23
+
+- Preserved standalone Flink state with a completed canonical savepoint before
+  staging the stacks separately. Initial 4-CPU/6-GiB startup showed CPU/memory
+  pressure and readiness stalls; retained its raw evidence before using the
+  documented 8-CPU/10-GiB VM budget. Built-in Kubernetes stayed disabled.
+- Implemented opt-in reporting-rate stages on the existing three-device domain
+  simulator, retaining original business assertions and default smoke pacing.
+  Scheduled 3/9/30 events/s; **measured 2.9/7.2/22.9 events/s**, 1,980 delivered
+  readings over 180 seconds. The source did not attain the targets; no maximum
+  Kafka/Flink capacity is claimed.
+- The real kind business assertions passed: 20.2 kW overload, 5.2 kW measured
+  simulated EV reduction, 14.024 s observed critical-to-safe load, safe recovery,
+  restore to 7.2 kW, exactly two duplicate-safe durable effects, projection replay
+  equality. Window delay p95 11.760 s; applied-result latencies 0.742/0.789 s.
+- The concurrent run **failed** on 625 HTTP/SSE requests after the runner's Viewer
+  token expired. Preserved `.tools/load-test/load02/report.json`, raw evidence,
+  CSV and exact source copies/hashes. Fixed renewal rather than extending the
+  realm's 120-second lifetime. A separate baseline exposed a client timeout
+  shorter than the existing 15-second heartbeat; corrected client idle timeout
+  to 20 seconds. The corrected 160-second HTTP-only baseline passed with 81
+  overview requests, 28 SSE connections, 27 heartbeat-only reconnects and zero
+  recorded failures; renewals at 61.27/122.83 s. It does **not** pass the earlier
+  concurrent experiment retroactively.
+- Fixed adjacent-object kubectl JSON decoding and report floating-point handling
+  with regression tests; original failed packets remain intact. All evidence
+  containing local runtime detail stays private under ignored `.tools/load-test/`.
+
+### Exact executed verification
+
+| Command | Result |
+|---|---|
+| `.tools/member3-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_integration_evidence.py tests/test_load_test.py tests/test_load_preflight.py` | Final 15 passed, 2 existing opt-in skips. |
+| `.tools/load-venv/bin/python -m pip check` | No broken requirements. Independent resolved pins recorded in requirements-load.txt; hashed cross-platform verification open. |
+| `.tools/load-venv/bin/locust -f tools/load_http.py --list` | OperatorRead discovered with selected Locust 2.33.2. |
+| `make KIND_NAME=smart-grid-kind-dev-load01 kind-create kind-install kind-deploy` | Initial startup stopped after retained small-budget stalls. Larger-budget create/apps recovery first returned historical Keycloak progress failure, then passed unchanged checks. |
+| `.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load01` | Exit 1 before Job creation; kubectl JSON parser failure retained and fixed. |
+| `.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load02` | Exit 1; business assertions passed, HTTP/SSE expiry failures retained. |
+| `.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run http-renewal --http-only` | Exit 1; renewed tokens, 267 overview successes, idle SSE timeout failures retained. |
+| `.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run http-renewal-fixed --http-only` | Exit 0, HTTP_BASELINE_ONLY; separate populated baseline, not concurrent capacity acceptance. |
+| `git diff --check` | Passed. Public contracts unchanged. |
+
+### Limitations and next recommended milestone
+
+The measured first limit is VM resource contention during startup and producer
+pacing below offered telemetry rates; sampled lag/backpressure/CPU do not establish
+consumer saturation. The reporting loop includes serial RPCs/delivery drain/polls.
+Source optimization needs profiling. Aggregation stays one task with the accepted
+100,000-ID ceiling. No device-count/replica/partition scale-out, autoscaling, agent
+concurrency, soak, browser-render, broker-loss or leader-handover acceptance is
+claimed. A **fresh concurrent run of the corrected runner** is the next recommended
+verification, followed by profiling the source before raising offered rates.
+Final restoration passed: `make KIND_NAME=smart-grid-kind-dev-load01 kind-stop`
+retained the acceptance volumes. Original Docker settings are restored to 4 CPUs,
+6,144 MiB configured, built-in Kubernetes disabled; the engine confirmed
+6,210,510,848 usable bytes. `bash .tools/load-test/restore.sh` exited 0 and restored
+`member2-review02` from the newly captured canonical savepoint as
+`c0a248ed31c5a5f55b4d5f5dd83d9d1f` RUNNING. Final documentation checks:
+`.tools/member3-venv/bin/python -m pytest -q tests/test_preparation_docs.py`: 5 passed.
+The original standalone stack is restored; acceptance nodes are stopped.
+
+Earlier Investigator live acceptance and reliability gates remain open separately.
+No commits, pushes, cloud resources or external model calls were made.
+
+## Previous milestone — Grid Incident Investigator
 
 Member_4's deterministic read-only implementation is delivered; **live kind
 Investigator acceptance remains open**. Member_1 retains simulation/Registry/

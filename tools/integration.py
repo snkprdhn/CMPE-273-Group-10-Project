@@ -308,6 +308,8 @@ class Runner:
             from_beginning(edge_reader, [prefix + 'grid.charger-command.v1'])
             self.start_workers()
             start, next_sample, tick = time.monotonic(), 0, 0
+            load_stages = getattr(self.args, 'load_stages', False)
+            self.evidence['load_samples'] = []
             recovery = False
             duplicated = False
             end_completed = None
@@ -343,7 +345,10 @@ class Runner:
                             publisher.send('grid.telemetry.v1', 'tx-001', reading)
                         publisher.drain()
                         tick += 1
-                        next_sample += 1
+                        hz = (1 if elapsed < 60 else 3 if elapsed < 120 else 10) if load_stages else 1
+                        self.evidence['load_samples'].append(dict(elapsed=elapsed, hz=hz, count=3,
+                            bytes=sum(len(json.dumps(e, separators=(',', ':')).encode()) for e in self.evidence['telemetry'][-3:])))
+                        next_sample = elapsed + 1 / hz if load_stages else next_sample + 1
                     message = edge_reader.poll(.05)
                     if message is not None:
                         handle_message(message, edge, publisher, edge_reader, now)
@@ -355,13 +360,15 @@ class Runner:
                                'grid.charger-command.v1': 'commands', 'grid.command-result.v1': 'results'}[
                                    message.topic().removeprefix(prefix)]
                         self.evidence[key].append(value)
+                        self.evidence.setdefault('received', []).append(dict(kind=key, event_id=value['event_id'],
+                            elapsed=time.monotonic()-start, observed_at=stamp(utc())))
                         if key == 'commands' and not duplicated:
                             publisher.send('grid.charger-command.v1', value['payload']['device_id'], value)
                             publisher.drain()
                             duplicated = True
                         if key == 'actions' and value['payload']['status'] == 'COMPLETED':
                             end_completed = time.monotonic() + 18
-                    if end_completed and time.monotonic() >= end_completed:
+                    if not load_stages and end_completed and time.monotonic() >= end_completed:
                         break
                 flush_results(edge, publisher)
                 rate, epoch, effects = edge.current()
