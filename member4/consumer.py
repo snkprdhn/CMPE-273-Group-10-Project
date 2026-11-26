@@ -4,8 +4,10 @@ import os
 from pathlib import Path
 import signal
 import threading
+import time
 
 from confluent_kafka import Consumer
+from jsonschema.exceptions import ValidationError
 from psycopg.types.json import Jsonb
 
 from observability import setup, boundary, business
@@ -64,11 +66,26 @@ def consume(store):
 
     try:
         client.subscribe([prefix+t for t in TOPICS], on_assign=assigned)
+        pending, commit_at = 0, time.monotonic() + .5
         while not stop.is_set():
             message = client.poll(.2)
             if message is not None:
-                process(store, message, prefix)
-                client.commit(message=message, asynchronous=False)
+                try:
+                    process(store, message, prefix)
+                except (ValidationError, ValueError, KeyError, TypeError) as exc:
+                    # Poison record (e.g. schema-invalid payload). Skip it rather
+                    # than crash-loop the consumer; offset is still advanced so the
+                    # stream makes progress. Transient store/DB errors are not
+                    # caught here and still restart the pod.
+                    from observability import log as _log
+                    _log('projection_skip_invalid', topic=message.topic(),
+                         partition=message.partition(), offset=message.offset(),
+                         reason=str(exc)[:200])
+                client.store_offsets(message=message)
+                pending += 1
+            if pending and (pending >= 100 or time.monotonic() >= commit_at):
+                client.commit(asynchronous=False)
+                pending, commit_at = 0, time.monotonic() + .5
             if health is not None and client.assignment():
                 health.touch()
     finally:

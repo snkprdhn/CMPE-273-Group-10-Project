@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import signal
 import threading
+import time
 
 from confluent_kafka import Consumer
 
@@ -55,11 +56,17 @@ def main():
             if isinstance(registry, Registry):
                 topics.append(prefix + 'grid.telemetry.v1')
             consumer.subscribe(topics)
+            renew_at, tick_at = time.monotonic() + getattr(lease, 'duration', 15) / 3, 0
+            pending, commit_at = 0, time.monotonic() + .5
             while not stop.is_set():
-                if not lease.step():
-                    leader(False)
-                    break
-                authority.activate()
+                # Keep transport/SQL leadership checks off the per-reading hot path.
+                # Control transactions still verify the live Lease and durable epoch.
+                if time.monotonic() >= renew_at:
+                    if not lease.step():
+                        leader(False)
+                        break
+                    authority.activate()
+                    renew_at = time.monotonic() + getattr(lease, 'duration', 15) / 3
                 message = consumer.poll(.2)
                 now = datetime.now(timezone.utc)
                 if message is not None:
@@ -75,8 +82,16 @@ def main():
                         else:
                             handler = control.load if message.topic().endswith('grid.transformer-load.v1') else control.result
                             handler(event, key, now)
-                        consumer.commit(message=message, asynchronous=False)
-                control.tick(now)
+                        # Effects/inbox are durable before offsets are eligible.
+                        # A crash before this bounded batch commits causes safe replay.
+                        consumer.store_offsets(message=message)
+                        pending += 1
+                if pending and (pending >= 100 or time.monotonic() >= commit_at):
+                    consumer.commit(asynchronous=False)
+                    pending, commit_at = 0, time.monotonic() + .5
+                if time.monotonic() >= tick_at:
+                    control.tick(now)
+                    tick_at = time.monotonic() + .5
                 if health is not None:
                     health.touch()
             break  # a lost incarnation exits; restart with a fresh identity

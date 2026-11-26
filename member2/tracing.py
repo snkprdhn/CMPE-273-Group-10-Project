@@ -7,7 +7,7 @@ from member2.aggregation import instant
 
 def remember(engine, raw, values):
     try:
-        event = json.loads(raw)
+        event = json.loads(raw) if isinstance(raw, str) else raw
         at = instant(event['event_time'])
         start = at.replace(second=at.second // 5 * 5, microsecond=0)
         w = engine.windows.get((event['payload']['transformer_id'], start))

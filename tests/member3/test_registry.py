@@ -215,3 +215,17 @@ def test_real_grpc_wire_auth_and_generated_serialization(adapter):
         assert values == [{'device': snaps[0]['device']}]
     finally:
         server.stop(0).wait()
+
+
+def test_observation_order_preserves_python_microsecond_precision(adapter):
+    snaps, now, _ = inputs()
+    d = snaps[0]['device']
+    base = stamp(now.replace(microsecond=0))[:-1]
+    older = report(d, now, rate=20, sequence=1)
+    older['event_time'] = older['ingested_at'] = base + '.0000009Z'
+    newer = report(d, now, rate=19, sequence=2)
+    newer['event_time'] = newer['ingested_at'] = base + '.0000001Z'
+    adapter.observe(older, d['transformer_id'], now)
+    adapter.observe(newer, d['transformer_id'], now)
+    wire(adapter, [page([d], now)])
+    assert adapter.snapshots(d['transformer_id'], now, 1)[0]['telemetry']['current_rate_kw'] == 19

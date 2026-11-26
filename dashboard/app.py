@@ -143,6 +143,12 @@ def configure(fixture=False, api_url=None):
                      or parsed.query or parsed.fragment):
         raise ValueError('Dashboard API must be a loopback HTTP /api/v1 URL')
     token = 'fixture-operator-token' if fixture else os.environ.get('DASHBOARD_API_TOKEN', '')
+    demo = None
+    if not fixture and os.getenv('GRID_DEMO_CLIENT_SECRET'):
+        from identity.demo import DemoIdentity
+        demo = DemoIdentity()
+        app.on_shutdown(demo.http.aclose)
+    demo_mode = demo is not None or fixture and os.getenv('GRID_DEMO_MODE') == '1'
     login = None
     if not fixture and os.environ.get('MEMBER4_AUTH_MODE') != 'mock':
         from identity.browser import BrowserLogin
@@ -153,6 +159,23 @@ def configure(fixture=False, api_url=None):
             install(app)
     elif not token:
         raise ValueError('Set DASHBOARD_API_TOKEN for explicit mock mode')
+    elif kind:
+        # Mock auth in cluster: no Keycloak proxy, but the probes still need
+        # /healthz and /readyz. Readiness checks only the API (no OIDC certs).
+        from fastapi import Response as _Response
+
+        @app.get('/healthz')
+        async def _healthz():
+            return {'status': 'ok'}
+
+        @app.get('/readyz')
+        async def _readyz():
+            try:
+                async with httpx.AsyncClient(timeout=3, trust_env=False) as _http:
+                    upstream = await _http.get('http://api:18084/api/v1/ready')
+                return _Response(status_code=200 if upstream.is_success else 503)
+            except httpx.RequestError:
+                return _Response(status_code=503)
     ui.add_css(CSS + MAP_CSS, shared=True)
 
     @ui.page('/investigations/{investigation_id}')
@@ -178,13 +201,17 @@ def configure(fixture=False, api_url=None):
             ui.label('Investigation unavailable or forbidden.')
         ui.link('Return to operations', '/')
 
+    @ui.page('/operator')
     @ui.page('/')
     async def index(client, request: Request):
+        # One open site for everyone: no public/admin split, no login gate.
+        # OIDC login only applies when explicitly configured (non-mock auth).
+        guest = False
         sid = request.cookies.get('grid_session')
         if login and not login.session(sid):
             return RedirectResponse('/auth/login')
         ui.colors(primary='#235b91', secondary='#52657b', positive='#166344', negative='#b42332', warning='#805000')
-        source = Operations(base, token, token_provider=(lambda: login.token(sid)) if login else None)
+        source = Operations(base, token, token_provider=demo.token if guest and demo else (lambda: login.token(sid)) if login else None)
         selected = {'page': 'Overview', 'transformer': None, 'search': '', 'severity': 'All', 'status': 'All'}
         last = {'fingerprint': None}
         tasks = []
@@ -225,8 +252,8 @@ def configure(fixture=False, api_url=None):
             with ui.row().classes('items-center gap-4'):
                 status = ui.label('Loading').props('role=status aria-live=polite aria-atomic=true')
                 snapshot_label = ui.label('Snapshot pending').classes('muted text-sm')
-                role_label = ui.label(login.session(sid)['actor']['role'] if login else ('Fixture · Operator' if fixture else 'Local API · configured identity')).classes('muted')
-                if login:
+                role_label = ui.label('Public demo · Read-only' if guest else login.session(sid)['actor']['role'] if login else ('Fixture · Operator' if fixture else 'Local API · configured identity')).classes('muted')
+                if login and not guest:
                     ui.link('Log out', '/auth/logout?csrf='+login.session(sid)['csrf'])
                     ui.link('Log in again', '/auth/login')
         with ui.left_drawer(value=None, top_corner=False, bottom_corner=True).props('breakpoint=1000 width=230') as drawer:
@@ -236,15 +263,16 @@ def configure(fixture=False, api_url=None):
             for title, icon in NAV:
                 nav_buttons[title] = ui.button(title, color=None, icon=icon, on_click=lambda t=title: navigate(t)).props('flat align=left').classes('py-3')
             ui.separator().classes('my-6')
-            ui.label('LOCAL DEVELOPMENT' if fixture else 'LOCAL OPERATIONS').classes('px-4 text-sm')
-            ui.label('Member_4 · Read models').classes('px-4 text-sm').style('color:#afc5d9')
+            ui.label('PUBLIC DEMO' if guest else 'LOCAL DEVELOPMENT' if fixture else 'OPERATIONS').classes('px-4 text-sm')
+            ui.label('Grid reliability · EV fleets' if guest else 'Member_4 · Read models').classes('px-4 text-sm').style('color:#afc5d9')
         with ui.column().classes('console').props('id=main tabindex=-1'):
             with ui.row().classes('w-full justify-between items-start'):
                 with ui.column().classes('gap-1'):
                     ui.label('SMART GRID / EV FLEET').classes('eyebrow')
                     title_label = heading('Grid overview', 1)
                     ui.label('Observe demand. Follow the response. Verify recovery.').classes('muted')
-                ui.button('Investigate', icon='manage_search', on_click=lambda: investigate(selected['transformer'])).props('outline')
+                if not guest:
+                    ui.button('Investigate', icon='manage_search', on_click=lambda: investigate(selected['transformer'])).props('outline')
             if fixture:
                 with ui.expansion('Fixture controls · synthetic data only', icon='science').classes('w-full bg-white rounded-lg'):
                     ui.label('These controls change only the disposable UI fixture API. Start/stop below exercise the scenario contract mock.').classes('muted')
@@ -265,7 +293,8 @@ def configure(fixture=False, api_url=None):
             detail_body = ui.column().classes('w-full gap-4')
             detail_pending = ui.label('Live updates pending while focus is in the explanation. Displayed values may be stale. Move focus to Close details to apply them.').classes('notice').props('role=status aria-live=polite')
             detail_pending.set_visibility(False)
-            ui.button('Investigate action', on_click=lambda: investigate_action()).props('outline')
+            if not guest:
+                ui.button('Investigate action', on_click=lambda: investigate_action()).props('outline')
             ui.button('Close details', on_click=details.close).props('outline autofocus')
         # Native modal semantics provide focus containment, Escape and focus return.
         with ui.dialog().props('transition-duration=0 position=right full-height aria-label="Incident investigator"') as investigator:
@@ -397,7 +426,7 @@ def configure(fixture=False, api_url=None):
                     ui.select({15: 'Last 15 minutes', 60: 'Last hour'}, value=source.range_minutes,
                               label='Alert history range', on_change=range_change).classes('w-48')
                 if page == 'Flow Map':
-                    scenario = ui.select(SCENARIOS, value='overload', label='Demo scenario').classes('w-60')
+                    scenario = ui.select(SCENARIOS, value=playback['scenario'] or 'overload', label='Demo scenario').classes('w-60')
                     ui.button('Run simulation', icon='play_arrow', on_click=lambda: start_playback(scenario.value))
                     ui.button('Next phase', icon='skip_next', on_click=next_phase).props('outline')
                     ui.button('Return to live grid', on_click=live_map).props('flat')
@@ -450,6 +479,18 @@ def configure(fixture=False, api_url=None):
             dialog.open()
 
         def scenario_form():
+            if kind and not fixture:
+                with ui.card().classes('w-full'):
+                    heading('Start a demo scenario')
+                    ui.label('Scenarios run as real-time simulation playback in Flow Map.').classes('muted')
+                    scenario = ui.select(SCENARIOS, value='overload', label='Scenario').classes('w-60')
+
+                    def start():
+                        start_playback(scenario.value)
+                        navigate('Flow Map')
+
+                    ui.button('Start scenario', icon='play_arrow', on_click=start)
+                return
             with ui.card().classes('w-full'):
                 heading('Run an approved scenario')
                 ui.label('Scenario operations use the backend contract mock until the Member_1 live adapter is connected.').classes('muted')
@@ -494,6 +535,17 @@ def configure(fixture=False, api_url=None):
         def items(name):
             return ordered_records(name, source.data.get(name, {}).get('items', []))
 
+        def freshness_notice():
+            freshness = source.data.get('overview', {}).get('freshness')
+            actions = items('actions')
+            if (freshness == 'STALE' and source.status == 'Live' and not source.errors
+                    and actions and all(a['status'] == 'COMPLETED' for a in actions)):
+                return ('Live connection · Showing retained readings from completed actions. '
+                        'No fresh telemetry is arriving. Open Flow Map to review the history or run a demo simulation.')
+            if freshness in ('STALE', 'PARTIAL', 'UNKNOWN'):
+                return f'{freshness} data · Missing or old readings cannot establish recovery.'
+            return None
+
         def show_errors():
             notices.clear()
             with notices:
@@ -504,10 +556,8 @@ def configure(fixture=False, api_url=None):
                     ui.label(f'{source.status} · Last snapshot retained; values may be stale. Retrying automatically.').classes('notice').props('role=status aria-live=polite')
                 for name, error in source.errors.items():
                     ui.label(f'{name.title()}: {error}. Last values may be stale.').classes('notice').props('role=status')
-                overview = source.data.get('overview', {})
-                freshness = overview.get('freshness')
-                if freshness in ('STALE', 'PARTIAL', 'UNKNOWN'):
-                    ui.label(f'{freshness} data · Missing or old readings cannot establish recovery.').classes('notice').props('role=status')
+                if message := freshness_notice():
+                    ui.label(message).classes('notice').props('role=status')
 
         def expansion(label):
             element = ui.expansion(label, value=expanded.get(label, False), on_value_change=lambda e: expanded.update({label: e.value}))
@@ -560,6 +610,14 @@ def configure(fixture=False, api_url=None):
                     ui.label('Waiting for API data. Check connection and identity.').classes('muted')
                     return
                 if page == 'Overview':
+                    if demo_mode:
+                        with ui.card().classes('w-full'):
+                            heading('Protect neighborhood transformers. Keep EV fleets charging.')
+                            ui.label('Follow an overload, targeted charger throttling, measured load reduction, and safe restoration.').classes('muted')
+                            def guided_demo():
+                                start_playback('overload')
+                                navigate('Flow Map')
+                            ui.button('Start guided demo', icon='play_arrow', on_click=guided_demo)
                     overview = source.data.get('overview', {})
                     with ui.element('div').classes('kpis'):
                         solar = sum(t['load']['solar_generation_kw'] for t in ts) if ts else None
@@ -571,13 +629,14 @@ def configure(fixture=False, api_url=None):
                                 ui.label(label).classes('muted')
                                 ui.label(value).classes('metric')
                                 ui.label(sub).classes('text-sm muted')
-                    with ui.element('div').classes('two-col'):
-                        with ui.card().classes('w-full'):
-                            heading('Net load · ' + source.data.get('history_transformer', 'no transformer'))
-                            ui.label(f'Last {source.data.get("history_minutes", source.range_minutes)} minutes · selected transformer history').classes('muted')
-                            chart(items('loads'))
-                            with expansion('Load history values').classes('w-full'):
-                                table(items('loads'), [('window_end','Window end UTC'),('net_load_kw','Net kW'),('completeness','Completeness')], 'window_id')
+                    with ui.element('div').classes('two-col' if not guest or items('loads') else 'w-full'):
+                        if not guest or items('loads'):
+                            with ui.card().classes('w-full'):
+                                heading('Net load · ' + source.data.get('history_transformer', 'no transformer'))
+                                ui.label(f'Last {source.data.get("history_minutes", source.range_minutes)} minutes · selected transformer history').classes('muted')
+                                chart(items('loads'))
+                                with expansion('Load history values').classes('w-full'):
+                                    table(items('loads'), [('window_end','Window end UTC'),('net_load_kw','Net kW'),('completeness','Completeness')], 'window_id')
                         with ui.column().classes('w-full'):
                             heading('Platform response')
                             action_list(items('actions')[:3])
@@ -587,7 +646,8 @@ def configure(fixture=False, api_url=None):
                     with ui.element('div').classes('tx-grid'):
                         for t in ts:
                             transformer_card(t)
-                    alerts_view(items('alerts')[:3])
+                    if not guest:
+                        alerts_view(items('alerts')[:3])
                 elif page == 'Flow Map':
                     ranked = sorted(ts, key=lambda t: ({'CRITICAL':0,'WARNING':1,'STALE':2,'NORMAL':3}[t['state']],
                                                        -(t['load']['utilization_pct'] or 0)))
@@ -618,6 +678,9 @@ def configure(fixture=False, api_url=None):
                 elif page == 'Devices':
                     devices_view([d for d in items('devices') if selected['search'].lower() in json.dumps(d).lower()])
                 elif page == 'Scenarios':
+                    if kind and not fixture:
+                        ui.label('Playback is private to this tab. The live grid stays available in Flow Map.').classes('muted')
+                        return
                     heading('Current run')
                     run = source.data.get('scenarios', {}).get('active_run')
                     if run:
@@ -636,15 +699,8 @@ def configure(fixture=False, api_url=None):
                                 heading(scenario.replace('_', ' ').title(), 3)
                                 ui.label({'normal':'Steady demand within capacity.', 'evening_overload':'EV demand spike and response.', 'late_correction':'Delayed telemetry and revised windows.', 'leader_failover':'Control ownership interruption.'}.get(scenario, scenario)).classes('muted')
                 elif page == 'System health':
-                    heading('Reported health')
-                    table([dict(component=k, **v) for k,v in source.health.items()], [('component','Component'),('status','Status'),('observed_at','Observed UTC')], 'component')
-                    with ui.card().classes('w-full'):
-                        for component in ['Kafka', 'Flink', 'Database', 'Action service', 'API', 'Simulator', 'Live stream']:
-                            ui.label(f'{component}: {source.status if component == "Live stream" else "Unknown · no component metrics endpoint in v1"}')
-                        ui.label('Consumer lag, checkpoint age, DLQ rate and API error rate: unavailable from this API.').classes('muted')
-                        ui.label(f'Stale transformers in loaded inventory: {sum(t["freshness"] == "STALE" for t in ts)}')
-                        ui.link('Open local Grafana', 'http://127.0.0.1:3000', new_tab=True)
-                        ui.button('Investigate health', on_click=lambda: investigate()).props('outline')
+                    from dashboard.system_health import render_system_health
+                    render_system_health()
                 elif page == 'Settings':
                     with ui.card().classes('w-full'):
                         heading('Connection and display')
@@ -665,8 +721,9 @@ def configure(fixture=False, api_url=None):
                     ui.label(f'Window {alert["load_window_id"]} · revision {alert["load_revision"]} · opened {alert["opened_at"]}').classes('muted text-sm')
                     with ui.row():
                         ui.button('Open transformer', on_click=lambda a=alert: navigate('Transformers', a['transformer_id'])).props('outline dense')
-                        ui.button('Investigate alert', on_click=lambda a=alert: investigate(a['transformer_id'], alert=a['alert_id'])).props('outline dense')
-                        if alert['status'] == 'OPEN':
+                        if not guest:
+                            ui.button('Investigate alert', on_click=lambda a=alert: investigate(a['transformer_id'], alert=a['alert_id'])).props('outline dense')
+                        if not guest and alert['status'] == 'OPEN':
                             ui.button('Acknowledge alert', on_click=lambda a=alert: perform(f'/alerts/{a["alert_id"]}/acknowledge')).props('dense')
 
         def devices_view(devices):
@@ -713,7 +770,7 @@ def configure(fixture=False, api_url=None):
             ui.label('Timeline contains retained load windows and latest alert/action transitions. v1 does not expose every historical saga transition.').classes('muted text-sm')
 
         def tick():
-            if login and not login.session(sid):
+            if login and not guest and not login.session(sid):
                 # Invalidate every open tab, including panels held for keyboard reading.
                 source.closed = True
                 for task in tasks:
@@ -728,10 +785,10 @@ def configure(fixture=False, api_url=None):
                 return
             status.set_text(f'{source.status.upper()} · {source.data.get("overview", {}).get("critical_count", "Unknown")} critical')
             snapshot_label.set_text(f'Snapshot {source.observed or "pending"}')
-            if login:
+            if login and not guest:
                 session = login.session(sid)
                 role_label.set_text(session['actor']['role'] if session else 'Login required')
-            notice_fingerprint = json.dumps([source.status, source.errors, source.data.get('overview', {}).get('freshness')], sort_keys=True)
+            notice_fingerprint = json.dumps([source.status, source.errors, freshness_notice()], sort_keys=True)
             if notice_fingerprint != last_notice['fingerprint']:
                 show_errors()
                 last_notice['fingerprint'] = notice_fingerprint

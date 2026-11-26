@@ -63,5 +63,19 @@ session/failover or production TLS claim follows from this local slice.
   remains free/local on Docker Desktop with built-in Kubernetes disabled.
 
 See [runbook](../../identity/README.md), [status](../implementation/IMPLEMENTATION_STATUS.md).
+
+## Authorized AKS MVP amendment — 2026-11-25
+
+For the professor review only, the public dashboard may use a server-held,
+confidential `smart-grid-demo` client with signed Viewer-only access tokens.
+It cannot receive Operator or Administrator permissions; API authentication
+rejects such a role for this client. The public browser has no login screen,
+credentials, grid mutations, or Investigator execution. Session-local simulation
+playback is available. Existing user OIDC and Investigator remain at `/operator`.
+The optional AKS UI secret enables this mode; normal local OIDC is unchanged.
+No password grant, public mock token, or v1 minimum-role relaxation is introduced.
+See the [AKS agent runbook](../../infra/aks/AGENT_RUNBOOK.md) for provisioning and
+verification. Existing observability and backend scale evidence are preserved.
+
 OIDC endpoints follow [Keycloak documentation](https://www.keycloak.org/securing-apps/oidc-layers);
 subject mapping follows [Keycloak's mapper reference](https://www.keycloak.org/admin-api/protocol-mappers).

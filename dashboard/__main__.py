@@ -14,8 +14,11 @@ args = parser.parse_args()
 if not args.fixture and os.environ.get('MEMBER4_AUTH_MODE') != 'mock' and args.port != 18086:
     parser.error('OIDC redirect is fixed to port 18086')
 kind = os.getenv('GRID_LOCAL_KIND') == '1'
-if kind and (args.fixture or args.api_url or os.environ.get('MEMBER4_AUTH_MODE') == 'mock'):
+mock = os.environ.get('MEMBER4_AUTH_MODE') == 'mock'
+if kind and (args.fixture or args.api_url) and not mock:
     parser.error('The kind dashboard requires the cluster API and OIDC')
+if kind and mock and not os.environ.get('DASHBOARD_API_TOKEN'):
+    parser.error('DASHBOARD_API_TOKEN is required for mock auth in cluster')
 configure(fixture=args.fixture, api_url=args.api_url or ('http://127.0.0.1:18085/api/v1' if args.fixture else None))
 ui.run(host='0.0.0.0' if kind else '127.0.0.1', port=args.port, title='GridBalance · Operations',
        reload=False, show=False, access_log=False, timeout_graceful_shutdown=20)

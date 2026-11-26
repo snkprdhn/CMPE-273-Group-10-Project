@@ -2,7 +2,7 @@
 from copy import deepcopy
 import io
 import json
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -58,3 +58,64 @@ def test_in_cluster_lease_uses_ca_and_rotated_token_and_fails_closed(tmp_path, m
         lease.request('replace', record)
     assert seen == [('GET', 'Bearer first-local-token', None),
                     ('PUT', 'Bearer rotated-local-token', json.dumps(record).encode())]
+
+
+def test_transient_lease_read_retries_but_uncertain_write_does_not(tmp_path, monkeypatch):
+    monkeypatch.setenv('KUBERNETES_SERVICE_HOST', '10.96.0.1')
+    monkeypatch.setenv('KUBERNETES_SERVICE_PORT', '443')
+    lease = Lease()
+    lease.service_account = tmp_path
+    (tmp_path / 'token').write_text('disposable')
+    monkeypatch.setattr('member3.leadership.ssl.create_default_context', lambda **_: None)
+    monkeypatch.setattr('member3.leadership.time.sleep', lambda _: None)
+    calls = []
+    def request(req, **kwargs):
+        calls.append(req.method)
+        if len(calls) < 3 or req.method != 'GET':
+            raise URLError(TimeoutError('transient'))
+        return io.BytesIO(b'{"metadata":{"uid":"test"}}')
+    monkeypatch.setattr('member3.leadership.urlopen', request)
+    assert lease.request('get')['metadata']['uid'] == 'test'
+    assert calls == ['GET'] * 3
+    with pytest.raises(URLError):
+        lease.request('replace', {})
+    assert calls == ['GET'] * 3 + ['PUT']
+
+
+def test_lease_read_stops_after_three_failures(tmp_path, monkeypatch):
+    monkeypatch.setenv('KUBERNETES_SERVICE_HOST', '10.96.0.1')
+    monkeypatch.setenv('KUBERNETES_SERVICE_PORT', '443')
+    lease = Lease()
+    lease.service_account = tmp_path
+    (tmp_path / 'token').write_text('disposable')
+    monkeypatch.setattr('member3.leadership.ssl.create_default_context', lambda **_: None)
+    monkeypatch.setattr('member3.leadership.time.sleep', lambda _: None)
+    calls = []
+    def request(*args, **kwargs):
+        calls.append(1)
+        raise URLError('unavailable')
+    monkeypatch.setattr('member3.leadership.urlopen', request)
+    with pytest.raises(URLError):
+        lease.step()
+    assert len(calls) == 3
+    assert lease.deadline == 0
+
+
+@pytest.mark.parametrize('origin', ['http://example.com:18199', 'https://127.0.0.1:18199', 'http://u:p@127.0.0.1:18199', 'http://127.0.0.1:18199/path'])
+def test_host_proxy_requires_loopback_origin(monkeypatch, origin):
+    monkeypatch.delenv('KUBERNETES_SERVICE_HOST', raising=False)
+    monkeypatch.setenv('LEASE_API_URL', origin)
+    with pytest.raises(ValueError, match='loopback'):
+        Lease()
+
+
+def test_host_proxy_reuses_authenticated_kubectl_transport(monkeypatch):
+    monkeypatch.delenv('KUBERNETES_SERVICE_HOST', raising=False)
+    monkeypatch.setenv('LEASE_API_URL', 'http://127.0.0.1:18199')
+    lease = Lease(namespace='smart-grid-control')
+    def request(req, *, timeout):
+        assert req.full_url == 'http://127.0.0.1:18199/apis/coordination.k8s.io/v1/namespaces/smart-grid-control/leases/action'
+        assert req.get_header('Authorization') is None
+        return io.BytesIO(b'{"metadata":{"uid":"proxy"}}')
+    monkeypatch.setattr('member3.leadership.urlopen', request)
+    assert lease.request('get')['metadata']['uid'] == 'proxy'

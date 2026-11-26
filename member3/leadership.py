@@ -6,8 +6,8 @@ from pathlib import Path
 import ssl
 import subprocess
 import time
-from urllib.error import HTTPError
-from urllib.parse import quote
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
@@ -31,28 +31,42 @@ class Lease:
         self.changed = time.monotonic()
         self.service_account = Path('/var/run/secrets/kubernetes.io/serviceaccount')
         self.api_host = os.getenv('KUBERNETES_SERVICE_HOST')
+        self.api_url = os.getenv('LEASE_API_URL')
+        if self.api_url:
+            parsed = urlsplit(self.api_url)
+            if (self.api_host or parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', '::1')
+                    or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment):
+                raise ValueError('LEASE_API_URL must be an explicit loopback kubectl proxy origin')
 
     def request(self, verb, body=None):
-        if self.api_host:
+        if self.api_host or self.api_url:
             address = self.api_host
-            if ':' in address:
+            if address and ':' in address:
                 address = f'[{address}]'
             path = '/apis/coordination.k8s.io/v1/namespaces/' + quote(self.namespace, safe='') + '/leases'
             if verb != 'create':
                 path += '/' + quote(self.name, safe='')
-            request = Request(f'https://{address}:{os.environ["KUBERNETES_SERVICE_PORT"]}{path}',
+            origin = self.api_url or f'https://{address}:{os.environ["KUBERNETES_SERVICE_PORT"]}'
+            auth = {} if self.api_url else {'Authorization': 'Bearer ' + (self.service_account / 'token').read_text().strip()}
+            request = Request(origin + path,
                               method={'get': 'GET', 'replace': 'PUT', 'create': 'POST'}[verb],
                               data=json.dumps(body).encode() if body else None,
-                              headers={'Authorization': 'Bearer ' + (self.service_account / 'token').read_text().strip(),
-                                       'Content-Type': 'application/json'})
-            context = ssl.create_default_context(cafile=self.service_account / 'ca.crt')
-            try:
-                with urlopen(request, context=context, timeout=3) as response:
-                    return json.load(response)
-            except HTTPError as exc:
-                if verb == 'get' and exc.code == 404:
-                    return None
-                raise RuntimeError(f'Lease API {verb} failed with HTTP {exc.code}') from None
+                              headers={**auth, 'Content-Type': 'application/json'})
+            transport = {} if self.api_url else {'context': ssl.create_default_context(cafile=self.service_account / 'ca.crt')}
+            for attempt in range(3):
+                try:
+                    with urlopen(request, timeout=3, **transport) as response:
+                        return json.load(response)
+                except HTTPError as exc:
+                    if verb == 'get' and exc.code == 404:
+                        return None
+                    raise RuntimeError(f'Lease API {verb} failed with HTTP {exc.code}') from None
+                except (URLError, TimeoutError):
+                    # Retry reads only. An uncertain CAS must never be replayed.
+                    # step/verify still reject any response past the lease deadline.
+                    if verb != 'get' or attempt == 2:
+                        raise
+                    time.sleep(.2 * (attempt + 1))
         args = ['get', 'lease', self.name] if verb == 'get' else [verb, '-f', '-']
         result = subprocess.run(self.command + args + ['-o', 'json'],
                                 input=json.dumps(body) if body else None,

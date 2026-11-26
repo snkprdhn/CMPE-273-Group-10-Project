@@ -1,7 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: [../hosted, edge.yaml]
+resources: [../hosted, edge.yaml, benchmark-policies.yaml]
 patches:
+  # ── Storage: use AKS Standard SSD for Kafka and checkpoint PVCs ──────────────
   - target: {kind: KafkaNodePool, name: brokers}
     patch: |-
       - op: add
@@ -12,6 +13,8 @@ patches:
       - op: add
         path: /spec/storageClassName
         value: grid-ssd
+
+  # ── Image pull: ACR images are pre-pulled, use IfNotPresent ──────────────────
   - target: {kind: Deployment, name: 'registry|action|projection|api|copilot|ui'}
     patch: |-
       - op: replace
@@ -27,3 +30,149 @@ patches:
       - op: replace
         path: /spec/imagePullPolicy
         value: IfNotPresent
+
+  # ── Task 2: Disable Keycloak — auth replaced by mock identity mode ────────────
+  - target: {kind: Deployment, name: keycloak}
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+
+  # ── Task 2: Disable Tempo — tracing secondary to metrics for the demo ─────────
+  - target: {kind: Deployment, name: tempo}
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+
+  # ── Task 2: API — switch to mock identity mode, remove Keycloak secret ref ────
+  - target: {kind: Deployment, name: api}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: MEMBER4_AUTH_MODE
+          value: mock
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: MEMBER4_MOCK_IDENTITIES
+          valueFrom:
+            secretKeyRef: {name: mock-identity-runtime, key: MEMBER4_MOCK_IDENTITIES}
+
+  # ── Task 2: UI — mock auth mode, system health env vars, remove demo secret ───
+  - target: {kind: Deployment, name: ui}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: MEMBER4_AUTH_MODE
+          value: mock
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: DASHBOARD_API_TOKEN
+          valueFrom:
+            secretKeyRef: {name: mock-identity-runtime, key: DASHBOARD_API_TOKEN}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PROMETHEUS_URL
+          value: http://prometheus-stack-kube-prom-prometheus.observability:9090
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: FLINK_REST_URL
+          value: http://aggregation-rest:8081
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GRAFANA_URL
+          value: http://prometheus-stack-grafana.observability:80
+
+  # ── Task 3: Flink — parallelism 3, RocksDB, 5s checkpoints, DS2_v2 node ──────
+  - target: {kind: FlinkDeployment, name: aggregation}
+    patch: |-
+      - op: replace
+        path: /spec/job/parallelism
+        value: 3
+      - op: add
+        path: /spec/flinkConfiguration/state.backend.type
+        value: rocksdb
+      - op: add
+        path: /spec/flinkConfiguration/state.backend.incremental
+        value: "true"
+      - op: add
+        path: /spec/flinkConfiguration/state.backend.rocksdb.memory.managed
+        value: "true"
+      - op: replace
+        path: /spec/flinkConfiguration/execution.checkpointing.dir
+        value: file:///checkpoints/integration-kind
+      - op: add
+        path: /spec/flinkConfiguration/execution.checkpointing.interval
+        value: "5000"
+      - op: replace
+        path: /spec/flinkConfiguration/taskmanager.numberOfTaskSlots
+        value: "3"
+      - op: replace
+        path: /spec/taskManager/resource/cpu
+        value: 1.0
+      - op: replace
+        path: /spec/taskManager/resource/memory
+        value: 2560m
+      - op: replace
+        path: /spec/jobManager/resource/cpu
+        value: 0.3
+      - op: replace
+        path: /spec/jobManager/resource/memory
+        value: 1024m
+      - op: replace
+        path: /spec/job/args
+        value:
+          - -py
+          - /app/member2/job.py
+          - --run
+          - aksbenchmark01
+          - --bootstrap
+          - grid-kafka-bootstrap:9092
+          - --prefix
+          - integration-kind.
+          - --topology
+          - /app/member2/integration-topology.json
+          - --checkpoint
+          - file:///checkpoints/integration-kind
+          - --checkpoint-ms
+          - "5000"
+          - --max-events
+          - "1100000"
+      - op: add
+        path: /spec/podTemplate/spec/tolerations
+        value:
+          - key: grid-role
+            operator: Equal
+            value: flink
+            effect: NoSchedule
+      - op: add
+        path: /spec/podTemplate/spec/affinity
+        value:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: grid-role
+                      operator: In
+                      values: [flink]
+
+  # ── Task 2: Remove keycloak from postgres-ingress allowed sources ─────────────
+  # Keycloak is scaled to 0; its NetworkPolicy allowance is also removed to keep
+  # the policy consistent with the running workloads.
+  - target: {kind: NetworkPolicy, name: postgres-ingress}
+    patch: |-
+      - op: replace
+        path: /spec/ingress/0/from/0/podSelector/matchExpressions/0/values
+        value: [database-bootstrap, registry, connect, action, projection, api, simulator]
+  - target: {kind: NetworkPolicy, name: postgres-clients}
+    patch: |-
+      - op: replace
+        path: /spec/podSelector/matchExpressions/0/values
+        value: [database-bootstrap, registry, connect, action, projection, api, simulator]

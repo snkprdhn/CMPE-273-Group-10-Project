@@ -1,6 +1,291 @@
 # Implementation status
 
-Updated **2026-11-24 (America/Los_Angeles)** for the AKS review preflight and local delivery. Member_1 owns simulation, Registry and observability. Member_2 owns Kafka and PyFlink. Member_3 owns control, PostgreSQL and Debezium. Member_4 owns projections, API, UI, identity and Copilot.
+Updated **2026-11-25 (America/Los_Angeles)** for the AKS 1M end-to-end benchmark milestone. Member_1 owns simulation, Registry and observability. Member_2 owns Kafka and PyFlink. Member_3 owns control, PostgreSQL and Debezium. Member_4 owns projections, API, UI, identity and Copilot.
+
+## AKS 1M end-to-end benchmark — aksbenchmark01
+
+**Status: Infrastructure and code changes complete. Benchmark execution pending on AKS (requires DS2_v2 node provisioning and December 2 demo window).**
+
+### Changes implemented
+
+**Task 1 — DS2_v2 Flink node (Member_2/infra):**
+- `infra/aks/kustomization.yaml` updated with node affinity patch requiring Flink JM and TM pods to schedule on nodes labelled `grid-role=flink`.
+- Toleration `grid-role=flink:NoSchedule` added to Flink pod template so no other workloads land on the Flink node.
+- Provisioning command: `az aks nodepool add --name flinkpool --node-vm-size Standard_DS2_v2 --labels grid-role=flink` (uses 2 of remaining 2 DSv2 vCPUs in Denmark East regional quota).
+- Step-by-step operator script: [`infra/aks/benchmark-setup.sh`](../../infra/aks/benchmark-setup.sh).
+
+**Task 2 — Keycloak + Tempo removal, mock identity mode (Member_4):**
+- `infra/aks/kustomization.yaml` patches `keycloak` and `tempo` Deployments to `replicas: 0`. Frees ~300m CPU on DS3_v2.
+- API Deployment patched to add `MEMBER4_AUTH_MODE=mock` and mount `MEMBER4_MOCK_IDENTITIES` from Secret `mock-identity-runtime`.
+- UI Deployment patched to add `MEMBER4_AUTH_MODE=mock` and `DASHBOARD_API_TOKEN` from same Secret.
+- Both mock identity paths already existed in `member4/__main__.py` and `dashboard/app.py` — zero application code changes.
+- NetworkPolicy patches remove `keycloak` from `postgres-ingress` and `postgres-clients` allowed lists.
+- PostgreSQL stays running (Action service still uses it).
+- Secret `mock-identity-runtime` generated locally into `.tools/aks-review/mock-identity.env` (private, never committed). Contains a 32-character random viewer token.
+
+**Task 3 — Flink parallelism 3, RocksDB incremental checkpoints (Member_2):**
+- `infra/aks/kustomization.yaml` patches `FlinkDeployment/aggregation`:
+  - `spec.job.parallelism: 3` — one subtask per Kafka partition.
+  - `taskmanager.numberOfTaskSlots: 3`, TaskManager `cpu: 1.5, memory: 4096m`.
+  - JobManager `cpu: 0.3, memory: 512m`.
+  - `state.backend.type: rocksdb`, `state.backend.incremental: true`, `state.backend.rocksdb.memory.managed: true`.
+  - `execution.checkpointing.interval: 5000` (5s, reduced from 1s to lower overhead).
+  - `--max-events 1100000`, `--state-backend rocksdb` added to job args.
+  - `upgradeMode: stateless` (already set) — job restarts fresh with new parallelism.
+- `make member2-test` must pass 60 checks before deploying (compact-state optimization already merged).
+
+**Task 4 — NiceGUI system health tab (Member_4):**
+- New file: [`dashboard/system_health.py`](../../dashboard/system_health.py) — polls Prometheus HTTP API (`/api/v1/query`) and Flink REST (`/jobs/{id}/metrics`) every 3 seconds. Renders four KPI cards (Records In/s, Records Out/s, Consumer Lag, Last Checkpoint) and two ECharts line charts (throughput over time, per-partition lag over time). Gracefully degrades when either source is unreachable.
+- `dashboard/app.py` `System health` page case replaced from static placeholder to `render_system_health()` call.
+- New tests: [`tests/dashboard/test_system_health.py`](../../tests/dashboard/test_system_health.py) — 3 Playwright tests covering tab render, KPI card presence, and chart element presence.
+- UI Deployment env vars added: `PROMETHEUS_URL`, `FLINK_REST_URL`, `GRAFANA_URL`.
+- New file: [`infra/aks/benchmark-policies.yaml`](../../infra/aks/benchmark-policies.yaml) — NetworkPolicy egress/ingress rules allowing UI pod to reach Prometheus (port 9090), Grafana (port 80) in `observability` namespace and Flink REST (port 8081) in `platform` namespace.
+
+**Task 5 — UI image build (Member_4):**
+- Build command (from repository root, requires Docker Desktop with linux/amd64 platform):
+  ```sh
+  make dashboard-test  # must pass all checks including 3 new system health tests
+  docker build --platform linux/amd64 --provenance=false \
+    -f infra/kind/Dockerfile --target ui \
+    -t "$REVIEW_REGISTRY/smart-grid-kind/ui:benchmark-v1" .
+  az acr login -n smartgridevreview9e9
+  docker push "$REVIEW_REGISTRY/smart-grid-kind/ui:benchmark-v1" \
+    2>&1 | tee .tools/aks-review/benchmark-v1-push.log
+  ```
+- Previous UI digest must be saved before rollout for rollback.
+
+### Benchmark execution plan
+
+Run script: [`infra/aks/benchmark-run.sh`](../../infra/aks/benchmark-run.sh)
+
+Producer command:
+```sh
+.tools/member2-venv/bin/python -m tests.member2.scale aksbenchmark01 \
+  --rounds 400 --rate 2500 --parallelism 3 \
+  --bootstrap 127.0.0.1:29092 --prefix integration-kind. --max-events 1100000
+```
+
+- 400 rounds × 2,500 records = **1,000,000 total records** via production `integration-kind.` prefix.
+- Events flow through the full pipeline: Kafka → Flink (3 subtasks) → Action → PostgreSQL outbox → Debezium → commands → projection → API → dashboard.
+- Target: all 3 partition consumer lags reach zero in **≤300 seconds**.
+- Evidence captured to `.tools/aks-review/million-benchmark/` (private, not committed).
+
+### Expected CPU layout after provisioning
+
+| Node | Workload | CPU reserved |
+|---|---|---|
+| DS3_v2 (existing) | Kafka, Strimzi ops, KafkaConnect, Registry, Action, Projection, API, UI, PostgreSQL, Prometheus, Grafana, Kafka Exporter, OTel, system | ~2,750m |
+| DS2_v2 (new) | Flink JM (300m) + Flink TM (1,500m) | ~1,800m of 2,000m allocatable |
+
+### Benchmark result
+
+**Pending execution.** Evidence files and exact elapsed time will be recorded here after the December 2 demo run. If the benchmark passes (zero lag ≤300s), this section will be updated with:
+- Per-partition committed offsets
+- Flink subtask count and records/s rate
+- Number of throttle/restore actions triggered in the dashboard
+- NiceGUI system health tab screenshot path
+- Grafana consumer lag panel screenshot path
+
+### Limitations
+
+- DS2_v2 (2 vCPU) gives Flink TM burst headroom beyond the 1.5 CPU request but no headroom for a second TM. If 3 subtasks on one TM still cannot drain 1M records in 300s, the next step is a DS3_v2 user node (requires DSv2 quota increase request).
+- `upgradeMode: stateless` means the production Flink job restarts fresh from the patched args — the prior seeded action evidence remains in the projection store but new Flink state starts from the new run ID `aksbenchmark01`.
+- Mock identity mode means Keycloak OIDC is inactive. The public demo token is a static Viewer-only bearer; operator writes still return 403.
+- Tempo (tracing) is scaled to zero for the benchmark window. OTel spans are dropped rather than stored. Prometheus/Grafana/Kafka Exporter remain fully operational.
+
+---
+
+## Flink hot-path optimization and scaling preflight
+
+Reused one strict telemetry decode and one deduplication lookup per valid
+record, preserving the stored state shapes. `make member2-test` passed 59
+checks, including wire/decoded parity. Denmark East DSv2 quota is 4/4 vCPUs
+and regional quota is 4/6. The existing worker pool cannot add another
+DS3_v2, and the current ReadWriteOnce checkpoint claim cannot serve
+TaskManagers spread across nodes. No autoscaling rollout was performed.
+
+## AKS parallel benchmark running
+
+The temporary two-subtask Flink session reached one million Kafka end offsets.
+At 300.57 seconds it had 154,309 committed records and 845,691 lag. The
+five-minute target failed. Copilot and Tempo were scaled to zero and the
+original Flink job was suspended with a verified savepoint. The existing
+dashboard readiness remained HTTP 200. Final drain and correctness remained
+pending. This isolated run does not verify live dashboard control.
+
+## Transformer parallelism candidate
+
+Added an opt-in isolated Flink demo profile keyed by transformer, with separate
+checkpoint identity and transformer-local watermarks and deduplication. The
+existing v1 profile retains global semantics. `make member2-test` passed 44
+checks and compilation passed. The parallel job has no executed AKS throughput
+or dashboard control evidence.
+
+## Hosted million-event benchmark preflight
+
+Docker Desktop containers were stopped. The professor deployment returned HTTP
+200 on readiness and the student spending limit was On. The only AKS worker
+already had 89% of allocatable CPU reserved, leaving less than the existing
+Flink TaskManager request. No hosted benchmark was started.
+
+## Local million-event scale and partition milestone
+
+The replicated local profile checkpointed **1,000,000 Kafka records** across
+three partitions at **548.11 records/s**, with Kafka delivery at **2,499.97
+records/s**. Final lag was zero and **9,975 finalized windows** matched expected
+totals. RocksDB keeps exact finite-run identity and window state. The original
+checkpoint rules and v1 contracts remain in force.
+
+A mixed-cadence run streamed **23,206 readings** from **2,500 devices** across
+**25 transformers** through the backend. Three simultaneous overloads completed,
+with six durable throttle/restore effects. Independent verification matched 186
+finalized windows and reproduced projection views from the journal. Uniform
+four-second reporting missed freshness under the measured concurrent load.
+
+Flink recovered after TaskManager loss. A separate three-broker quorum probe
+verified 450 unique records across baseline, minority isolation and healing.
+A write received no acknowledgement during majority loss. These results cover
+one local host and the tested failure cases.
+
+Executed checks include 44 aggregation, 97 Action, 47 projection/API, 37
+dashboard and 214 contract tests passing. Five opt-in Action/projection tests
+were skipped. Manifest rendering and the real-data Chromium check passed.
+The hosted demo passed all three simulations and Azure spending limit was On.
+Next capacity work is parallel aggregation with explicit watermark coordination.
+
+## Single open site, no login, all tabs — 2026-11-26
+
+Collapsed the earlier public/operator split into one website served at both `/`
+and `/operator`. There is no separate public page and no reduced "public demo"
+navigation: every workspace tab is always present — Overview, Flow Map,
+Transformers, Alerts & actions, Devices, Scenarios, System health, Settings.
+The site opens without login in the deployed mock-auth mode. The OIDC redirect
+to `/auth/login` only fires when non-mock OIDC is explicitly configured, so
+local kind/fixture and professor OIDC deployments keep working; it is inert on
+the review cluster. In code (`dashboard/app.py`): `guest` is forced to `False`
+(no public read-only branch), the drawer nav always iterates the full `NAV`
+list, and the login gate no longer special-cases guests.
+
+Deployed to the review cluster UI by digest
+`sha256:0e43ca38269f38867e982f13757b16bec1e638e37dd1eab0019950c338c85ff4`
+(image tag `ui:single-site-v1`, previous
+`sha256:51d1a7f7c647690332a3a19350b6b8fe2732e518785a793b0d40f956c0f593bc`
+recorded in `.tools/aks-review/ui-single-site-v1-previous-image.txt`). No new
+Azure resources; no commit or push performed.
+
+Executed verification:
+
+| Command/check | Result |
+|---|---|
+| `.tools/dashboard-venv/bin/python -m pytest -q tests/dashboard/` | **40 passed** (includes new `test_single_site_shows_all_tabs_without_login` asserting all eight tabs render and no login) |
+| `docker build --platform linux/amd64 --target ui`; `docker push` | Pushed `ui:single-site-v1`, digest `sha256:0e43ca38…` |
+| `kubectl set image deployment/ui …@sha256:0e43ca38…`; `kubectl rollout status` | Rolled out; new pod `ui-6d549c46b-…` Running, 0 restarts |
+| `curl https://smart-grid-ev-review-9e9.denmarkeast.cloudapp.azure.com/` and `/operator` and `/readyz` | root 200, operator 200, readyz 200; served HTML shows GridBalance console, no `auth/login`, no "Public demo" label |
+
+
+
+Public `/` now opens without login using a dedicated server-held Keycloak
+service identity with signed Viewer-only tokens. Navigation is Overview,
+Flow Map and Actions. Overview adds a business-value introduction and **Start
+guided demo**, omits empty recent-history charts and duplicate alert cards, and
+keeps transformer detail reachable. The public UI exposes no grid writes or
+Investigator execution. Existing professor OIDC and MOCK Investigator remain
+at `/operator`; login returns to that route. Public tokens/secrets never enter
+the browser. Higher application roles are rejected for the demo client rather
+than granting more access. Normal local kind/fixture workflows are preserved.
+
+The public walkthrough retains the three session-local scenarios, 25 modeled
+transformers / 2,500-device grouping, prior measured 100k-event benchmark,
+and separately labeled retained backend action evidence. No new sustained Kafka
+load or throughput benchmark was run in Azure. Prometheus, Grafana, Kafka lag,
+Flink checkpoints, OTel, Tempo and all eight persistent claims were retained.
+
+Action's prior container exited with code 1 on a transient three-second GET
+timeout against the Kubernetes Lease API. Member_3 now retries only transient
+Lease reads, up to three attempts with bounded delay. Uncertain CAS writes are
+not retried, and the existing monotonic deadlines and PostgreSQL fencing still
+deny expired leadership. Tests cover recovery, bounded failure, uncertain write
+failure, expired responses and worker cleanup. The Ready replacement had zero
+restarts from 20:05:53Z through the recorded 20:20:14Z check (14m21s). This is an
+observed smoke interval, not a week-long stability guarantee. Tempo remained
+Ready with 32 historical restarts; its restart cause was not changed here.
+
+Executed verification:
+
+| Command/check | Result |
+|---|---|
+| `make dashboard-test` | **37 passed**, including login-free navigation/read-only controls and existing playback/grouping/recovery checks |
+| `make identity-test` | **26 passed**, including service-token caching/renewal, role restriction and operator callback routing |
+| `.tools/member3-venv/bin/python -m pytest -q tests/member3/test_lease.py tests/member3/test_worker.py` | **8 passed** |
+| `make contracts BASE_REF=HEAD` | **214 passed**; v1 definitions unchanged |
+| `make delivery-render`; `git diff --check` | Passed |
+| Hosted `.tools/aks-review/mvp-hosted-check.py` | Final public smoke passed: HTTPS, blocked admin/API routes, no login, three navigation items, overload/solar/steady completion, acknowledgement before measured reduction, restored draw, scale labels, charger expansion and retained action/history |
+| Hosted `.tools/aks-review/mvp-operator-check.py` | Final fresh-browser professor sign-in and grounded MOCK Investigator passed |
+| In-cluster signed demo-token checks | Overview 200; scenario write, policy edit, alert acknowledgement and privileged investigator projection all 403 |
+| Runtime | Expected Ready image digests, Flink RUNNING/STABLE, Debezium connector/task RUNNING, eight claims Bound, monitoring pods Ready |
+
+An initial browser attempt hit a public HTTP timeout, and an initial combined
+public/operator test timed out navigating to login after public playback. Final
+independent public and operator checks passed. The added local browser test also
+needed its disposable server environment isolated from pytest's NiceGUI hooks.
+Internal client setup first failed on its Python package path; rerunning with
+`PYTHONPATH=/app` passed. Temporary bootstrap admin, Kubernetes jobs/configuration
+and bootstrap Secret were removed after setup. Existing users/realm/data were
+preserved. No Azure resource was deleted.
+
+Three AMD64 images were published and rolled out by manifest digest:
+
+| Deployment | New digest |
+|---|---|
+| UI (`mvp-v3`) | `sha256:afbd95fce45a25ca1ae903e2808bb230073bb22e7e670266958eba09707603fb` |
+| API (`mvp-v1`) | `sha256:70cc9a531b54ca66bc8a02ea8c235b5853b1e5d28b39b9cea3625e15b07ae61f` |
+| Action (`mvp-v1`) | `sha256:f7757fea051cef79058ca17e74b4c97f095537277584756cef55f866f8dd3d88` |
+
+Previous UI/API/Action digests remain in the private rollback inventory and ACR.
+Projection was intentionally not rolled: its code did not change. AKS overlay
+optionally references the UI-only `demo-runtime` Secret; identity provisioning,
+rollback and hosted checks are documented in the AKS agent runbook. Evidence,
+screenshots and logs are ignored under `.tools/aks-review/mvp-*`. Existing
+uncommitted work was preserved; no commit or push was performed.
+
+Azure for Students spending limit was verified **On**; Base/Free and one worker
+are unchanged. Cost Management reports **$0.9911923512 USD** posted month-to-date
+(billing can lag). ACR reports **3,761,169,646 bytes** against its 10 GiB included
+allowance. No billable Azure resources were added; the accepted approximately
+**$74.20** estimate, including its owner-accepted unverified regional price,
+remains under the $75 ceiling. The review still ends **December 1, 2026 at
+12:32:55 PM PST**; ask before deleting Azure resources. Next step is the recorded
+professor walkthrough using the public guided demo and retained evidence.
+
+## AKS Overview retained-history notice
+
+The seeded telemetry run is finite. Its completed action remains available,
+but its readings naturally become stale while REST/SSE can remain connected.
+Overview now explains this combination as retained readings from completed
+actions and explicitly says no fresh telemetry is arriving. It links the user
+in text to Flow Map history or simulation playback. The original freshness
+warning remains for active/incomplete actions, partial/unknown data, or an
+unhealthy connection; measurements are never relabeled as fresh.
+
+Executed `make dashboard-test`: **36 passed**, including the completed-history
+browser regression and existing stale/recovery checks. Built Linux AMD64
+`overview-stale-v1` and rolled out only UI by manifest digest
+`sha256:4fa299035f993759fe491080f5d25917b7952e51b18cb8acd259227c68c2a70b`.
+Previous digest remains
+`sha256:cc308b3d07ae4f3f27c5b6a720f648d72912e1db5d95ef32ff07fc9dcbce5404`.
+Direct workstation kubectl timed out; Azure AKS command invoke completed the
+scoped rollout without changing authorized IP ranges. The Ready replacement
+pod reports the expected digest. Hosted Chromium verified professor login,
+the new notice, absence of the misleading recovery warning in this completed
+run, and Scenarios playback. HTTPS readiness passed; platform replicas are
+Ready, five claims Bound, Flink RUNNING/STABLE, and Debezium connector/task
+RUNNING. Private evidence is in `.tools/aks-review/overview-stale-*` and
+`overview-retained.png`. `git diff --check` passed.
+
+Azure for Students remains Enabled with spending limit On. No new Azure
+resources or review time were added; the previously accepted approximately
+$74.20 estimate and December 1, 2026 at 12:32:55 PM PST review end remain.
+No commit or push was performed for this update.
 
 ## Publication review — hosted delivery, scale, and Flow Map
 
@@ -14,6 +299,25 @@ Publication checks passed: `make dashboard-test` (35), `make identity-test`
 `make contracts BASE_REF=origin/main` (214), `make delivery-render`, and
 16 focused delivery tests. Prior live benchmark and professor handoff
 evidence is recorded below. This review did not redeploy Azure.
+
+## AKS Scenarios and telemetry scale
+
+The hosted Scenarios page now launches the same supported playback as
+Flow Map. The previous Start scenario button called a live mutation without
+a simulator adapter and returned HTTP 503. The standalone contract mock
+remains testable. Playback generates 2,500 synthetic readings per phase
+across 25 modeled transformers and shows the affected transformer in detail.
+Telemetry scale shows the live inventory and freshness in live mode and
+labels real Kafka/Flink throughput as prior local benchmark evidence.
+
+All 35 dashboard tests passed. The dashboard was redeployed to the existing
+AKS cluster as the immutable AMD64 digest for `scale-demo-v1`. HTTPS readiness
+returned 200. Hosted Chromium verified professor sign-in, the Scenarios
+button, all three simulations through completion, benchmark expansion,
+the retained timeline and MOCK Investigator. The first browser check used
+rapid manual advances and did not observe solar completion. The repeat
+waited for automatic phase updates and passed. No Azure resources or review
+time were added. The student spending limit was On.
 
 ## Flow Map demo playback on AKS
 

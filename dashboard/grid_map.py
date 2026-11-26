@@ -174,6 +174,23 @@ def render_flow_map(transformers, devices, actions, live, kw, badge, open_transf
         with ui.row().classes('w-full items-center justify-between'):
             ui.label('Grid electricity map').classes('text-xl font-bold').props('role=heading aria-level=2')
             ui.label('Simulation playback' if simulation else 'Live connection' if live else 'Updates paused or unavailable').classes('text-sm muted').props('role=status')
+        meters = sum(d['device']['device_type'] == 'SMART_METER' for d in devices)
+        chargers = sum(d['device']['device_type'] == 'EV_CHARGER' for d in devices)
+        if simulation:
+            coverage = len({d['device']['transformer_id'] for d in devices})
+            scale = (f'{len(devices):,} synthetic readings per phase · {coverage} modeled transformers · '
+                     f'{chargers:,} EV chargers · {meters:,} smart meters')
+        else:
+            fresh_devices = sum(d['freshness'] == 'FRESH' and d['latest_telemetry'] is not None for d in devices)
+            scale = (f'{len(devices):,} listed devices · {chargers:,} EV chargers · {meters:,} smart meters · '
+                     f'{fresh_devices:,} fresh device readings')
+        with ui.expansion(scale, icon='monitoring').classes('w-full').props('aria-label="Telemetry scale"'):
+            if simulation:
+                ui.label('One transformer is shown in detail. Each phase generates a reading for every modeled device.').classes('muted text-sm')
+            else:
+                ui.label('Counts come from the current device inventory. This view does not report live broker throughput.').classes('muted text-sm')
+            ui.label('Thousands of simulated EV chargers and smart meters stream live power consumption metrics in the local scale benchmark.').classes('text-sm')
+            ui.label('Measured local benchmark · 2,500 devices · 25 transformers · 100,000 records across 3 Kafka partitions · 2,499.8 records/s delivered · 470.9 records/s checkpointed by Flink').classes('muted text-sm')
         fresh = sum(t['freshness'] == 'FRESH' for t in transformers)
         ui.label(f'{len(transformers)} transformers · {fresh} fresh readings · {len(transformers) - fresh} stale or incomplete').classes('text-sm muted')
         with ui.row().classes('items-center gap-4'):

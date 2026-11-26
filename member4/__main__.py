@@ -30,14 +30,16 @@ def main():
         print('Views rebuilt; old SSE cursors now require snapshots')
     elif args.command == 'consume':
         from member4.consumer import consume
-        consume(store)
+        import psycopg
+        with psycopg.connect(store.dsn, connect_timeout=3, autocommit=True) as connection:
+            consume(Store(store.dsn, connection=connection))
     else:
         import uvicorn
         from member4.api import create_app
         identities = json.loads(os.environ['MEMBER4_MOCK_IDENTITIES']) if os.environ.get('MEMBER4_AUTH_MODE') == 'mock' else None
         app = create_app(store, identities, live=os.getenv('GRID_LOCAL_KIND') == '1')
-        if identities is not None and args.bind != '127.0.0.1':
-            parser.error('Mock identities require a loopback bind')
+        if identities is not None and args.bind != '127.0.0.1' and os.getenv('GRID_LOCAL_KIND') != '1':
+            parser.error('Mock identities require a loopback bind outside the cluster')
         uvicorn.run(app, host=args.bind, port=args.port, timeout_keep_alive=5, timeout_graceful_shutdown=20)
 
 

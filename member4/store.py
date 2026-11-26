@@ -1,5 +1,5 @@
 """Transactional journal, materialized views and cross-replica durable SSE log."""
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
@@ -21,16 +21,20 @@ def freshness(values):
 
 
 class Store:
-    def __init__(self, dsn):
+    def __init__(self, dsn, connection=None):
         self.dsn = dsn
+        # The single-thread consumer may own one connection; HTTP stores do not.
+        self.connection = connection
 
     @contextmanager
     def transaction(self):
-        with boundary('db.projection'), psycopg.connect(self.dsn, connect_timeout=3) as db:
-            # ponytail: serial local-profile transactions; shard when measured throughput requires it.
-            db.execute('SET LOCAL statement_timeout = 3000')
-            db.execute('SELECT pg_advisory_xact_lock(427304)')
-            yield db
+        resource = nullcontext(self.connection) if self.connection is not None else psycopg.connect(self.dsn, connect_timeout=3)
+        with boundary('db.projection'), resource as db:
+            with db.transaction():
+                # Serial writes retain the existing replay and notification ordering.
+                db.execute('SET LOCAL statement_timeout = 3000')
+                db.execute('SELECT pg_advisory_xact_lock(427304)')
+                yield db
 
     def migrate(self):
         with self.transaction() as db:
@@ -220,8 +224,36 @@ class Store:
                    ('transformer_id' in e['payload'] and e['payload']['transformer_id'] not in transformers)
                    for kind in ('Telemetry', 'Command', 'Result') for e in self._rows(db, kind))
 
+    def device_view(self, db, device_id, now):
+        """Build one device notification without scanning the complete fleet."""
+        base = db.execute("SELECT value FROM projection_context WHERE kind='devices' AND id=%s", (device_id,)).fetchone()
+        if not base:
+            return None
+        reading = db.execute("SELECT event FROM projection_current WHERE kind='Telemetry' AND id=%s", (device_id,)).fetchone()
+        e = reading[0] if reading else None
+        state = 'UNKNOWN' if not e else ('STALE' if (now-instant(e['event_time'])).total_seconds() > 15
+                or e['payload']['quality'] == 'INVALID' else (
+                    'PARTIAL' if e['payload']['quality'] == 'ESTIMATED' else 'FRESH'))
+        results = [r[0]['payload'] for r in db.execute(
+            "SELECT event FROM projection_current WHERE kind='Result' AND event->'payload'->>'device_id'=%s",
+            (device_id,))]
+        results.sort(key=lambda r: (instant(r['result_time']), r['command_id'], r['outcome']))
+        return dict(device=base[0], freshness=state, latest_telemetry=e['payload'] if e else None,
+                    command_history=results[-200:])
+
     def _updates(self, db, name, event, now):
         p = event['payload']
+        if name in ('Telemetry', 'Result'):
+            device = self.device_view(db, p['device_id'], now)
+            if device is not None:
+                self._emit(db, 'device.updated', p['device_id'], device, now)
+            known = device is not None and db.execute(
+                "SELECT 1 FROM projection_context WHERE kind='transformers' AND id=%s",
+                (device['device']['transformer_id'],)).fetchone()
+            if not known:
+                self._emit(db, 'system.health', 'projection',
+                           {'status': 'degraded', 'observed_at': stamp(now)}, now)
+            return
         views = self.views(db, now)
         if name in ('Load', 'Alert'):
             for t in views['transformers']:

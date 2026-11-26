@@ -193,3 +193,30 @@ def test_non_string_timestamp_is_dead_lettered_even_with_trace_extraction():
     assert engine.reading(raw, 'tx-001')[0][0] == DLQ
     remember(engine, raw, {})
     assert not engine.windows
+
+
+@pytest.mark.parametrize('case', STREAM_CASES, ids=lambda case: case['name'])
+def test_predecoded_reading_matches_raw_wire_handling(case):
+    from member2.aggregation import decode_reading
+
+    raw_engine = Aggregator(case['topology'])
+    decoded_engine = Aggregator(case['topology'])
+    for step in case['steps']:
+        if step['op'] != 'reading':
+            continue
+        raw = json.dumps(step['event'])
+        now = instant(step['event']['ingested_at'])
+        assert raw_engine.reading(raw, step['key'], now) == decoded_engine.reading(
+            raw, step['key'], now, decoded=decode_reading(raw))
+        assert raw_engine.evaluate(now) == decoded_engine.evaluate(now)
+    assert raw_engine.metrics == decoded_engine.metrics
+
+
+def test_selected_state_retains_only_aggregation_fields():
+    case = STREAM_CASES[0]
+    step = next(step for step in case['steps'] if step['op'] == 'reading')
+    engine = Aggregator(case['topology'])
+    assert not engine.reading(step['event'], step['key'])
+    selected = next(iter(next(iter(engine.windows.values()))['devices'].values()))
+    assert set(selected) == {'event_id', 'event_time', 'payload'}
+    assert set(selected['payload']) == {'sequence_number', 'device_type', 'quality', 'power_kw'}

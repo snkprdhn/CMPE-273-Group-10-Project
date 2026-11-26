@@ -3,6 +3,7 @@ import asyncio
 import base64
 import hashlib
 import logging
+import os
 import secrets
 import time
 from urllib.parse import urlencode
@@ -99,7 +100,7 @@ class BrowserLogin:
         sid = secrets.token_urlsafe(32)
         self.sessions[sid] = dict(tokens=tokens, actor=actor, until=time.time()+1800,
                                   lock=asyncio.Lock(), csrf=secrets.token_urlsafe(32))
-        response = RedirectResponse('/', status_code=303)
+        response = RedirectResponse('/operator' if os.getenv('GRID_DEMO_CLIENT_SECRET') else '/', status_code=303)
         response.set_cookie(COOKIE, sid, httponly=True, secure=self.secure, samesite='lax', max_age=1800)
         response.delete_cookie('grid_login', path='/auth')
         response.headers['Cache-Control'] = 'no-store'

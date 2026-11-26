@@ -85,7 +85,7 @@ identity-up: identity-bootstrap
 	docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml up -d --build --no-deps keycloak
 
 identity-test:
-	.tools/member4-venv/bin/python -m pytest -q tests/identity/test_auth.py tests/identity/test_browser.py
+	.tools/member4-venv/bin/python -m pytest -q tests/identity/test_auth.py tests/identity/test_browser.py tests/identity/test_demo.py
 
 .PHONY: identity-api-test identity-live-test
 identity-api-test:

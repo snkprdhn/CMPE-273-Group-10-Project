@@ -8,6 +8,17 @@ reported health, settings, and scoped investigation entry points. See
 Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink,
 Member_3 control/PostgreSQL/Debezium, Member_4 projection/API/UI/identity/Copilot.
 
+The authorized AKS MVP has a login-free, read-only public entry at `/`, with
+Overview, Flow Map and Actions navigation. **Start guided demo** walks through
+synthetic overload, throttling and restoration; playback is private to the tab
+and is distinct from retained backend measurements and the local 100k benchmark.
+The existing authenticated console/Investigator is available at `/operator`.
+This hosted option uses a dedicated Viewer-only Keycloak service client and the
+server-only `GRID_DEMO_CLIENT_SECRET` Kubernetes Secret reference. It does not
+enable public mock authentication or grant public write permissions. Without
+that secret the normal local OIDC workflow is unchanged. Observability remains
+private. See the [AKS agent runbook](../infra/aks/AGENT_RUNBOOK.md).
+
 From the repository root, preparation (CPython 3.12.9, macOS ARM64):
 
 ```sh
@@ -146,3 +157,11 @@ The overload scenarios show separate acknowledgement and measurement frames.
 Playback is confined to that browser tab and does not publish telemetry,
 issue charger commands, or alter retained incident evidence. The graph holds
 automatic changes while keyboard focus is inside the map for inspection.
+
+In the hosted review, **Scenarios → Start scenario** opens the selected demo
+in Flow Map. The hosted API has no live simulator adapter, so this entry point
+uses the same playback as **Flow Map → Run simulation**. Each phase generates
+2,500 synthetic device readings across 25 modeled transformers. The diagram
+focuses on the transformer affected by the scenario. Expand **Telemetry scale**
+for the measured local Kafka/Flink benchmark. In live mode the same row shows
+the current inventory and fresh device readings.

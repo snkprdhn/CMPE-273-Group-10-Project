@@ -34,3 +34,5 @@ CREATE TABLE IF NOT EXISTS projection_operations (
     PRIMARY KEY(actor,key)
 );
 INSERT INTO projection_migrations VALUES (1) ON CONFLICT DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS projection_result_device ON projection_current ((event->'payload'->>'device_id')) WHERE kind='Result';

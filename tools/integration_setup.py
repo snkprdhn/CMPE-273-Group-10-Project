@@ -11,10 +11,10 @@ from psycopg.conninfo import make_conninfo
 from member3.control import Control
 from member3.fixtures import FakeRegistry
 from member3.cdc import configuration, request
-from tools.integration import wait
+from tools.integration import wait, http
 
 
-def provision(run):
+def provision(run, bootstrap='127.0.0.1:19092', partitions=1, replication=1, connect_url='http://127.0.0.1:18083'):
     if not re.fullmatch(r'[a-z0-9][a-z0-9_]{0,24}', run):
         raise ValueError('run must be 1..25 lowercase letters/digits/underscores')
     schema, edge = 'integration_' + run, 'integration_edge_' + run
@@ -39,15 +39,15 @@ def provision(run):
                    'transforms.outbox.route.topic.replacement':'integration-'+run+'.${routedByValue}'})
     from confluent_kafka.admin import AdminClient, NewTopic
     from member1.common import BUNDLE
-    kafka = AdminClient({'bootstrap.servers': '127.0.0.1:19092'})
+    kafka = AdminClient({'bootstrap.servers': bootstrap})
     names = ['integration-' + run + '.' + topic for topic in BUNDLE['x-events']]
     names.append('__debezium-heartbeat.' + schema)
-    for future in kafka.create_topics([NewTopic(name, 1, 1) for name in names]).values():
+    for future in kafka.create_topics([NewTopic(name, partitions, replication, config={'min.insync.replicas': '2' if replication == 3 else '1'}) for name in names]).values():
         future.result(10)
-    request('connectors/' + schema + '/config', 'PUT', config)
+    http(connect_url + '/connectors/' + schema + '/config', 'PUT', config, headers={'Content-Type': 'application/json'}, timeout=30)
     def streaming():
         try:
-            status = request('connectors/' + schema + '/status')
+            status = http(connect_url + '/connectors/' + schema + '/status')
         except HTTPError as exc:
             if exc.code == 404:
                 return False  # Connect has accepted the config but has not assigned the task.

@@ -1,0 +1,90 @@
+# AKS benchmark overlay: additional network policies for system health tab.
+# Owned by Member_4 (dashboard) and Member_2 (Flink metrics).
+# Applied only in the AKS overlay — not in local kind.
+---
+# Allow ui pod to query Prometheus in the observability namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ui-prometheus-egress
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: ui}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: observability}
+      ports:
+        - {port: 9090, protocol: TCP}
+        - {port: 80, protocol: TCP}
+---
+# Allow Prometheus (observability ns) to accept queries from the ui pod.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-ui-ingress
+  namespace: observability
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: prometheus}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: platform}
+          podSelector:
+            matchLabels: {grid-app: ui}
+      ports:
+        - {port: 9090, protocol: TCP}
+---
+# Allow Grafana (observability ns) to accept requests from ui pod (deep-link only).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana-ui-ingress
+  namespace: observability
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: grafana}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: platform}
+          podSelector:
+            matchLabels: {grid-app: ui}
+      ports:
+        - {port: 80, protocol: TCP}
+---
+# Allow ui pod to reach the Flink REST service on port 8081 within platform ns.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ui-flink-rest-egress
+  labels: {grid-owner: Member_4, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: ui}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-app: aggregation}
+      ports:
+        - {port: 8081, protocol: TCP}
+---
+# Allow Flink REST port to be reached by ui pod.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aggregation-ui-ingress
+  labels: {grid-owner: Member_2, grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: aggregation}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {grid-app: ui}
+      ports:
+        - {port: 8081, protocol: TCP}

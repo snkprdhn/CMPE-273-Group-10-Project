@@ -73,6 +73,18 @@ def test_direct_api_denies_before_store_or_body(signing):
         assert client.get('/api/v1/overview', headers={'Authorization': 'Bearer '+token(exp=1)}).status_code == 401
 
 
+def test_public_demo_client_is_limited_to_viewer(signing):
+    from identity.auth import DEMO_CLIENT, require
+    oidc, token = signing
+    actor = oidc.authenticate(token('Viewer', azp=DEMO_CLIENT))
+    assert actor['role'] == 'Viewer'
+    with pytest.raises(Denied):
+        require(actor, 'Operator')
+    for role in ('Operator', 'Administrator'):
+        with pytest.raises(Denied):
+            oidc.authenticate(token(role, azp=DEMO_CLIENT))
+
+
 @pytest.mark.parametrize('expiry', [str(int(time.time())+3600), float('inf')])
 def test_review_rejects_non_numeric_or_nonfinite_expiry(signing, expiry):
     oidc, token = signing

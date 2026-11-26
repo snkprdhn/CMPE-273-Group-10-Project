@@ -172,3 +172,40 @@ def test_positive_normal_classification_requires_exact_owner_marker_and_revision
     feed(store, [alert])
     assert view(store)['transformers'][0]['state'] == 'NORMAL'
     assert view(store, NOW + timedelta(seconds=16))['transformers'][0]['state'] == 'STALE'
+
+
+@pytest.mark.parametrize('kind', ['Telemetry', 'Result'])
+def test_device_notification_matches_snapshot_without_fleet_scan(store, records, monkeypatch, kind):
+    store.context(records)
+    feed(store, records['events'])
+    record = deepcopy(next(r for r in records['events'] if TOPICS[r['topic']] == kind))
+    record['event']['event_id'] = str(uuid4())
+    if kind == 'Telemetry':
+        record['event']['payload']['sequence_number'] = 1000
+    snapshot = store.views
+    def no_fleet_scan(*args):
+        raise AssertionError('device ingestion must not rebuild the complete fleet')
+    monkeypatch.setattr(store, 'views', no_fleet_scan)
+    with store.transaction() as db:
+        cursor = store.cursor(db)
+    feed(store, [record])
+    with store.transaction() as db:
+        expected = next(d for d in snapshot(db, NOW)['devices']
+                        if d['device']['device_id'] == record['event']['payload']['device_id'])
+    notifications = [e for e in store.events(cursor, NOW) if e['event_type'] == 'device.updated']
+    assert notifications[-1]['payload'] == expected
+
+
+def test_worker_owned_connection_rolls_back_and_remains_usable(store, records):
+    import psycopg
+    with psycopg.connect(store.dsn, autocommit=True) as connection:
+        writer = Store(store.dsn, connection=connection)
+        writer.context(records)
+        record = next(r for r in records['events'] if TOPICS[r['topic']] == 'Telemetry')
+        feed(writer, [record])
+        bad = deepcopy(record)
+        bad['event']['payload']['power_kw'] += 1
+        with pytest.raises(ValueError, match='identity'):
+            feed(writer, [bad])
+        assert view(writer) == view(store)
+        assert connection.closed is False

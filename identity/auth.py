@@ -8,6 +8,7 @@ from jwt import PyJWKClient
 from identity.realm import CLIENT, AUDIENCE, public_origin
 
 ROLES = ('Viewer', 'Operator', 'Administrator')
+DEMO_CLIENT = 'smart-grid-demo'
 ISSUER = 'http://127.0.0.1:18080/realms/smart-grid'
 
 
@@ -49,7 +50,7 @@ class OIDC:
 
     def authenticate(self, token):
         claims = self.claims(token)
-        if claims.get('typ') != 'Bearer' or claims.get('azp') != CLIENT:
+        if claims.get('typ') != 'Bearer' or claims.get('azp') not in (CLIENT, DEMO_CLIENT):
             raise Denied(401, 'Invalid access token type or client')
         realm_access = claims.get('realm_access', {})
         if not isinstance(realm_access, dict):
@@ -60,6 +61,8 @@ class OIDC:
         role = next((r for r in reversed(ROLES) if r in roles), None)
         if role is None:
             raise Denied(403, 'No application role')
+        if claims['azp'] == DEMO_CLIENT and role != 'Viewer':
+            raise Denied(403, 'Demo client must be read-only')
         return dict(actor=claims['sub'], role=role, expires_at=claims['exp'])
 
 

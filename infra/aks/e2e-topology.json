@@ -1,0 +1,105 @@
+{
+  "topology_version": "e2e-multi-v1",
+  "transformers": [
+    {"transformer_id": "tx-000", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-000", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-000", "device_type": "SMART_METER"},
+      {"device_id": "solar-000", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-001", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-001", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-001", "device_type": "SMART_METER"},
+      {"device_id": "solar-001", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-002", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-002", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-002", "device_type": "SMART_METER"},
+      {"device_id": "solar-002", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-003", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-003", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-003", "device_type": "SMART_METER"},
+      {"device_id": "solar-003", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-004", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-004", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-004", "device_type": "SMART_METER"},
+      {"device_id": "solar-004", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-005", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-005", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-005", "device_type": "SMART_METER"},
+      {"device_id": "solar-005", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-006", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-006", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-006", "device_type": "SMART_METER"},
+      {"device_id": "solar-006", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-007", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-007", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-007", "device_type": "SMART_METER"},
+      {"device_id": "solar-007", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-008", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-008", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-008", "device_type": "SMART_METER"},
+      {"device_id": "solar-008", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-009", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-009", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-009", "device_type": "SMART_METER"},
+      {"device_id": "solar-009", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-010", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-010", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-010", "device_type": "SMART_METER"},
+      {"device_id": "solar-010", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-011", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-011", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-011", "device_type": "SMART_METER"},
+      {"device_id": "solar-011", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-012", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-012", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-012", "device_type": "SMART_METER"},
+      {"device_id": "solar-012", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-013", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-013", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-013", "device_type": "SMART_METER"},
+      {"device_id": "solar-013", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-014", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-014", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-014", "device_type": "SMART_METER"},
+      {"device_id": "solar-014", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-015", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-015", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-015", "device_type": "SMART_METER"},
+      {"device_id": "solar-015", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-016", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-016", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-016", "device_type": "SMART_METER"},
+      {"device_id": "solar-016", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-017", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-017", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-017", "device_type": "SMART_METER"},
+      {"device_id": "solar-017", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-018", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-018", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-018", "device_type": "SMART_METER"},
+      {"device_id": "solar-018", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-019", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-019", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-019", "device_type": "SMART_METER"},
+      {"device_id": "solar-019", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-020", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-020", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-020", "device_type": "SMART_METER"},
+      {"device_id": "solar-020", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-021", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-021", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-021", "device_type": "SMART_METER"},
+      {"device_id": "solar-021", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-022", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-022", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-022", "device_type": "SMART_METER"},
+      {"device_id": "solar-022", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-023", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-023", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-023", "device_type": "SMART_METER"},
+      {"device_id": "solar-023", "device_type": "SOLAR"}]},
+    {"transformer_id": "tx-024", "capacity_kw": 20, "devices": [
+      {"device_id": "ev-024", "device_type": "EV_CHARGER"},
+      {"device_id": "meter-024", "device_type": "SMART_METER"},
+      {"device_id": "solar-024", "device_type": "SOLAR"}]}
+  ]
+}

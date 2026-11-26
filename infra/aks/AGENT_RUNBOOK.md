@@ -243,6 +243,54 @@ new digest has been verified in ACR.
 
 ## 5. Post-deploy checks and rollback
 
+### Public MVP entry (November 25 update)
+
+The review root `/` opens without a login screen. It uses a dedicated confidential
+Keycloak service client `smart-grid-demo`, with only the Viewer realm role and
+Viewer scope mapping. Its API audience is `smart-grid-api`. Authorization-code,
+implicit and password grants are disabled for this client. UI obtains short-lived
+signed tokens over the private backchannel, caches/renews them server-side, and
+never returns the client secret or bearer to the browser. API explicitly rejects
+this client if its effective application role is higher than Viewer.
+
+The AKS overlay references Secret `platform/demo-runtime`, key
+`GRID_DEMO_CLIENT_SECRET`, only in the UI environment. Keep this secret out of
+Git/chat. Removing the environment reference and rolling UI back restores the
+normal authenticated entry. Local kind retains normal OIDC by default. Public
+navigation is Overview, Flow Map and Actions; transformer detail remains reachable
+from the overview/map. **Start guided demo** starts the session-local overload
+playback. Other simulations and prior measured scale evidence remain in Flow Map.
+Public users cannot acknowledge alerts, edit policies, launch backend scenarios,
+or run Investigator. Existing professor authentication and MOCK Investigator
+remain at `/operator`; a successful sign-in returns there.
+
+For maintenance of an already provisioned demo, preserve the client and secret;
+an image rollout does not require identity reprovisioning. For a separately
+authorized initial setup, create the client through the internal Keycloak admin
+API with the configuration above. `tools/review_demo_client.py` implements this
+using an ephemeral `review-bootstrap` admin service client. It needs
+`GRID_BOOTSTRAP_SECRET`, `GRID_DEMO_CLIENT_SECRET`, and `PYTHONPATH=/app` in an
+internal maintenance job using the UI image; never pass secrets as CLI literals.
+The installed Keycloak command for creating that temporary admin is
+`kc.sh bootstrap-admin service --client-id review-bootstrap --client-secret:env GRID_BOOTSTRAP_SECRET --no-prompt`.
+Stop all Keycloak server instances before this offline command and restore them
+afterward, using the existing database settings. The helper removes the temporary
+admin client after success. Remove temporary bootstrap secrets/jobs afterward.
+Do not reset/import over the existing realm or expose Keycloak administration.
+
+Verify the public root in a fresh browser with no cookies, three navigation items,
+guided overload through measured restoration, solar/steady scenarios, return to
+live grid, charger expansion, and retained completed action/history. Separately
+verify `/operator` sign-in and Investigator. Check signed demo-token reads return
+200 and mutations/privileged projection return 403. Keep public API/admin routes
+blocked at the edge. Monitoring remains private and unchanged.
+
+Action restart diagnosis found transient Lease GET timeouts. Member_3 now retries
+only those reads up to three times; uncertain writes still fail immediately and
+the original monotonic deadline/fencing checks remain. Check the replacement
+pod's restart count over an observed interval; a successful short smoke is not a
+claim of week-long availability.
+
 ```bash
 curl -fsS --max-time 15 "https://$REVIEW_HOST/healthz"
 curl -fsS --max-time 15 "https://$REVIEW_HOST/readyz"
@@ -259,7 +307,7 @@ k exec grid-connect-connect-0 -- curl -fsS --max-time 5 \
   `k annotate kafkaconnector integration-kind strimzi.io/restart-task=0 --overwrite`,
   then recheck REST status. The previously verified recovery used the
   existing replication slot after a PostgreSQL connectivity timeout.
-- In Chromium, open the HTTPS URL and sign in with the existing professor
+- In Chromium, open the HTTPS URL at `/operator` and sign in with the existing professor
   account. Read the password into the browser test from
   `$REVIEW_DIR/local.json`. Avoid printing it, copying it into this guide,
   or recording login screenshots. For manual access retrieve it using the

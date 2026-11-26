@@ -50,6 +50,10 @@ def validate(name, value):
     VALIDATORS[name].validate(value)
 
 
+def decode_reading(raw):
+    return json.loads(raw, parse_constant=lambda value: (_ for _ in ()).throw(ValueError('NON_FINITE')))
+
+
 def envelope(kind, payload, now, event_id, correlation='aggregation'):
     return dict(event_id=event_id, event_type=kind, schema_version=1,
                 source='member2.aggregation', event_time=stamp(now), ingested_at=stamp(now),
@@ -90,13 +94,13 @@ class Aggregator:
         self.greatest = None
         self.metrics = Counter(duplicates=0, dlq=0, very_late=0, corrections=0)
 
-    def reading(self, raw, key, now=None, partition=None, offset=None):
+    def reading(self, raw, key, now=None, partition=None, offset=None, *, decoded=None):
         now = now or datetime.now(timezone.utc)
         event, stage = raw, 'DECODE'
         metadata = {f'original_{k}': v for k, v in [('partition', partition), ('offset', offset)] if v is not None}
         try:
             if isinstance(raw, str):
-                event = json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError('NON_FINITE')))
+                event = decoded if decoded is not None else decode_reading(raw)
             stage = 'SCHEMA'
             validate('Telemetry', event)
             stage = 'DOMAIN'
@@ -121,12 +125,13 @@ class Aggregator:
             except OverflowError as exc:
                 raise ValueError('WINDOW_RANGE') from exc
             lateness = (arrival - end).total_seconds()
-            if event['event_id'] not in self.seen and lateness <= 30:
+            duplicate = event['event_id'] in self.seen
+            if not duplicate and lateness <= 30:
                 candidate = self.windows.get((key, start), {}).get('devices', {}).copy()
                 previous = candidate.get(p['device_id'])
                 if previous is None or (at, p['sequence_number']) > (instant(previous['event_time']), previous['payload']['sequence_number']):
                     candidate[p['device_id']] = event
-                load_numbers([e['payload'] for e in candidate.values()], t['capacity_kw'])
+                    load_numbers([e['payload'] for e in candidate.values()], t['capacity_kw'])
         except (ValueError, TypeError, ValidationError) as exc:
             self.metrics['dlq'] += 1
             # Do not expose schema traces or non-JSON NaN values in the audit envelope.
@@ -137,7 +142,7 @@ class Aggregator:
                               identity(f'dlq/{partition}/{offset}/{key}/{json.dumps(original, sort_keys=True)}'))
             validate('Dlq', result)
             return [(DLQ, key, result)]
-        if event['event_id'] in self.seen:
+        if duplicate:
             self.metrics['duplicates'] += 1
             return []
         # ponytail: finite standalone runs retain identity/window state in full. Fail
@@ -145,8 +150,8 @@ class Aggregator:
         if len(self.seen) >= self.max_events:
             raise RuntimeError('RUN_EVENT_LIMIT: start a new run, do not silently evict dedup state')
         self.seen.add(event['event_id'])
-        wid = identity(f'window/{key}/{stamp(start)}/5')
         if lateness > 30:
+            wid = identity(f'window/{key}/{stamp(start)}/5')
             self.metrics['very_late'] += 1
             payload = dict(original_event=event, window_id=wid,
                            lateness_ms=(arrival-end).total_seconds()*1000,
@@ -160,7 +165,14 @@ class Aggregator:
         previous = w['devices'].get(p['device_id'])
         rank = lambda e: (instant(e['event_time']), e['payload']['sequence_number'])
         if previous is None or rank(event) > rank(previous):
-            w['devices'][p['device_id']] = deepcopy(event)
+            # Persist only the fields used for ordering, revision identity and totals.
+            # The same mapping shape also accepts full readings from older checkpoints.
+            w['devices'][p['device_id']] = {
+                'event_id': event['event_id'],
+                'event_time': event['event_time'],
+                'payload': {field: p[field] for field in
+                            ('sequence_number', 'device_type', 'quality', 'power_kw')},
+            }
         return []
 
     def evaluate(self, now):

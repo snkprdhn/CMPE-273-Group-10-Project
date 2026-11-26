@@ -13,7 +13,7 @@ from pyflink.datastream.functions import KeyedProcessFunction
 from pyflink.datastream.state import MapStateDescriptor, ValueStateDescriptor
 from pyflink.table import StreamTableEnvironment
 
-from member2.aggregation import Aggregator, LOAD, DLQ, LATE, instant
+from member2.aggregation import Aggregator, LOAD, DLQ, LATE, instant, decode_reading
 from observability import setup, boundary, headers, business
 from member2.tracing import remember, output_context
 
@@ -51,7 +51,9 @@ class Aggregate(KeyedProcessFunction):
         self.counts = {name: metrics.counter(name) for name in ('duplicates', 'dlq', 'very_late', 'corrections', 'input', 'output')}
         self.watermark = -1
         self.latest = 0
+        self.id_count = 0
         self.accepted_late = 0
+        metrics.gauge('retained_event_ids', lambda: self.id_count)
         metrics.gauge('semantic_watermark_ms', lambda: self.watermark)
         metrics.gauge('accepted_late_count', lambda: self.accepted_late)
         metrics.gauge('watermark_delay_ms', lambda: int(datetime.now(timezone.utc).timestamp()*1000) - self.watermark if self.watermark != -1 else -1)
@@ -83,8 +85,10 @@ class Aggregate(KeyedProcessFunction):
             raise RuntimeError('TOPOLOGY_CHANGED: restore only with identical run fixture')
         engine.seen = EventIds(self.ids, count)
         engine.windows = {}
+        decoded = None
         try:
-            at = instant(json.loads(row[1])['event_time'])
+            decoded = decode_reading(row[1])
+            at = instant(decoded['event_time'])
             key = row[0], at.replace(second=at.second // 5 * 5, microsecond=0)
         except (TypeError, ValueError, KeyError):
             key = None
@@ -96,8 +100,9 @@ class Aggregate(KeyedProcessFunction):
         before = engine.metrics.copy()
         now = datetime.now(timezone.utc)
         self.counts['input'].inc()
-        results = engine.reading(row[1], row[0], now, row[2], row[3])
-        remember(engine, row[1], row[4] or {})
+        results = engine.reading(row[1], row[0], now, row[2], row[3], decoded=decoded)
+        if key is not None:
+            remember(engine, decoded, row[4] or {})
         if key in engine.windows:
             window = engine.windows[key]
             late += window['late'] - previous_late
@@ -112,6 +117,7 @@ class Aggregate(KeyedProcessFunction):
             self.windows.put(changed, window)
             if window['revision'] >= 0:
                 pending.discard(changed)
+        self.id_count = len(engine.seen)
         self.metadata.update((self.signature, len(engine.seen), engine.greatest, pending, late))
         for name in before:
             self.counts[name].inc(engine.metrics[name] - before[name])
@@ -137,7 +143,14 @@ def main():
     parser.add_argument('--checkpoint', default='file:///checkpoints')
     parser.add_argument('--checkpoint-ms', type=int, default=2000)
     parser.add_argument('--max-events', type=int, default=100000)
+    parser.add_argument('--state-backend', choices=('hashmap', 'rocksdb'), default='hashmap')
+    parser.add_argument('--demo-transformer-parallelism', type=int,
+                        help='isolated demo profile with transformer-local watermarks and deduplication')
     args = parser.parse_args()
+    demo_parallelism = args.demo_transformer_parallelism
+    if demo_parallelism is not None and (not 2 <= demo_parallelism <= 32 or args.prefix is not None
+                                        or args.checkpoint == 'file:///checkpoints'):
+        parser.error('parallel demo requires 2–32 subtasks, run-scoped topics and an explicit checkpoint directory')
     if not re.fullmatch(r'[A-Za-z0-9_.:,\[\]-]+', args.bootstrap):
         parser.error('bootstrap must contain Kafka host:port endpoints')
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,48}', args.run):
@@ -150,13 +163,17 @@ def main():
         topology = json.load(fixture)
     Aggregator(topology, args.max_events)  # Fail before starting a source.
     conf = Configuration()
+    conf.set_string('state.backend.type', args.state_backend)
+    if args.state_backend == 'rocksdb':
+        conf.set_boolean('state.backend.incremental', True)
+        conf.set_boolean('state.backend.rocksdb.memory.managed', True)
     conf.set_string('python.executable', '/opt/venv/bin/python')
     conf.set_string('restart-strategy.type', 'fixed-delay')
     conf.set_string('restart-strategy.fixed-delay.attempts', '10')
     conf.set_string('restart-strategy.fixed-delay.delay', '3 s')
     conf.set_string('execution.checkpointing.dir', args.checkpoint)
     env = StreamExecutionEnvironment.get_execution_environment(conf)
-    env.set_parallelism(1)
+    env.set_parallelism(demo_parallelism or 1)
     env.enable_checkpointing(args.checkpoint_ms, CheckpointingMode.EXACTLY_ONCE)
     env.get_checkpoint_config().set_checkpoint_timeout(60000)
     env.get_checkpoint_config().set_max_concurrent_checkpoints(1)
@@ -181,8 +198,17 @@ def main():
     )""")
     source = tables.to_data_stream(tables.from_path('telemetry'))
     result_type = Types.ROW_NAMED(['topic', 'kafka_key', 'body', 'trace_headers'], [Types.STRING()]*3 + [Types.MAP(Types.STRING(), Types.PRIMITIVE_ARRAY(Types.BYTE()))])
-    aggregated = source.key_by(lambda _: 'run', key_type=Types.STRING()).process(
-        Aggregate(topology, args.max_events), output_type=result_type).uid('member2-run-v1').name('Member_2 event-time aggregation')
+    if demo_parallelism is None:
+        keyed = source.key_by(lambda _: 'run', key_type=Types.STRING())
+        uid = 'member2-run-v1'
+    else:
+        # Keep unknown keys in one audit shard so they cannot create unbounded state.
+        known = frozenset(tx['transformer_id'] for tx in topology['transformers'])
+        keyed = source.key_by(lambda row: row[0] if row[0] in known else '',
+                              key_type=Types.STRING())
+        uid = 'member2-transformer-demo-v1'
+    aggregated = keyed.process(Aggregate(topology, args.max_events),
+                              output_type=result_type).uid(uid).name('Member_2 event-time aggregation')
     output = tables.from_data_stream(aggregated)
     tables.create_temporary_view('results', output)
     inserts = tables.create_statement_set()

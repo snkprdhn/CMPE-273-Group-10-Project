@@ -92,6 +92,14 @@ def test_explicit_states_and_recovery(page, fixture_api, fault, expected):
     expect(page.get_by_text('CRITICAL', exact=True).first).to_be_visible(timeout=20000)
 
 
+def test_completed_history_explains_stale_telemetry_on_live_connection(page, fixture_api):
+    fixture_api.post('/fixture', json={'step': 3, 'fault': 'grid-history'}).raise_for_status()
+    page.goto(UI)
+    expect(page.get_by_text('Live connection · Showing retained readings', exact=False)).to_be_visible()
+    expect(page.get_by_text('No fresh telemetry is arriving', exact=False)).to_be_visible()
+    expect(page.get_by_text('Missing or old readings cannot establish recovery', exact=False)).to_have_count(0)
+
+
 def test_loading_tablet_and_scenario_mutations(page, fixture_api):
     fixture_api.post('/fixture', json={'fault':'loading'})
     page.set_viewport_size({'width':834,'height':1194})
@@ -202,3 +210,35 @@ def test_grounded_mock_investigation(page,fixture_api,copilot_server):
     expect(dialog.get_by_text('Published transformer state is NORMAL;',exact=False)).to_be_visible()
     expect(dialog.get_by_text('Unknown:',exact=False).first).to_be_visible()
     page.screenshot(path='.tools/dashboard-evidence/grounded-investigation.png',animations='disabled')
+
+
+def test_single_site_shows_all_tabs_without_login(page, fixture_api):
+    import os
+    from pathlib import Path
+    import subprocess
+    import sys
+    import time
+    import httpx
+    env = {**{k: v for k, v in os.environ.items() if k != 'PYTEST_CURRENT_TEST'}, 'GRID_DEMO_MODE': '1'}
+    with Path('.tools/dashboard-evidence/mvp.log').open('w') as log:
+        process = subprocess.Popen([sys.executable, '-m', 'dashboard', '--fixture', '--port', '18188',
+            '--api-url', 'http://127.0.0.1:18185/api/v1'], env=env, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            for _ in range(100):
+                try:
+                    if httpx.get('http://127.0.0.1:18188', timeout=.3).status_code == 200:
+                        break
+                except httpx.HTTPError:
+                    pass
+                time.sleep(.1)
+            page.goto('http://127.0.0.1:18188')
+            # One open site for everyone: no login gate, and every tab is present.
+            for name in ('Overview', 'Flow Map', 'Transformers', 'Alerts & actions',
+                         'Devices', 'Scenarios', 'System health', 'Settings'):
+                expect(page.get_by_role('button', name=name, exact=True)).to_have_count(1)
+            page.get_by_role('button', name='Flow Map', exact=True).click()
+            page.get_by_role('button', name='Run simulation', exact=True).click()
+            expect(page.get_by_text('Simulation playback', exact=True)).to_be_visible()
+        finally:
+            process.terminate()
+            process.wait(timeout=10)

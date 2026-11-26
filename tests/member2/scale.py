@@ -29,10 +29,10 @@ def fleet():
             for j, kind in enumerate(kinds)]} for i in range(TRANSFORMERS)]}
 
 
-def counters(job):
+def counters(job, subtask=0):
     vertex = next(v for v in api('jobs/' + job)['vertices'] if v['name'].startswith('Member_2'))
-    path = f"jobs/{job}/vertices/{vertex['id']}/subtasks/0/metrics"
-    required = ('input', 'duplicates', 'very_late', 'dlq')
+    path = f"jobs/{job}/vertices/{vertex['id']}/subtasks/{subtask}/metrics"
+    required = ('input', 'duplicates', 'very_late', 'dlq', 'retained_event_ids')
     names = [m['id'] for m in api(path) if m['id'].rsplit('.', 1)[-1] in required]
     if not names:
         return {}
@@ -43,7 +43,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run')
     parser.add_argument('--rate', type=int, default=2500)
+    parser.add_argument('--rounds', type=int, default=40)
+    parser.add_argument('--timeout', type=int, default=7200)
+    parser.add_argument('--bootstrap', default='kafka:9092')
+    parser.add_argument('--replication', type=int, choices=(1, 3), default=1)
+    parser.add_argument('--allow-recovery', action='store_true')
+    parser.add_argument('--parallelism', type=int, default=1)
     args = parser.parse_args()
+    if not 1 <= args.parallelism <= 32:
+        parser.error('parallelism must be 1..32')
+    if not 4 <= args.rounds <= 800 or not 60 <= args.timeout <= 14400:
+        parser.error('rounds must be 4..800 and timeout 60..14400')
+    rounds, total = args.rounds, DEVICES * args.rounds
     if not re.fullmatch(r'[a-zA-Z0-9_-]{1,48}', args.run) or not 100 <= args.rate <= 10000:
         parser.error('invalid run ID or rate outside 100–10000')
     run = args.run
@@ -55,15 +66,17 @@ def main():
     fixture.write_text(json.dumps(topology))
     prefix = f'm2-{run}.'
     input_topic = prefix + 'grid.telemetry.v1'
-    config = {'bootstrap.servers': 'kafka:9092'}
+    config = {'bootstrap.servers': args.bootstrap}
     admin = AdminClient(config)
     for future in admin.create_topics([
-        NewTopic(prefix + topic, PARTITIONS, 1) for topic in ('grid.telemetry.v1', LOAD, DLQ, LATE)
+        NewTopic(prefix + topic, PARTITIONS, args.replication, config={'min.insync.replicas': '2' if args.replication == 3 else '1'}) for topic in ('grid.telemetry.v1', LOAD, DLQ, LATE)
     ]).values():
         future.result(30)
     subprocess.run(['flink', 'run', '-d', '-py', '/app/member2/job.py', '--run', run,
                     '--topology', str(fixture), '--checkpoint', directory.as_uri(),
-                    '--checkpoint-ms', '5000'], check=True, timeout=120)
+                    '--checkpoint-ms', '10000', '--bootstrap', args.bootstrap,
+                    '--max-events', str(total), '--state-backend', 'rocksdb',
+                    *(['--demo-transformer-parallelism', str(args.parallelism)] if args.parallelism > 1 else [])], check=True, timeout=120)
     job = wait(lambda: next((j['jid'] for j in api('jobs/overview')['jobs']
                              if j['name'] == f'member2-{run}' and j['state'] == 'RUNNING'), None), 'scale job')
     consumer = Consumer({**config, 'group.id': f'm2-{run}-aggregation-v1',
@@ -85,8 +98,8 @@ def main():
     def publish():
         sent = 0
         first = None
-        for cycle in range(ROUNDS):
-            start = base + timedelta(seconds=5 * cycle + (10 if cycle == ROUNDS - 1 else 0))
+        for cycle in range(rounds):
+            start = base + timedelta(seconds=5 * cycle + (10 if cycle == rounds - 1 else 0))
             for tx in topology['transformers']:
                 key = tx['transformer_id']
                 net = 0
@@ -103,9 +116,9 @@ def main():
                                      sequence_number=cycle, power_kw=power))
                     if first is None:
                         first = event
-                    if sent == TOTAL - 2:
+                    if sent == total - 2:
                         event = first
-                    if sent == TOTAL - 1:
+                    if sent == total - 1:
                         event['ingested_at'] = stamp(start + timedelta(seconds=36))
                     producer.produce(input_topic, key=event['payload']['transformer_id'], value=json.dumps(event), on_delivery=delivered)
                     sent += 1
@@ -115,7 +128,7 @@ def main():
                         if delay > 0:
                             time.sleep(delay)
                         producer.poll(0)
-                if cycle < ROUNDS - 1:
+                if cycle < rounds - 1:
                     expected[(tx['transformer_id'], stamp(start))] = net
         if producer.flush(30):
             failures.append('producer flush timed out')
@@ -134,31 +147,54 @@ def main():
             memory.update({row['id']: int(row['value']) for row in api(url + '?get=' + ','.join(names))})
         return dict(seconds=time.monotonic()-begin, high=high, committed=committed,
                     lag=[h-c for h,c in zip(high, committed)], checkpoints=cp['counts'],
-                    latest=latest, history=cp['history'], jvm_memory_bytes=memory)
+                    latest=latest, restored=cp['latest'].get('restored'), history=cp['history'], jvm_memory_bytes=memory)
 
     samples, publish_seconds = [], []
     begin = time.monotonic()
     thread = Thread(target=publish, daemon=True)
     thread.start()
     with (directory / 'samples.jsonl').open('w') as evidence:
-        while time.monotonic() - begin < TOTAL / args.rate + 380:
-            row = sample()
+        while time.monotonic() - begin < args.timeout:
+            try:
+                row = sample()
+            except Exception as exc:
+                print(json.dumps({'sample_error': type(exc).__name__, 'seconds': time.monotonic()-begin}), flush=True)
+                time.sleep(3)
+                continue
             samples.append(row)
+            (directory / 'progress.json').write_text(json.dumps(dict(job=job, **row)))
             print(json.dumps(row), file=evidence, flush=True)
             print(json.dumps({k: row[k] for k in ('seconds', 'committed', 'lag')}), flush=True)
             if not thread.is_alive():
-                if failures or not publish_seconds or sum(partition_counts.values()) != TOTAL:
+                if failures or not publish_seconds or sum(partition_counts.values()) != total:
                     raise RuntimeError(f'Producer did not deliver all records: {failures[:3]}')
-                if sum(row['committed']) == TOTAL:
+                if sum(row['committed']) == total:
                     break
             time.sleep(3)
         else:
             raise RuntimeError('Flink did not checkpoint all input offsets')
     consumer.close()
-    processed = wait(lambda: values if (values := counters(job)).get('input') == TOTAL else None,
-                     'final operator counters', timeout=30)
-    assert processed == dict(input=TOTAL, duplicates=1, very_late=1, dlq=0), processed
-    assert not failures and sum(partition_counts.values()) == TOTAL, failures
+    if args.parallelism == 1:
+        processed = wait(lambda: values if (values := counters(job)).get('retained_event_ids') == total - 1 else None,
+                         'final operator counters', timeout=30)
+    else:
+        # The retained-ID gauge reports the current key, so it cannot be summed.
+        processed = None
+
+        def complete_counters():
+            values = Counter()
+            for subtask in range(args.parallelism):
+                values.update(counters(job, subtask))
+            values.pop('retained_event_ids', None)
+            return dict(values) if values['input'] == total else None
+
+        if not args.allow_recovery:
+            processed = wait(complete_counters, 'final parallel counters', timeout=30)
+    if processed is not None:
+        assert processed['duplicates'] == 1 and processed['very_late'] == 1 and processed['dlq'] == 0, processed
+        if not args.allow_recovery:
+            assert processed['input'] == total, processed
+    assert not failures and sum(partition_counts.values()) == total, failures
     assert len(partition_counts) == PARTITIONS
     assert len(key_partitions) == TRANSFORMERS and all(len(p) == 1 for p in key_partitions.values())
 
@@ -168,7 +204,7 @@ def main():
     output.assign(assignment)
     latest, ids, eof = {}, set(), set()
     audit = Counter()
-    deadline = time.monotonic() + 60
+    deadline = time.monotonic() + 600
     while len(eof) < len(assignment) and time.monotonic() < deadline:
         msg = output.poll(1)
         if msg is None:
@@ -197,11 +233,11 @@ def main():
         assert latest[key]['net_load_kw'] == net and latest[key]['good_device_count'] == 100, (key, latest[key])
     checkpoints = {cp['id']: cp for row in samples for cp in row['history'] if cp['status'] == 'COMPLETED'}
     durations = [cp['end_to_end_duration'] for cp in checkpoints.values()]
-    report = dict(job=job, records=TOTAL, devices=DEVICES, transformers=TRANSFORMERS, delivered=dict(partition_counts),
+    report = dict(job=job, state_backend='rocksdb', max_events=total, rounds=rounds, replication=args.replication, records=total, devices=DEVICES, transformers=TRANSFORMERS, delivered=dict(partition_counts),
                   partition_keys={key: next(iter(value)) for key,value in key_partitions.items()},
-                  publish_seconds=publish_seconds[0], delivered_eps=TOTAL/publish_seconds[0],
+                  publish_seconds=publish_seconds[0], delivered_eps=total/publish_seconds[0],
                   partition_delivered_eps={p: count/publish_seconds[0] for p, count in partition_counts.items()},
-                  checkpointed_seconds=samples[-1]['seconds'], checkpointed_eps=TOTAL/samples[-1]['seconds'],
+                  checkpointed_seconds=samples[-1]['seconds'], checkpointed_eps=total/samples[-1]['seconds'],
                   max_sampled_lag=max(sum(row['lag']) for row in samples), final_lag=samples[-1]['lag'],
                   checkpoints=samples[-1]['checkpoints'], checkpoint_ms=dict(median=median(durations), max=max(durations)),
                   max_checkpoint_bytes=max(cp['state_size'] for cp in checkpoints.values()),

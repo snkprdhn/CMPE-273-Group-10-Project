@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 import time
+import threading
 
 import grpc
 from observability import traced, headers
@@ -24,6 +25,8 @@ class Registry:
         if not address or not token or not token.isascii() or not token.isprintable():
             raise ValueError('Registry address and printable ASCII action token required')
         self.dsn = dsn
+        self.observation_db = None
+        self.observation_lock = threading.Lock()
         with psycopg.connect(dsn, connect_timeout=2) as db:
             db.execute("SET LOCAL statement_timeout = '2s'")
             db.execute('CREATE TABLE IF NOT EXISTS action_registry_observations (id TEXT PRIMARY KEY, event JSONB NOT NULL)')
@@ -34,6 +37,8 @@ class Registry:
 
     def close(self):
         self.channel.close()
+        if self.observation_db is not None:
+            self.observation_db.close()
 
     @traced('grpc.client')
     def snapshots(self, transformer_id, evaluated_at, policy_version):
@@ -115,20 +120,26 @@ class Registry:
             return
         # Retain invalid/estimated/missing-rate latest reports to invalidate old
         # GOOD observations rather than silently carrying them forward.
-        with psycopg.connect(self.dsn, connect_timeout=2) as db:
-            db.execute("SET LOCAL statement_timeout = '2s'")
-            db.execute('SELECT pg_advisory_xact_lock(273004)')
-            old = db.execute('SELECT event FROM action_registry_observations WHERE id=%s',
-                             (p['device_id'],)).fetchone()
-            if old:
-                previous = old[0]
-                order = (observed, p['sequence_number'])
-                prior = (instant(previous['event_time']), previous['payload']['sequence_number'])
-                if order < prior:
-                    return
-                if order == prior:
-                    if event != previous:
-                        raise ValueError('CONFLICTING_TELEMETRY')
-                    return
-            db.execute('''INSERT INTO action_registry_observations VALUES (%s,%s)
-                ON CONFLICT(id) DO UPDATE SET event=excluded.event''', (p['device_id'], Jsonb(event)))
+        with self.observation_lock:
+            if self.observation_db is None or self.observation_db.closed:
+                self.observation_db = psycopg.connect(self.dsn, connect_timeout=2, autocommit=True)
+                self.observation_db.execute('SET statement_timeout = 2000')
+            self._observe(self.observation_db, event, observed)
+
+    def _observe(self, db, event, observed):
+        p = event['payload']
+        # One atomic row-locked UPSERT replaces four round trips per charger.
+        # Equal/older reports retain the original payload; conflicting equal
+        # ranks still fail before the Kafka offset becomes eligible for commit.
+        saved = db.execute(r"""INSERT INTO action_registry_observations AS prior VALUES (%s,%s)
+            ON CONFLICT(id) DO UPDATE SET event=CASE WHEN
+                (regexp_replace(excluded.event->>'event_time', '([.][0-9]{6})[0-9]+', '\1')::timestamptz,
+                 (excluded.event->'payload'->>'sequence_number')::numeric) >
+                (regexp_replace(prior.event->>'event_time', '([.][0-9]{6})[0-9]+', '\1')::timestamptz,
+                 (prior.event->'payload'->>'sequence_number')::numeric)
+                THEN excluded.event ELSE prior.event END
+            RETURNING event""", (p['device_id'], Jsonb(event))).fetchone()[0]
+        rank = observed, p['sequence_number']
+        prior = instant(saved['event_time']), saved['payload']['sequence_number']
+        if rank == prior and saved != event:
+            raise ValueError('CONFLICTING_TELEMETRY')

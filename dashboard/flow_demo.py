@@ -33,15 +33,29 @@ def frame(scenario, phase, started):
         result.append(dict(action_id='demo-action', outcome='APPLIED', previous_rate_kw=2,
                            applied_rate_kw=7.2, result_time=(started + timedelta(seconds=4 * INTERVAL)).isoformat()))
     tx = 'demo-tx'
-    devices = [dict(device=dict(device_id=device, transformer_id=tx, device_type=kind),
-                    freshness='FRESH', latest_telemetry=dict(power_kw=power, quality='GOOD'),
-                    command_history=result if kind == 'EV_CHARGER' else [])
-               for device, kind, power in [('demo-meter', 'SMART_METER', house),
-                                            ('demo-solar', 'SOLAR', -solar), ('demo-ev', 'EV_CHARGER', ev)]]
+    samples = []
+    for index in range(25):
+        transformer_id = tx if index == 0 else f'demo-tx-{index:02}'
+        # Keep the demo transformer in focus. Neighbouring fleets continue
+        # reporting in the same frame at their own steady baselines.
+        household, generation, charging = ((house, solar, ev) if index == 0 else
+                                            (9 + index % 5, 2 + index % 3, 3 + index % 4))
+        for kind, name, powers in (
+            ('SMART_METER', 'meter', [household / 55] * 55),
+            ('SOLAR', 'solar', [-generation / 10] * 10),
+            ('EV_CHARGER', 'ev', [charging] + [0] * 34),
+        ):
+            for device_index, power in enumerate(powers):
+                # Avoid displaying an applied rate on the other idle chargers.
+                selected = index == device_index == 0 and kind == 'EV_CHARGER'
+                samples.append(dict(device=dict(device_id=f'{transformer_id}-{name}-{device_index:02}',
+                                                transformer_id=transformer_id, device_type=kind),
+                                    freshness='FRESH', latest_telemetry=dict(power_kw=power, quality='GOOD'),
+                                    command_history=result if selected else []))
     net = house + ev - solar
     transformer = dict(transformer_id=tx, state='CRITICAL' if net > 20 else 'NORMAL', freshness='FRESH',
                        load=dict(meter_demand_kw=house, solar_generation_kw=solar, ev_demand_kw=ev,
                                  net_load_kw=net, capacity_kw=20, window_end=at.strftime('%Y-%m-%dT%H:%M:%S')))
     actions = [{'action_id': 'demo-action', 'status': 'ACKS_PENDING' if phase < 3 else
                 'REDUCTION_CONFIRMED' if phase < 4 else 'RESTORE_DISPATCHED' if phase < 5 else 'COMPLETED'}] if result else []
-    return transformer, devices, actions
+    return transformer, samples, actions

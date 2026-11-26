@@ -96,3 +96,87 @@ def test_consumer_closed_even_when_revocation_fails(monkeypatch):
     with pytest.raises(RuntimeError, match='database unavailable'):
         worker.main()
     assert calls == ['revoke', 'close']
+
+
+def test_maintenance_is_bounded_instead_of_running_per_poll(monkeypatch):
+    calls = setup_worker(monkeypatch)
+    stopped = worker.threading.Event()
+    clock = [0.0]
+    monkeypatch.setattr(worker.time, 'monotonic', lambda: clock[0])
+    class Lease:
+        duration = 15
+        def __init__(self, **kwargs): pass
+        def step(self):
+            calls.append('lease')
+            return True
+    class Authority:
+        def __init__(self, *args): pass
+        def activate(self):
+            calls.append('activate')
+            return 1
+        def stop(self): calls.append('revoke')
+    class Consumer:
+        def __init__(self, config): pass
+        def subscribe(self, topics): pass
+        def poll(self, timeout):
+            clock[0] += .25
+            if clock[0] == 10:
+                stopped.set()
+            return None
+        def close(self): calls.append('close')
+    class Control:
+        def __init__(self, *args, **kwargs): pass
+        def reconcile(self, now): pass
+        def tick(self, now): calls.append('tick')
+    for name, value in [('Lease', Lease), ('Leadership', Authority), ('Consumer', Consumer), ('Control', Control)]:
+        monkeypatch.setattr(worker, name, value)
+    worker.main()
+    assert calls.count('lease') == calls.count('activate') == 2
+    assert calls.count('tick') == 20
+    assert calls[-2:] == ['revoke', 'close']
+
+
+@pytest.mark.parametrize('fail_last', [False, True])
+def test_batched_offsets_follow_durable_processing_and_exclude_failed_record(monkeypatch, fail_last):
+    calls = setup_worker(monkeypatch)
+    stopped = worker.threading.Event()
+    monkeypatch.setattr(worker.time, 'monotonic', lambda: 0)
+    state = dict(polled=0, durable=0, stored=0, committed=0)
+    class Message:
+        def error(self): return None
+        def value(self): return b'{}'
+        def key(self): return b'tx'
+        def topic(self): return 'test.grid.transformer-load.v1'
+        def headers(self): return None
+    class Consumer:
+        def __init__(self, config):
+            assert config['enable.auto.offset.store'] is False
+        def subscribe(self, topics): pass
+        def poll(self, timeout):
+            state['polled'] += 1
+            if state['polled'] == 101: stopped.set()
+            return Message()
+        def store_offsets(self, message):
+            assert state['durable'] == state['polled']
+            state['stored'] += 1
+        def commit(self, *, asynchronous):
+            assert asynchronous is False
+            assert state['stored'] == state['durable'] == 100
+            state['committed'] = 100
+        def close(self): calls.append('close')
+    class Control:
+        def __init__(self, *args, **kwargs): pass
+        def reconcile(self, now): pass
+        def tick(self, now): pass
+        def load(self, *args):
+            if fail_last and state['polled'] == 101: raise ValueError('durable write failed')
+            state['durable'] += 1
+    monkeypatch.setattr(worker, 'Consumer', Consumer)
+    monkeypatch.setattr(worker, 'Control', Control)
+    if fail_last:
+        with pytest.raises(ValueError, match='durable write failed'): worker.main()
+    else:
+        worker.main()
+    assert state['committed'] == 100
+    assert state['stored'] == (100 if fail_last else 101)
+    assert calls[-2:] == ['revoke', 'close']

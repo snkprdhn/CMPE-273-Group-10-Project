@@ -33,7 +33,12 @@ def test_hosted_review_realm_and_https_login(monkeypatch):
     assert 'Secure' in response.headers['set-cookie'] and 'HttpOnly' in response.headers['set-cookie']
 
 
-def test_pkce_callback_state_replay_and_logout(signing):
+@pytest.mark.parametrize('demo', [False, True])
+def test_pkce_callback_state_replay_and_logout(signing, monkeypatch, demo):
+    if demo:
+        monkeypatch.setenv('GRID_DEMO_CLIENT_SECRET', 'test-only-secret')
+    else:
+        monkeypatch.delenv('GRID_DEMO_CLIENT_SECRET', raising=False)
     oidc, token = signing
     app = FastAPI()
     login = BrowserLogin(app)
@@ -58,6 +63,7 @@ def test_pkce_callback_state_replay_and_logout(signing):
         login.http = httpx.AsyncClient(transport=httpx.MockTransport(exchange))
         response = client.get('/auth/callback?state='+state+'&code=code', follow_redirects=False)
         assert response.status_code == 303
+        assert response.headers['location'] == ('/operator' if demo else '/')
         assert requests[0]['code_verifier'] == [pending['verifier']]
         assert 'refresh-private' not in str(response.headers)
         sid = client.cookies[COOKIE]
