@@ -1,0 +1,152 @@
+[
+  {
+    "case": "throttle",
+    "value": {
+      "event_id": "7607cced-be00-52fd-b679-49dc8fb5e9e2",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "devices.simulator",
+      "event_time": "2026-11-22T18:00:00Z",
+      "ingested_at": "2026-11-22T18:00:00Z",
+      "correlation_id": "fixture-001",
+      "causation_id": null,
+      "payload": {
+        "command_id": "fixture-001-throttle",
+        "action_id": "fixture-001-action",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-22T18:00:00Z",
+        "expires_at": "2026-11-22T18:00:10Z",
+        "reason": "Standalone device fixture",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "expected": "APPLIED"
+  },
+  {
+    "case": "throttle",
+    "value": {
+      "event_id": "7607cced-be00-52fd-b679-49dc8fb5e9e2",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "devices.simulator",
+      "event_time": "2026-11-22T18:00:00Z",
+      "ingested_at": "2026-11-22T18:00:00Z",
+      "correlation_id": "fixture-001",
+      "causation_id": null,
+      "payload": {
+        "command_id": "fixture-001-throttle",
+        "action_id": "fixture-001-action",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-22T18:00:00Z",
+        "expires_at": "2026-11-22T18:00:10Z",
+        "reason": "Standalone device fixture",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "expected": "ALREADY_APPLIED"
+  },
+  {
+    "case": "expired",
+    "value": {
+      "event_id": "2b6d47bf-685e-5f57-8649-8475819d10dc",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "devices.simulator",
+      "event_time": "2026-11-22T18:00:00Z",
+      "ingested_at": "2026-11-22T18:00:00Z",
+      "correlation_id": "fixture-001",
+      "causation_id": null,
+      "payload": {
+        "command_id": "fixture-001-expired",
+        "action_id": "fixture-001-action",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-22T17:59:50Z",
+        "expires_at": "2026-11-22T18:00:00Z",
+        "reason": "Standalone device fixture",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "expected": "EXPIRED"
+  },
+  {
+    "case": "stale",
+    "value": {
+      "event_id": "fd034390-b444-5fc5-85c0-a4eed220efec",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "devices.simulator",
+      "event_time": "2026-11-22T18:00:00Z",
+      "ingested_at": "2026-11-22T18:00:00Z",
+      "correlation_id": "fixture-001",
+      "causation_id": null,
+      "payload": {
+        "command_id": "fixture-001-stale",
+        "action_id": "fixture-001-action",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "THROTTLE",
+        "target_rate_kw": 3,
+        "issued_at": "2026-11-22T18:00:00Z",
+        "expires_at": "2026-11-22T18:00:10Z",
+        "reason": "Standalone device fixture",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 41
+      },
+      "leader_epoch": 41,
+      "saga_version": 1
+    },
+    "expected": "REJECTED"
+  },
+  {
+    "case": "restore",
+    "value": {
+      "event_id": "3e9e5458-d3d4-5d1d-8fa2-5c4ffb1ccdeb",
+      "event_type": "charger.command",
+      "schema_version": 1,
+      "source": "devices.simulator",
+      "event_time": "2026-11-22T18:00:00Z",
+      "ingested_at": "2026-11-22T18:00:00Z",
+      "correlation_id": "fixture-001",
+      "causation_id": null,
+      "payload": {
+        "command_id": "fixture-001-restore",
+        "action_id": "fixture-001-action",
+        "device_id": "ev-001",
+        "transformer_id": "tx-001",
+        "command_type": "RESTORE",
+        "target_rate_kw": 7.2,
+        "issued_at": "2026-11-22T18:00:00Z",
+        "expires_at": "2026-11-22T18:00:10Z",
+        "reason": "Standalone device fixture",
+        "policy_version": 1,
+        "saga_version": 1,
+        "leader_epoch": 42
+      },
+      "leader_epoch": 42,
+      "saga_version": 1
+    },
+    "expected": "APPLIED"
+  }
+]

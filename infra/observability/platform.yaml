@@ -1,7 +1,7 @@
 # Additive NetworkPolicies for the existing default-deny platform namespace.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: telemetry-export, namespace: platform, labels: {grid-owner: Member_1}}
+metadata: {name: telemetry-export, namespace: platform}
 spec:
   podSelector:
     matchExpressions:
@@ -15,7 +15,7 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: telemetry-scrape, namespace: platform, labels: {grid-owner: Member_1}}
+metadata: {name: telemetry-scrape, namespace: platform}
 spec:
   podSelector:
     matchExpressions:
@@ -29,7 +29,7 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: kafka-exporter-client, namespace: platform, labels: {grid-owner: Member_2}}
+metadata: {name: kafka-exporter-client, namespace: platform}
 spec:
   podSelector: {matchLabels: {grid-app: kafka-exporter}}
   policyTypes: [Egress]
@@ -39,7 +39,7 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: kafka-exporter-broker, namespace: platform, labels: {grid-owner: Member_2}}
+metadata: {name: kafka-exporter-broker, namespace: platform}
 spec:
   podSelector: {matchLabels: {grid-app: kafka}}
   policyTypes: [Ingress]

@@ -1,0 +1,49 @@
+# Source-only layers on top of the published, digest-pinned AMD64 images.
+# Dependencies do not change between demo rollouts, so a code update never needs an emulated
+# Python build on an Apple Silicon workstation. The base digests come from the review inventory.
+#   docker build --platform linux/amd64 -f infra/aks/Dockerfile.layers --target fleet \
+#     --build-arg ACCEPTANCE_BASE=<registry>/smart-grid-kind/acceptance@sha256:... -t <candidate> .
+ARG AGGREGATION_BASE
+ARG ACCEPTANCE_BASE
+ARG ACTION_BASE
+ARG UI_BASE
+ARG API_BASE
+ARG REGISTRY_BASE
+
+FROM ${AGGREGATION_BASE} AS aggregation
+USER root
+COPY --chown=flink:flink observability /app/observability
+COPY --chown=flink:flink aggregation /app/aggregation
+COPY --chown=flink:flink devices/fixtures/fleet-topology.json /app/aggregation/fleet-topology.json
+USER flink
+
+FROM ${ACCEPTANCE_BASE} AS fleet
+USER root
+COPY devices /app/devices
+USER 10001:10001
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "devices.fleet"]
+
+FROM ${ACTION_BASE} AS action
+USER root
+COPY action /app/action
+USER 10001:10001
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "action.worker"]
+
+FROM ${UI_BASE} AS ui
+USER root
+COPY dashboard /app/dashboard
+USER 10001:10001
+
+FROM ${API_BASE} AS api
+USER root
+COPY observability /app/observability
+COPY projection /app/projection
+USER 10001:10001
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "projection"]
+
+FROM ${REGISTRY_BASE} AS registry
+USER root
+COPY devices /app/devices
+USER 10001:10001
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "devices"]
+CMD ["registry", "--registry", "0.0.0.0:50051", "--bind", "0.0.0.0"]

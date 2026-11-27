@@ -103,21 +103,21 @@ checkpoint PVC. Neither profile establishes physical host-failure tolerance.
 Use the [implementation status](../../docs/implementation/IMPLEMENTATION_STATUS.md)
 for executed capacity and failure evidence.
 
-## Owners and health
+## Workloads and health
 
-| Owner | Workload | Health signal |
+| Group | Workload | Health signal |
 |---|---|---|
-| Member_1 | Registry | gRPC service with startup/liveness HTTP and a database-backed readiness check |
-| Member_1 | Scenario simulator | Bounded Job, committed Kafka evidence, process exit and durable edge effect counts |
-| Member_2 | Strimzi and Kafka | Operator probes and Kafka/Topic Ready conditions, broker probes |
-| Member_2 | Flink operator and PyFlink | Operator startup/liveness, JobManager REST, TaskManager RPC, RUNNING job and completed checkpoints |
-| Member_3 | PostgreSQL and schema bootstrap | StatefulSet PostgreSQL probes, PVC status, bootstrap Job completion |
-| Member_3 | Connect/Debezium | Connect probes, KafkaConnector Ready, RUNNING task and delivered outbox |
-| Member_3 | Action | Lease resource, durable epoch and fresh worker progress marker |
-| Member_4 | Projection | Assigned Kafka consumer and fresh progress marker after polling/committing |
-| Member_4 | API and UI | HTTP liveness and dependency readiness, authenticated REST/SSE and UI smoke |
-| Member_4 | Keycloak | Management-interface startup/readiness/liveness on port 9000 |
-| Member_4 with Member_1 | Local cluster and policy evidence | Calico rollout, node Ready, CoreDNS, live allow/deny probes |
+| Devices | Registry | gRPC service with startup/liveness HTTP and a database-backed readiness check |
+| Devices | Scenario simulator | Bounded Job, committed Kafka evidence, process exit and durable edge effect counts |
+| Messaging | Strimzi and Kafka | Operator probes and Kafka/Topic Ready conditions, broker probes |
+| Messaging | Flink operator and PyFlink | Operator startup/liveness, JobManager REST, TaskManager RPC, RUNNING job and completed checkpoints |
+| Control | PostgreSQL and schema bootstrap | StatefulSet PostgreSQL probes, PVC status, bootstrap Job completion |
+| Control | Connect/Debezium | Connect probes, KafkaConnector Ready, RUNNING task and delivered outbox |
+| Control | Action | Lease resource, durable epoch and fresh worker progress marker |
+| Serving | Projection | Assigned Kafka consumer and fresh progress marker after polling/committing |
+| Serving | API and UI | HTTP liveness and dependency readiness, authenticated REST/SSE and UI smoke |
+| Serving | Keycloak | Management-interface startup/readiness/liveness on port 9000 |
+| Platform | Local cluster and policy evidence | Calico rollout, node Ready, CoreDNS, live allow/deny probes |
 
 The Action service account can read and update only the pre-created Action
 Lease. Worker probes prefer local progress for liveness and a shorter window for
@@ -150,7 +150,7 @@ Inspect `docker ps` and stop competing nodes before starting the next profile.
 ## Delivery rehearsal and troubleshooting
 
 Use the [README](../../README.md#reproduce-the-local-demo) for the full acceptance
-suite and [local recovery](../../docs/runbooks/LOCAL_RECOVERY.md) for backups,
+suite and [recovery drills](#recovery-drills) for backups,
 projection rebuild, and Flink checks. A name such as
 `smart-grid-kind-dev-demo01` gets `.tools/kind-dev-demo01.kubeconfig`,
 `.tools/kind-dev-demo01/` and its own Docker image tags. Temporary acceptance
@@ -175,3 +175,33 @@ after its dependency is healthy. Once the simulator Job exists, preserve
 its report and use a fresh name to replay the scenario. Use
 `make kind-stop` for retention and `make kind-reset CONFIRM="$KIND_NAME"`
 to discard the named node and remove only its rehearsal tags after export.
+
+## Recovery drills
+
+Use the exact checkout, kind name and kubeconfig that created the cluster. `grid_kubeconfig=".tools/${KIND_NAME#smart-grid-}.kubeconfig"`.
+
+**PostgreSQL export and restore.** The acceptance runner exports the four databases after the scenario: Registry (assignments, capabilities), control (saga, inbox, outbox, fencing epochs, the gateway's effects), Keycloak (realm, users) and the projection. Take a separate export and verify it in scratch databases with a new run ID:
+
+```sh
+.venv/bin/python -m tools.delivery_backup export --name "$KIND_NAME" --run export01
+.venv/bin/python -m tools.delivery_backup restore-drill --name "$KIND_NAME" --run export01
+```
+
+Each private custom-format archive is consistent within its database. For a coordinated offline export quiesce writes first (simulations, Action, Connect, projection, Keycloak) and keep PostgreSQL running. The files and a SHA-256 manifest are under `.tools/<name>/`. The drill checks every checksum before connecting, restores into restricted scratch databases, compares each COPY row and sequence value against the archive, and drops the scratch databases.
+
+**Projection views.** Rebuild the views in place from the journal:
+
+```sh
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" -n platform exec deploy/projection -- /opt/venv/bin/python -m projection rebuild
+```
+
+The rebuild takes the store lock, keeps the journal, annotations and durable source positions, and rotates the SSE generation. Active clients fetch a fresh snapshot before reconnecting. If the projection database is lost, restore a dump into an isolated store or create and migrate an empty one.
+
+**Flink.** Confirm a completed checkpoint in the Flink UI (`svc/aggregation-rest`, port 8081), list the TaskManager, delete only that pod, and verify that the same job ID is `RUNNING` with a restored checkpoint and a later completed checkpoint:
+
+```sh
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" -n platform get pods -l component=taskmanager,grid-app=aggregation
+.venv/bin/kubectl --kubeconfig "$grid_kubeconfig" --context "kind-$KIND_NAME" -n platform delete "pod/$taskmanager_pod" --timeout=90s
+```
+
+The checkpoint PVC is node-local, so keep it and the Kafka source when retrying. For an intentional application change use an operator-coordinated savepoint or a stateless restart, and expect open windows to be re-emitted.

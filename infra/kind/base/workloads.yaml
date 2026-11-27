@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telemetry-runtime
-  labels: {grid-owner: Member_1, grid-stage: apps}
+  labels: {grid-stage: apps}
 data:
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel.observability:4318
   GRID_ENVIRONMENT: local-kind
@@ -12,14 +12,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: registry
-  labels: {grid-owner: Member_1, grid-stage: apps, grid-app: registry}
+  labels: {grid-stage: apps, grid-app: registry}
 spec:
   replicas: 1
   selector:
     matchLabels: {grid-app: registry}
   template:
     metadata:
-      labels: {grid-app: registry, grid-owner: Member_1}
+      labels: {grid-app: registry}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
@@ -62,7 +62,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: registry
-  labels: {grid-owner: Member_1, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   selector: {grid-app: registry}
   ports:
@@ -72,14 +72,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: action
-  labels: {grid-owner: Member_3, grid-stage: apps, grid-app: action}
+  labels: {grid-stage: apps, grid-app: action}
 spec:
   replicas: 1
   selector:
     matchLabels: {grid-app: action}
   template:
     metadata:
-      labels: {grid-app: action, grid-owner: Member_3}
+      labels: {grid-app: action}
     spec:
       serviceAccountName: action
       terminationGracePeriodSeconds: 45
@@ -128,14 +128,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: projection
-  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: projection}
+  labels: {grid-stage: apps, grid-app: projection}
 spec:
   replicas: 1
   selector:
     matchLabels: {grid-app: projection}
   template:
     metadata:
-      labels: {grid-app: projection, grid-owner: Member_4}
+      labels: {grid-app: projection}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
@@ -184,14 +184,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api
-  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: api}
+  labels: {grid-stage: apps, grid-app: api}
 spec:
   replicas: 1
   selector:
     matchLabels: {grid-app: api}
   template:
     metadata:
-      labels: {grid-app: api, grid-owner: Member_4}
+      labels: {grid-app: api}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
@@ -236,7 +236,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: api
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   selector: {grid-app: api}
   ports:
@@ -246,14 +246,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ui
-  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: ui}
+  labels: {grid-stage: apps, grid-app: ui}
 spec:
   replicas: 1
   selector:
     matchLabels: {grid-app: ui}
   template:
     metadata:
-      labels: {grid-app: ui, grid-owner: Member_4}
+      labels: {grid-app: ui}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
@@ -294,7 +294,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ui
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   selector: {grid-app: ui}
   ports:
@@ -304,7 +304,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
-  labels: {grid-owner: Member_4, grid-stage: apps, grid-app: keycloak}
+  labels: {grid-stage: apps, grid-app: keycloak}
 spec:
   replicas: 1
   strategy: {type: Recreate}
@@ -312,7 +312,7 @@ spec:
     matchLabels: {grid-app: keycloak}
   template:
     metadata:
-      labels: {grid-app: keycloak, grid-owner: Member_4}
+      labels: {grid-app: keycloak}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
@@ -350,7 +350,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: keycloak
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   selector: {grid-app: keycloak}
   ports:

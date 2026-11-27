@@ -11,9 +11,9 @@ import psycopg
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
-from member3.control import Control
-from member3.fixtures import FakeRegistry
-from member4.store import Store
+from action.control import Control
+from action.fixtures import FakeRegistry
+from projection.store import Store
 from tools.integration import GATES, Runner, evaluate, http, require, wait
 
 SCHEMA = 'integration_kind'
@@ -25,27 +25,32 @@ DATABASES = {'registry': 'local_dev_registry', 'control': 'local_dev_control',
 
 def bootstrap():
     with psycopg.connect(os.environ['POSTGRES_ADMIN_DSN'], autocommit=True) as db:
-        for role in (*DATABASES, 'member3_cdc', 'member1_gateway'):
+        for role in (*DATABASES, 'cdc', 'gateway'):
             if not db.execute('SELECT 1 FROM pg_roles WHERE rolname=%s', (role,)).fetchone():
                 db.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} {}').format(
                     sql.Identifier(role), sql.Literal(os.environ[role.upper() + '_PASSWORD']),
-                    sql.SQL('REPLICATION' if role == 'member3_cdc' else 'NOREPLICATION')))
+                    sql.SQL('REPLICATION' if role == 'cdc' else 'NOREPLICATION')))
         for role, name in DATABASES.items():
             if not db.execute('SELECT 1 FROM pg_database WHERE datname=%s', (name,)).fetchone():
                 db.execute(sql.SQL('CREATE DATABASE {} OWNER {}').format(sql.Identifier(name), sql.Identifier(role)))
             db.execute(sql.SQL('REVOKE ALL ON DATABASE {} FROM PUBLIC').format(sql.Identifier(name)))
         db.execute('REVOKE CONNECT ON DATABASE postgres FROM PUBLIC')
-        db.execute('GRANT CONNECT ON DATABASE local_dev_control TO member3_cdc, member1_gateway')
+        db.execute('GRANT CONNECT ON DATABASE local_dev_control TO cdc, gateway')
     with psycopg.connect(os.environ['CONTROL_DSN'], options='-c search_path=public') as db:
         db.execute('CREATE SCHEMA IF NOT EXISTS integration_kind AUTHORIZATION control')
     Control(os.environ['CONTROL_DSN'], FakeRegistry()).migrate()
     with psycopg.connect(make_conninfo(os.environ['POSTGRES_ADMIN_DSN'], dbname=DATABASES['control'])) as db:
-        db.execute('CREATE SCHEMA IF NOT EXISTS integration_edge AUTHORIZATION member1_gateway')
-        db.execute('GRANT USAGE ON SCHEMA integration_kind TO member3_cdc, member1_gateway')
-        db.execute('GRANT SELECT ON integration_kind.action_outbox TO member3_cdc')
-        db.execute('GRANT EXECUTE ON FUNCTION integration_kind.authorize_command(UUID,BIGINT,JSONB) TO member1_gateway')
+        db.execute('CREATE SCHEMA IF NOT EXISTS integration_edge AUTHORIZATION gateway')
+        db.execute('GRANT USAGE ON SCHEMA integration_kind TO cdc, gateway')
+        db.execute('GRANT SELECT ON integration_kind.action_outbox TO cdc')
+        db.execute('GRANT EXECUTE ON FUNCTION integration_kind.authorize_command(UUID,BIGINT,JSONB) TO gateway')
+        # A change in this database lets Debezium confirm its slot position (see connector heartbeat).
+        db.execute('CREATE TABLE IF NOT EXISTS integration_kind.cdc_heartbeat (id INT PRIMARY KEY, ts TIMESTAMPTZ NOT NULL)')
+        db.execute('GRANT SELECT, INSERT, UPDATE ON integration_kind.cdc_heartbeat TO cdc')
         if not db.execute("SELECT 1 FROM pg_publication WHERE pubname='integration_kind'").fetchone():
-            db.execute('CREATE PUBLICATION integration_kind FOR TABLE integration_kind.action_outbox')
+            db.execute('CREATE PUBLICATION integration_kind FOR TABLE integration_kind.action_outbox, integration_kind.cdc_heartbeat')
+        elif not db.execute("SELECT 1 FROM pg_publication_tables WHERE pubname='integration_kind' AND tablename='cdc_heartbeat'").fetchone():
+            db.execute('ALTER PUBLICATION integration_kind ADD TABLE integration_kind.cdc_heartbeat')
     with psycopg.connect(os.environ['PROJECTION_DSN'], options='-c search_path=public') as db:
         db.execute('CREATE SCHEMA IF NOT EXISTS integration_kind AUTHORIZATION projection')
     Store(os.environ['PROJECTION_DSN']).migrate()
@@ -105,7 +110,7 @@ class KindRunner(Runner):
         require(self.evidence['connector_running'], 'CDC not RUNNING')
         self.evidence['live_registry'] = True
         self.initial_jobs = wait(lambda: [j for j in http(self.args.flink_url + '/jobs/overview')['jobs']
-                                          if j['name'] == 'member2-kind' and j['state'] == 'RUNNING'],
+                                          if j['name'] == 'aggregation-kind' and j['state'] == 'RUNNING'],
                                  'running operator-managed Flink job', 30)
         self.flink()
         self.flow()
@@ -116,7 +121,7 @@ class KindRunner(Runner):
 
 def main():
     from observability import setup
-    setup('member1.simulator')
+    setup('devices.simulator')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('phase', choices=['bootstrap', 'simulate'])
     args = parser.parse_args()

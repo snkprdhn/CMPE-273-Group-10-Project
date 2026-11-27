@@ -4,7 +4,6 @@ metadata:
   name: brokers
   labels:
     strimzi.io/cluster: grid
-    grid-owner: Member_2
     grid-stage: kafka
 spec:
   replicas: 1
@@ -26,7 +25,7 @@ spec:
   template:
     pod:
       metadata:
-        labels: {grid-app: kafka, grid-owner: Member_2}
+        labels: {grid-app: kafka}
       terminationGracePeriodSeconds: 60
 ---
 apiVersion: kafka.strimzi.io/v1beta2
@@ -36,7 +35,7 @@ metadata:
   annotations:
     strimzi.io/node-pools: enabled
     strimzi.io/kraft: enabled
-  labels: {grid-owner: Member_2, grid-stage: kafka}
+  labels: {grid-stage: kafka}
 spec:
   kafka:
     version: 3.9.2
@@ -58,7 +57,7 @@ spec:
     readinessProbe: {initialDelaySeconds: 15, timeoutSeconds: 5}
     livenessProbe: {initialDelaySeconds: 30, timeoutSeconds: 5}
   kafkaExporter:
-    groupRegex: 'integration-kind\..*|m2-kind-aggregation-v1'
+    groupRegex: 'integration-kind\..*|agg-kind-aggregation-v1|agg-fleet.*'
     topicRegex: 'integration-kind\.grid\..*\.v1'
     resources:
       requests: {cpu: 20m, memory: 32Mi}
@@ -66,7 +65,7 @@ spec:
     template:
       pod:
         metadata:
-          labels: {grid-app: kafka-exporter, grid-owner: Member_2}
+          labels: {grid-app: kafka-exporter}
   entityOperator:
     topicOperator:
       resources:
@@ -75,13 +74,13 @@ spec:
     template:
       pod:
         metadata:
-          labels: {grid-app: topic-operator, grid-owner: Member_2}
+          labels: {grid-app: topic-operator}
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnect
 metadata:
   name: grid-connect
-  labels: {grid-owner: Member_3, grid-stage: connect}
+  labels: {grid-stage: connect}
   annotations:
     strimzi.io/use-connector-resources: "true"
 spec:
@@ -116,7 +115,7 @@ spec:
   template:
     pod:
       metadata:
-        labels: {grid-app: connect, grid-owner: Member_3}
+        labels: {grid-app: connect}
       terminationGracePeriodSeconds: 45
     connectContainer:
       env:

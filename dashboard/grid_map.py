@@ -1,4 +1,4 @@
-"""Member_4 flow graph of the published transformer and device readings."""
+"""Flow graph of the published transformer and device readings."""
 
 from collections import defaultdict
 

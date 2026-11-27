@@ -106,7 +106,7 @@ def main():
                 secret = json.loads(run(*k,'-n','platform','get','secret/projection-runtime','-o','json',capture=True))
                 original = urlsplit(base64.b64decode(secret['data']['PROJECTION_DSN']).decode())
                 env['PROJECTION_DSN'] = urlunsplit(original._replace(netloc=original.netloc.rsplit('@',1)[0]+'@127.0.0.1:15434'))
-            subprocess.run([str(ROOT/'.tools/member4-venv/bin/python'),'-m','tools.observability_incident',
+            subprocess.run([str(ROOT/'.tools/projection-venv/bin/python'),'-m','tools.observability_incident',
                 '--run',args.run],cwd=ROOT,env=env,check=True)
             packet_path = ROOT/'.tools/observability-incidents'/args.run/'packet.json'
             packet = json.loads(packet_path.read_text())
@@ -120,7 +120,7 @@ def main():
     if args.command == 'install':
         # Resolve namespace declaratively and keep generated Grafana credentials private.
         run(*k, 'apply', '-f', '-', data=json.dumps({'apiVersion':'v1','kind':'Namespace',
-            'metadata':{'name':'observability','labels':{'grid-owner':'Member_1'}}}))
+            'metadata':{'name':'observability'}}))
         for release, archive, values in charts():
             run(*helm, 'upgrade', '--install', release, archive, '-n', 'observability',
                 '-f', values, '--wait', '--timeout', '5m')
@@ -132,11 +132,11 @@ def main():
         # Strimzi owns the exporter image and lifecycle; no new Kafka client/exporter.
         kafka = json.loads(run(*k, '-n','platform','get','kafka/grid','--ignore-not-found','-o','json', capture=True) or '{}') if platform else {}
         if kafka:
-            patch = {'spec':{'kafkaExporter':{'groupRegex':r'integration-kind\..*|m2-kind-aggregation-v1','topicRegex':r'integration-kind\.grid\..*\.v1',
+            patch = {'spec':{'kafkaExporter':{'groupRegex':r'integration-kind\..*|agg-kind-aggregation-v1','topicRegex':r'integration-kind\.grid\..*\.v1',
                 'resources':{'requests':{'cpu':'20m','memory':'32Mi'},'limits':{'cpu':'200m','memory':'128Mi'}},
-                'template':{'pod':{'metadata':{'labels':{'grid-app':'kafka-exporter','grid-owner':'Member_2'}}}}}}}
+                'template':{'pod':{'metadata':{'labels':{'grid-app':'kafka-exporter'}}}}}}}
             run(*k,'-n','platform','patch','kafka/grid','--type=merge','-p',json.dumps(patch))
-    run(*k, '-n', 'observability', 'get', 'pods,svc,pvc', '-L', 'grid-owner')
+    run(*k, '-n', 'observability', 'get', 'pods,svc,pvc')
 
 
 if __name__ == '__main__':

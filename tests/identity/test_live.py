@@ -21,7 +21,7 @@ pytestmark = pytest.mark.skipif(os.environ.get('IDENTITY_LIVE') != '1', reason='
 
 def test_real_login_roles_refresh_logout():
     config = json.loads(Path('.tools/identity/local.json').read_text())
-    env = {k: v for k, v in os.environ.items() if k not in ('PYTEST_CURRENT_TEST', 'MEMBER4_AUTH_MODE', 'DASHBOARD_API_TOKEN')}
+    env = {k: v for k, v in os.environ.items() if k not in ('PYTEST_CURRENT_TEST', 'AUTH_MODE', 'DASHBOARD_API_TOKEN')}
     with open('.tools/identity/ui-test.log', 'w') as log:
         proc = subprocess.Popen([sys.executable, '-m', 'dashboard'], env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -101,9 +101,9 @@ def test_real_login_roles_refresh_logout():
                     try:
                         path.write_text(json.dumps(tokens))
                         path.chmod(0o600)
-                        result = subprocess.run(['.tools/member4-venv/bin/python', '-m', 'pytest', '-q',
-                            'tests/member4/test_keycloak_live.py', 'tests/identity/test_bootstrap.py'], env=dict(env, IDENTITY_LIVE='1',
-                            MEMBER4_TEST_DSN='postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection'),
+                        result = subprocess.run(['.tools/projection-venv/bin/python', '-m', 'pytest', '-q',
+                            'tests/projection/test_keycloak_live.py', 'tests/identity/test_bootstrap.py'], env=dict(env, IDENTITY_LIVE='1',
+                            PROJECTION_TEST_DSN='postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection'),
                             capture_output=True, text=True, timeout=30)
                         assert result.returncode == 0, result.stdout+result.stderr
                     finally:

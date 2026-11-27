@@ -1,4 +1,4 @@
-"""Real local acceptance; run with .tools/member3-venv/bin/python -m tools.integration.
+"""Real local acceptance; run with .tools/action-venv/bin/python -m tools.integration.
 
 Never resets a store, stops an existing job, or substitutes a fixture service.
 Parent-owned setup supplies a fresh CDC-bound control schema and gateway DSN.
@@ -20,9 +20,9 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED = 273
-GATES = ('member1-member2', 'member2-member3', 'member3-member1', 'members23-member4')
+GATES = ('devices-aggregation', 'aggregation-action', 'action-devices', 'pipeline-projection')
 COMPOSE = ['docker', 'compose', '-p', 'smart-grid-local-dev', '-f',
-           'infra/compose/compose.yaml', '-f', 'infra/compose/member2.yaml']
+           'infra/compose/compose.yaml', '-f', 'infra/compose/aggregation.yaml']
 
 
 class Blocked(RuntimeError):
@@ -213,7 +213,7 @@ class Runner:
     def preflight(self):
         from confluent_kafka.admin import AdminClient, NewTopic
         import psycopg
-        from member1.common import BUNDLE
+        from devices.common import BUNDLE
         for name in ('control_dsn', 'edge_dsn', 'connector'):
             if not getattr(self.args, name):
                 raise Blocked('missing INTEGRATION_' + name.upper())
@@ -232,9 +232,9 @@ class Runner:
         require(status['connector']['state'] == 'RUNNING' and status['tasks'] and
                 all(t['state'] == 'RUNNING' for t in status['tasks']), 'CDC not RUNNING')
         self.evidence['connector_running'] = True
-        source = (ROOT / 'member3/worker.py').read_text()
+        source = (ROOT / 'action/worker.py').read_text()
         require('CONTROL_SNAPSHOTS' in source and 'REGISTRY_ACTION_TOKEN' in source,
-                'live Member3 worker adapter unavailable')
+                'live Action worker adapter unavailable')
         self.evidence['live_registry'] = True
         admin = AdminClient({'bootstrap.servers': self.args.bootstrap})
         existing = admin.list_topics(timeout=5).topics
@@ -249,7 +249,7 @@ class Runner:
     def flink(self):
         if not self.args.start_flink:
             self.job = next((j['jid'] for j in self.initial_jobs
-                             if j['name'] == 'member2-' + self.args.run and j['state'] == 'RUNNING'), None)
+                             if j['name'] == 'aggregation-' + self.args.run and j['state'] == 'RUNNING'), None)
             if not self.job:
                 raise Blocked('no run-specific Flink job; use --start-flink to provision own capacity')
             return
@@ -258,26 +258,26 @@ class Runner:
         wait(lambda: http(self.args.flink_url + '/overview')['slots-available'] > 0, 'own Flink slot')
         jm = self.command(COMPOSE + ['ps', '-q', 'jobmanager']).strip()
         target = '/tmp/integration-' + self.args.run
-        self.command(['docker', 'cp', 'member1/fixtures/topology.json', jm + ':' + target + '.json'])
-        self.command(['docker', 'cp', 'member2/job.py', jm + ':' + target + '.py'])
+        self.command(['docker', 'cp', 'devices/fixtures/topology.json', jm + ':' + target + '.json'])
+        self.command(['docker', 'cp', 'aggregation/job.py', jm + ':' + target + '.py'])
         # Separate job name, transactional IDs, source group and checkpoint path.
         self.command(COMPOSE + ['exec', '-T', 'jobmanager', 'flink', 'run', '-d', '-py', target + '.py',
                      '--run', self.args.run, '--prefix', self.args.prefix, '--topology', target + '.json',
                      '--checkpoint', 'file:///checkpoints/integration-' + self.args.run,
                      '--checkpoint-ms', '1000'], timeout=180)
         self.job = wait(lambda: next((j['jid'] for j in http(self.args.flink_url + '/jobs/overview')['jobs']
-                                     if j['name'] == 'member2-' + self.args.run and j['state'] == 'RUNNING'), None),
+                                     if j['name'] == 'aggregation-' + self.args.run and j['state'] == 'RUNNING'), None),
                         'run-specific Flink job', 90)
 
     def flow(self):
         from confluent_kafka import Consumer
         import grpc
         import psycopg
-        from member1.common import utc, event
-        from member1.fencing import FencedEdgeState
-        from member1.kafka import Publisher, flush_results, handle_message
-        from member1.registry import Client, pb, device_dict, device_message
-        from member1.simulator import devices
+        from devices.common import utc, event
+        from devices.fencing import FencedEdgeState
+        from devices.kafka import Publisher, flush_results, handle_message
+        from devices.registry import Client, pb, device_dict, device_message
+        from devices.simulator import devices
 
         prefix, run = self.args.prefix, self.args.run
         client = Client(self.args.registry, 'simulator', os.environ.get('REGISTRY_SIMULATOR_TOKEN', 'simulator_disposable'))
@@ -392,14 +392,14 @@ class Runner:
                    REGISTRY_ADDRESS=self.args.registry,
                    REGISTRY_ACTION_TOKEN=os.environ.get('REGISTRY_ACTION_TOKEN', 'action_disposable'))
         env.pop('CONTROL_SNAPSHOTS', None)
-        self.spawn('control', [str(ROOT / '.tools/member3-venv/bin/python'), '-m', 'member3.worker'], env)
+        self.spawn('control', [str(ROOT / '.tools/action-venv/bin/python'), '-m', 'action.worker'], env)
         self.start_projection(env)
 
     def start_projection(self, env):
         if not self.args.projection_dsn:
             self.blockers[GATES[3]] = 'missing INTEGRATION_PROJECTION_DSN'
             return
-        from member4.store import Store
+        from projection.store import Store
         self.store = Store(self.args.projection_dsn)
         self.store.migrate()
         with self.store.transaction() as db:
@@ -407,12 +407,12 @@ class Runner:
                     'projection contains prior history')
         env = dict(env, PROJECTION_DSN=self.args.projection_dsn, PROJECTION_GROUP=self.args.prefix + 'projection')
         self.token = 'integration-local-viewer-token'
-        env.update(MEMBER4_AUTH_MODE='mock', MEMBER4_MOCK_IDENTITIES=json.dumps({self.token: {'actor':'integration-viewer','role':'Viewer'}}))
-        self.spawn('api', [str(ROOT / '.tools/member4-venv/bin/python'), '-m', 'member4', 'serve', '--port', '18094'], env)
+        env.update(AUTH_MODE='mock', MOCK_IDENTITIES=json.dumps({self.token: {'actor':'integration-viewer','role':'Viewer'}}))
+        self.spawn('api', [str(ROOT / '.tools/projection-venv/bin/python'), '-m', 'projection', 'serve', '--port', '18094'], env)
         ui_env = dict(env, DASHBOARD_API_TOKEN=self.token)
         self.args.ui_url = self.args.ui_url or 'http://127.0.0.1:18096'
         self.spawn('ui', [str(ROOT / '.tools/dashboard-venv/bin/python'), '-m', 'dashboard', '--port', '18096', '--api-url', self.args.api_url], ui_env)
-        self.spawn('projection', [str(ROOT / '.tools/member4-venv/bin/python'), '-m', 'member4', 'consume'], env)
+        self.spawn('projection', [str(ROOT / '.tools/projection-venv/bin/python'), '-m', 'projection', 'consume'], env)
 
     def projected_journal(self):
         expected = {e['event_id']: e for key in ('loads', 'actions', 'commands', 'results', 'telemetry') for e in self.evidence[key]}
@@ -421,8 +421,8 @@ class Runner:
                 actual = {r[0]: r[1] for r in db.execute('SELECT event_id,event FROM projection_events')}
             return all(actual.get(k) == v for k, v in expected.items())
         wait(projected, 'projection journal convergence', 20)
-        from member4.live_context import RegistryContext
-        from member3.domain import default_policy
+        from projection.live_context import RegistryContext
+        from action.domain import default_policy
         client = RegistryContext(self.args.registry, os.environ.get('REGISTRY_API_TOKEN','api_disposable'))
         try:
             p = self.evidence['loads'][0]['payload']

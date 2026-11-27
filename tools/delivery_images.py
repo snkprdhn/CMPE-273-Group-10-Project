@@ -7,14 +7,14 @@ from tools.kind_local import ROOT, download, run, write_private
 
 
 IMAGES = (
-    ('registry:v1', 'member1/Dockerfile', 'registry'),
+    ('registry:v1', 'devices/Dockerfile', 'registry'),
     ('action:v1', 'infra/kind/Dockerfile', 'action'),
     ('api:v1', 'infra/kind/Dockerfile', 'api'),
     ('copilot:v1', 'infra/kind/Dockerfile', 'copilot'),
     ('ui:v1', 'infra/kind/Dockerfile', 'ui'),
     ('acceptance:v1', 'infra/kind/Dockerfile', 'acceptance'),
-    ('connect:3.0.8-v1', 'infra/member3/Dockerfile.connect', 'strimzi'),
-    ('aggregation:2.2.1-v1', 'member2/Dockerfile', None),
+    ('connect:3.0.8-v1', 'infra/connect/Dockerfile.connect', 'strimzi'),
+    ('aggregation:2.2.1-v1', 'aggregation/Dockerfile', None),
 )
 
 

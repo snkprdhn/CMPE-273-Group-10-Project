@@ -1,4 +1,4 @@
-# Member_1 isolated local load tools; hash-locked for macOS ARM64/Python 3.12.9.
+# Isolated local load tools; hash-locked for macOS ARM64/Python 3.12.9.
 blinker==1.9.0 --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
 brotli==1.2.1 --hash=sha256:3975fb11f63e212b87a087e4a910187b522c6969a4989ca362d6f85f9dc36acd
 certifi==2026.11.20 --hash=sha256:7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f

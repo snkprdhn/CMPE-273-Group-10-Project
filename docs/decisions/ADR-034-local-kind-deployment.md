@@ -2,8 +2,6 @@
 
 - Status: Implemented for the local deployment milestone. See the
   [verification status](../implementation/IMPLEMENTATION_STATUS.md) for executed gates.
-- Owners: Member_1 simulation/Registry/observability, Member_2 Kafka/PyFlink,
-  Member_3 control/PostgreSQL/CDC, Member_4 projection/API/UI/identity/Copilot.
 
 The two local profiles use separate Docker Desktop kind clusters, Calico 3.31
 with IPv4 VXLAN, the selected Helm releases for Strimzi, Flink Operator and
@@ -30,7 +28,7 @@ uses the selected Debezium plugin with the scoped publication and a Secret-backe
 password reference. A pre-created Lease gives the Action worker a narrower Role
 than the host acceptance harness needs.
 
-Run the accepted deterministic scenario in a one-shot Member_1 Job against the
+Run the accepted deterministic scenario in a one-shot Devices Job against the
 kind workloads. Verify the durable gateway effect, committed Flink windows,
 outbox delivery, replay-equivalent projections, matching REST/SSE and real
 Keycloak/Chromium dashboard login. Review adds broker/process redundancy on the

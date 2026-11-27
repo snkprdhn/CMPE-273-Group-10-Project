@@ -2,7 +2,6 @@
 
 - Status: Accepted, 2026-11-21
 - Authority: User authorization to resolve routine preparation decisions
-- Owners: Member_1 observability/testing; Member_2 Kafka/Flink; Member_3 PostgreSQL/CDC; Member_4 UI/API/identity
 
 ## Decision
 
@@ -16,7 +15,7 @@ For the security-capable kind profile, select Calico **3.31.0** with IPv4 VXLAN/
 
 Install the OTel Collector directly using its upstream Helm chart; omit the OTel Operator and auto-instrumentation. Application owners explicitly instrument Python services. This resolves the open-source plan's otherwise unnecessary second telemetry lifecycle controller and cert-manager dependency. Keep Prometheus Operator via kube-prometheus-stack, Grafana, and single-binary Tempo.
 
-Use the free CloudPirates PostgreSQL Helm chart with the official PostgreSQL image, one persistent primary, and explicit PostgreSQL 17 image override. Disable replication and metrics sidecars unless required by a measured test; CDC uses `wal_level=logical`, replication slots, and pgoutput. Do not rely on a paid image catalog or introduce a database operator. Member_3 owns deployment; service owners retain their isolated roles/schemas. Keycloak uses its own database/role in that primary.
+Use the free CloudPirates PostgreSQL Helm chart with the official PostgreSQL image, one persistent primary, and explicit PostgreSQL 17 image override. Disable replication and metrics sidecars unless required by a measured test; CDC uses `wal_level=logical`, replication slots, and pgoutput. Do not rely on a paid image catalog or introduce a database operator. Action owns deployment; service owners retain their isolated roles/schemas. Keycloak uses its own database/role in that primary.
 
 ## Alternatives and consequences
 

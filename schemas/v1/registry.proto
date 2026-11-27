@@ -2,7 +2,7 @@ syntax = "proto3";
 package smartgrid.registry.v1;
 import "google/protobuf/timestamp.proto";
 
-// Member_1 owns Registry; Member_3/4 consume. Deadlines and authorization
+// The device service owns Registry; Action and the projection consume. Deadlines and authorization
 // travel in gRPC metadata, never in caller-editable device fields.
 service DeviceRegistry {
   rpc RegisterDevice(RegisterDeviceRequest) returns (Device);

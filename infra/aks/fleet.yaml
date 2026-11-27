@@ -1,0 +1,115 @@
+# Continuous synthetic fleet: 25 transformers x 40 devices reporting every five seconds.
+# Hero transformers have registered chargers whose rate follows the real Action commands.
+# The pods carry grid-app=simulator so they inherit the existing Kafka, Registry and PostgreSQL policies.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fleet
+  labels: {grid-stage: apps, grid-app: simulator, grid-component: fleet}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {grid-component: fleet}
+  template:
+    metadata:
+      labels: {grid-app: simulator, grid-component: fleet}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: fleet
+          image: smart-grid-kind/fleet:v1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: {name: telemetry-runtime}
+          env:
+            - {name: FLEET_TRANSFORMERS, value: "25"}
+            - {name: FLEET_DEVICES, value: "40"}
+            - {name: FLEET_HEROES, value: "5"}
+            - {name: FLEET_PREFIX, value: "integration-kind."}
+            - {name: FLEET_BOOTSTRAP, value: "grid-kafka-bootstrap:9092"}
+            - {name: FLEET_RUN, value: "fleet"}
+            - {name: REGISTRY_ADDRESS, value: "registry:50051"}
+            - name: EDGE_DSN
+              valueFrom: {secretKeyRef: {name: simulator-runtime, key: EDGE_DSN}}
+            - name: REGISTRY_SIMULATOR_TOKEN
+              valueFrom: {secretKeyRef: {name: simulator-runtime, key: REGISTRY_SIMULATOR_TOKEN}}
+            - name: FLEET_CONTROL_TOKEN
+              valueFrom: {secretKeyRef: {name: fleet-control, key: token}}
+          ports:
+            - {name: metrics, containerPort: 8002}
+            - {name: control, containerPort: 8003}
+          resources:
+            requests: {cpu: 150m, memory: 192Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - {name: temp, mountPath: /tmp}
+          startupProbe: {httpGet: {path: /healthz, port: metrics}, periodSeconds: 5, failureThreshold: 36}
+          livenessProbe: {httpGet: {path: /healthz, port: metrics}, periodSeconds: 10, failureThreshold: 6}
+      volumes:
+        - {name: temp, emptyDir: {sizeLimit: 64Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet
+  labels: {grid-stage: apps, grid-component: fleet}
+spec:
+  selector: {grid-component: fleet}
+  ports:
+    - {name: metrics, port: 8002}
+    - {name: control, port: 8003}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fleet
+  labels: {release: monitoring, grid-stage: apps}
+spec:
+  selector:
+    matchLabels: {grid-component: fleet}
+  podMetricsEndpoints:
+    - {port: metrics, path: /metrics, interval: 5s}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fleet-ingress
+  labels: {grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-component: fleet}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: observability}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: prometheus}
+      ports:
+        - {port: 8002, protocol: TCP}
+    - from:
+        - podSelector:
+            matchLabels: {grid-app: ui}
+      ports:
+        - {port: 8003, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ui-fleet-egress
+  labels: {grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {grid-app: ui}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {grid-component: fleet}
+      ports:
+        - {port: 8003, protocol: TCP}

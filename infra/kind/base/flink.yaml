@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: checkpoints
-  labels: {grid-owner: Member_2, grid-stage: flink}
+  labels: {grid-stage: flink}
 spec:
   storageClassName: standard
   accessModes: [ReadWriteOnce]
@@ -13,7 +13,7 @@ apiVersion: flink.apache.org/v1beta1
 kind: FlinkDeployment
 metadata:
   name: aggregation
-  labels: {grid-owner: Member_2, grid-stage: flink}
+  labels: {grid-stage: flink}
 spec:
   image: smart-grid-kind/aggregation:2.2.1-v1
   imagePullPolicy: Never
@@ -37,7 +37,7 @@ spec:
     python.executable: /opt/venv/bin/python
   podTemplate:
     metadata:
-      labels: {grid-app: aggregation, grid-owner: Member_2}
+      labels: {grid-app: aggregation}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
@@ -78,7 +78,7 @@ spec:
     entryClass: org.apache.flink.client.python.PythonDriver
     args:
       - -py
-      - /app/member2/job.py
+      - /app/aggregation/job.py
       - --run
       - kind
       - --bootstrap
@@ -86,7 +86,7 @@ spec:
       - --prefix
       - integration-kind.
       - --topology
-      - /app/member2/integration-topology.json
+      - /app/aggregation/integration-topology.json
       - --checkpoint
       - file:///checkpoints/integration-kind
       - --checkpoint-ms

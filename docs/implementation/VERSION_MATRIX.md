@@ -1,6 +1,6 @@
 # Accepted version and compatibility matrix
 
-Accepted: **2026-11-21**, under [ADR-002](../decisions/ADR-002-python-stream-processing.md), [ADR-004](../decisions/ADR-004-python-dashboard.md), [ADR-006](../decisions/ADR-006-local-kind.md), and [ADR-024](../decisions/ADR-024-pinned-local-baseline.md). These are reproducibility pins, not “latest” or production-security claims. Locally rechecked **2026-11-21 19:58 PST** after the user-authorized Docker Desktop/venv setup. The installed tool versions and running kind cluster still match; no pin changes were needed. Application metadata evidence below is from the earlier review and is not a fresh full-stack verification. Host observations and exact gate status are in [verification](PREPARATION_VERIFICATION.md); manual setup commands are in [prerequisites](LOCAL_PREREQUISITES.md).
+Accepted: **2026-11-21**, under [ADR-002](../decisions/ADR-002-python-stream-processing.md), [ADR-004](../decisions/ADR-004-python-dashboard.md), [ADR-006](../decisions/ADR-006-local-kind.md), and [ADR-024](../decisions/ADR-024-pinned-local-baseline.md). These are reproducibility pins, not “latest” or production-security claims. Locally rechecked **2026-11-21 19:58 PST** after the user-authorized Docker Desktop/venv setup. The installed tool versions and running kind cluster still match; no pin changes were needed. Application metadata evidence below is from the earlier review and is not a fresh full-stack verification. Host observations and exact gate status are in verification (private evidence); manual setup commands are in [prerequisites](LOCAL_PREREQUISITES.md).
 
 ## Host tools
 
@@ -25,7 +25,7 @@ Docker Desktop setup completed on **2026-11-21**; the tool/runtime checks passed
 | Host Java/Maven/Node/npm/grpcurl/k6 | Not prerequisites | Infrastructure JVMs remain container-only; Python tools replace authored JavaScript tests |
 | AWS CLI/eksctl | Deferred | No installation/account required |
 
-Existing global Python 3.14.7 and kubectl 1.37.2 (Docker-bundled alternative 1.36.1) are preserved and are not selected for project commands. Built-in Docker Desktop Kubernetes is disabled even though its metadata names a different Kubernetes version; only the CLI-managed kind cluster is the project target. Exact checks and archive digests are in [setup evidence](PREPARATION_VERIFICATION.md).
+Existing global Python 3.14.7 and kubectl 1.37.2 (Docker-bundled alternative 1.36.1) are preserved and are not selected for project commands. Built-in Docker Desktop Kubernetes is disabled even though its metadata names a different Kubernetes version; only the CLI-managed kind cluster is the project target. Exact checks and archive digests are in setup evidence (private evidence).
 
 Pin kind's multi-platform node image to:
 
@@ -40,39 +40,39 @@ The [kind 0.30.0 release](https://github.com/kubernetes-sigs/kind/releases/tag/v
 | Component/owner | Exact selected version/artifact | Compatibility constraint and official evidence |
 |---|---|---|
 | Policy CNI / shared infrastructure | Calico 3.31.0, upstream manifest; IPv4 VXLAN/iptables | [Calico 3.31 requirements](https://raw.githubusercontent.com/tigera/docs/master/calico_versioned_docs/version-3.31/_includes/partials/_system-requirements.mdx) list ARM64 and Kubernetes 1.32–1.35; default kind CNI disabled for security profile; kind checks are recorded in [implementation status](IMPLEMENTATION_STATUS.md) |
-| Strimzi / Member_2 | Helm chart/operator 0.45.2 | [Upstream matrix](https://strimzi.io/downloads/) lists Kafka 3.9.2 and Kubernetes through 1.35 for this release |
-| Kafka and Connect / Member_2, Member_3 | `quay.io/strimzi/kafka:0.45.2-kafka-3.9.2` | KRaft; Connect shares the selected Kafka distribution; no ZooKeeper |
-| Flink Operator / Member_2 | Chart/image 1.15.0 | [Apache downloads](https://flink.apache.org/downloads/) lists Flink 2.2.x support; webhook disabled locally; packaged operator image tag `79d730b` |
-| Flink / Member_2 | `flink:2.2.1-scala_2.12-java17` | [Upstream image recipe](https://raw.githubusercontent.com/apache/flink-docker/master/2.2/scala_2.12-java17-ubuntu/Dockerfile); derive a Python-enabled ARM64 image at implementation time |
-| PyFlink / Member_2 | `apache-flink==2.2.1` | [Python 3.9–3.12 supported](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/python/installation/); Linux ARM64 source wheel build required, [published files](https://pypi.org/project/apache-flink/2.2.1/#files) |
-| Flink Kafka connector / Member_2 | `org.apache.flink:flink-sql-connector-kafka:5.0.0-2.2` | Bundled upstream JAR for Python jobs; [matching connector line](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connectors/datastream/kafka/); includes runtime dependencies, no custom Java build |
-| PostgreSQL / Member_3 | `postgres:17.4-bookworm` | [Debezium 3.0 tested versions](https://debezium.io/releases/3.0/) include PostgreSQL 17, Kafka Connect >=3.1, and Java >=17 connectors |
-| PostgreSQL packaging / Member_3 | `oci://registry-1.docker.io/cloudpirates/postgres`, chart 0.22.0, common 2.2.1 | [Chart source metadata](https://raw.githubusercontent.com/CloudPirates-io/helm-charts/main/charts/postgres/Chart.yaml); explicitly override default PostgreSQL 18 image to selected 17.4; helpers account for pre-18 data paths |
-| CDC / Member_3 | Debezium PostgreSQL connector plugin `3.0.8.Final` | Add upstream plugin archive and Outbox Event Router to selected Strimzi Connect image; PostgreSQL pgoutput/logical WAL; [release compatibility](https://debezium.io/releases/3.0/) |
-| Keycloak / Member_4 | `quay.io/keycloak/keycloak:26.1.4` | [Official release](https://www.keycloak.org/2025/03/keycloak-2614-released); own database/role; verify OIDC and PostgreSQL startup during identity milestone |
-| Caddy / Member_4 AKS review | `caddy:2.10.2-alpine` index `sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d` | Azure public IP DNS and public ACME HTTPS for the seven-day review overlay |
-| OTel Collector / Member_1 | Chart 0.117.3; `otel/opentelemetry-collector-contrib:0.120.0` | [Chart metadata](https://raw.githubusercontent.com/open-telemetry/opentelemetry-helm-charts/opentelemetry-collector-0.117.3/charts/opentelemetry-collector/Chart.yaml); explicit repository override; direct Deployment, no OTel Operator |
-| Metrics / Member_1 | kube-prometheus-stack chart 69.8.2; Prometheus Operator 0.80.1; Prometheus 3.2.1 | [Chart](https://raw.githubusercontent.com/prometheus-community/helm-charts/kube-prometheus-stack-69.8.2/charts/kube-prometheus-stack/Chart.yaml) accepts Kubernetes >=1.19; [values](https://raw.githubusercontent.com/prometheus-community/helm-charts/kube-prometheus-stack-69.8.2/charts/kube-prometheus-stack/values.yaml) pin Prometheus; disable unused exporters/Alertmanager in dev |
-| Grafana / Member_1 | `grafana/grafana:11.6.0` via explicit stack chart image override | Avoid depending on a floating Grafana subchart image; chart archive's packaged dependencies retained and checksummed at packaging gate |
-| Traces / Member_1 | Tempo chart 1.18.2; `grafana/tempo:2.7.1` | [Chart metadata](https://raw.githubusercontent.com/grafana/helm-charts/tempo-1.18.2/charts/tempo/Chart.yaml); single binary, local PVC, no cloud object store |
-| Fault proxy / Member_1 | `ghcr.io/shopify/toxiproxy:2.12.0` | [Upstream project](https://github.com/Shopify/toxiproxy); on-demand test dependency |
+| Strimzi | Helm chart/operator 0.45.2 | [Upstream matrix](https://strimzi.io/downloads/) lists Kafka 3.9.2 and Kubernetes through 1.35 for this release |
+| Kafka and Connect | `quay.io/strimzi/kafka:0.45.2-kafka-3.9.2` | KRaft; Connect shares the selected Kafka distribution; no ZooKeeper |
+| Flink Operator | Chart/image 1.15.0 | [Apache downloads](https://flink.apache.org/downloads/) lists Flink 2.2.x support; webhook disabled locally; packaged operator image tag `79d730b` |
+| Flink | `flink:2.2.1-scala_2.12-java17` | [Upstream image recipe](https://raw.githubusercontent.com/apache/flink-docker/master/2.2/scala_2.12-java17-ubuntu/Dockerfile); derive a Python-enabled ARM64 image at implementation time |
+| PyFlink | `apache-flink==2.2.1` | [Python 3.9–3.12 supported](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/python/installation/); Linux ARM64 source wheel build required, [published files](https://pypi.org/project/apache-flink/2.2.1/#files) |
+| Flink Kafka connector | `org.apache.flink:flink-sql-connector-kafka:5.0.0-2.2` | Bundled upstream JAR for Python jobs; [matching connector line](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connectors/datastream/kafka/); includes runtime dependencies, no custom Java build |
+| PostgreSQL | `postgres:17.4-bookworm` | [Debezium 3.0 tested versions](https://debezium.io/releases/3.0/) include PostgreSQL 17, Kafka Connect >=3.1, and Java >=17 connectors |
+| PostgreSQL packaging | `oci://registry-1.docker.io/cloudpirates/postgres`, chart 0.22.0, common 2.2.1 | [Chart source metadata](https://raw.githubusercontent.com/CloudPirates-io/helm-charts/main/charts/postgres/Chart.yaml); explicitly override default PostgreSQL 18 image to selected 17.4; helpers account for pre-18 data paths |
+| CDC | Debezium PostgreSQL connector plugin `3.0.8.Final` | Add upstream plugin archive and Outbox Event Router to selected Strimzi Connect image; PostgreSQL pgoutput/logical WAL; [release compatibility](https://debezium.io/releases/3.0/) |
+| Keycloak | `quay.io/keycloak/keycloak:26.1.4` | [Official release](https://www.keycloak.org/2025/03/keycloak-2614-released); own database/role; verify OIDC and PostgreSQL startup during identity milestone |
+| Caddy / Projection AKS review | `caddy:2.10.2-alpine` index `sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d` | Azure public IP DNS and public ACME HTTPS for the seven-day review overlay |
+| OTel Collector | Chart 0.117.3; `otel/opentelemetry-collector-contrib:0.120.0` | [Chart metadata](https://raw.githubusercontent.com/open-telemetry/opentelemetry-helm-charts/opentelemetry-collector-0.117.3/charts/opentelemetry-collector/Chart.yaml); explicit repository override; direct Deployment, no OTel Operator |
+| Metrics | kube-prometheus-stack chart 69.8.2; Prometheus Operator 0.80.1; Prometheus 3.2.1 | [Chart](https://raw.githubusercontent.com/prometheus-community/helm-charts/kube-prometheus-stack-69.8.2/charts/kube-prometheus-stack/Chart.yaml) accepts Kubernetes >=1.19; [values](https://raw.githubusercontent.com/prometheus-community/helm-charts/kube-prometheus-stack-69.8.2/charts/kube-prometheus-stack/values.yaml) pin Prometheus; disable unused exporters/Alertmanager in dev |
+| Grafana | `grafana/grafana:11.6.0` via explicit stack chart image override | Avoid depending on a floating Grafana subchart image; chart archive's packaged dependencies retained and checksummed at packaging gate |
+| Traces | Tempo chart 1.18.2; `grafana/tempo:2.7.1` | [Chart metadata](https://raw.githubusercontent.com/grafana/helm-charts/tempo-1.18.2/charts/tempo/Chart.yaml); single binary, local PVC, no cloud object store |
+| Fault proxy | `ghcr.io/shopify/toxiproxy:2.12.0` | [Upstream project](https://github.com/Shopify/toxiproxy); on-demand test dependency |
 | Python service base / all | `python:3.12.9-slim-bookworm` | Same Python minor as PyFlink; pin distribution separately inside derived Flink image |
 
 ## Python application/testing baseline
 
 Install application libraries only when the owning implementation milestone begins. These are selected direct application pins; **no application environment resolution or transitive lock is claimed yet**. The preparation pytest/jsonschema environment is installed and fully pinned in requirements-dev.txt. Keep PyFlink in its own image/environment and browser/load tools in test environments.
 
-| Concern | Selected pins | Owner |
+| Concern | Selected pins | Notes |
 |---|---|---|
-| API and validation | FastAPI 0.165.0, Starlette 1.10.0, Uvicorn 0.35.0, Pydantic 2.14.4 (core 2.50.5), HTTPX 0.28.1 | Member_4; reuse where needed |
-| Dashboard | NiceGUI 3.19.0, built-in ECharts | Member_4 |
-| Kafka client | confluent-kafka 2.8.2 | Member_1/Member_3/Member_4 |
-| Database | psycopg[binary] 3.2.9 | Member_1/Member_3/Member_4 |
-| gRPC generation/runtime | grpcio 1.85.3, grpcio-tools 1.71.0 (ADR-025 runtime amendment) | Member_1; independently generated clients |
-| Schemas | jsonschema 4.23.0; JSON Schema Draft 2020-12 | All; executable fixtures and compatibility checks verified under ADR-025 |
-| Correctness tests | pytest 8.3.5; Testcontainers Python 4.10.0 | All |
-| Browser tests | Playwright Python 1.51.0, pytest-playwright 0.7.0 | Member_4 |
-| Load tests | Locust 2.33.2 | Member_1 |
+| API and validation | FastAPI 0.165.0, Starlette 1.10.0, Uvicorn 0.35.0, Pydantic 2.14.4 (core 2.50.5), HTTPX 0.28.1 | |
+| Dashboard | NiceGUI 3.19.0, built-in ECharts | |
+| Kafka client | confluent-kafka 2.8.2 | |
+| Database | psycopg[binary] 3.2.9 | |
+| gRPC generation/runtime | grpcio 1.85.3, grpcio-tools 1.71.0 (ADR-025 runtime amendment) | independently generated clients |
+| Schemas | jsonschema 4.23.0; JSON Schema Draft 2020-12 | Executable fixtures and compatibility checks verified under ADR-025 |
+| Correctness tests | pytest 8.3.5; Testcontainers Python 4.10.0 | |
+| Browser tests | Playwright Python 1.51.0, pytest-playwright 0.7.0 | |
+| Load tests | Locust 2.33.2 | |
 
 The NiceGUI [recheck amendment](../decisions/ADR-004-python-dashboard.md#prerequisite-recheck-amendment--2026-11-21) replaces the original vulnerable 2.24.2 pin and updates FastAPI/Starlette/Pydantic together. Nine selected direct metadata constraints passed; full resolution/imports remain unverified. NiceGUI's [release requirements](https://raw.githubusercontent.com/zauberzeug/nicegui/v3.19.0/pyproject.toml) allow this Python/FastAPI family. Retain its packaged frontend assets. [Playwright Python](https://playwright.dev/python/docs/intro) requires its downloaded browser/packaged driver, not a host Node.js install. Locust replaces authored JavaScript k6 scenarios. Security scans and exact transitive dependency locking belong to the component/foundation gates, before these versions are deployed.
 
@@ -126,52 +126,52 @@ Runtime host bind mounts are omitted after diagnostics found a Docker Desktop
 FSEvents watcher deadlock during VolumeShare.Add; named data volumes are retained.
 
 
-## Member_1 standalone application locks — 2026-11-22
+## Devices standalone application locks — 2026-11-22
 
-[ADR-026](../decisions/ADR-026-member1-standalone-state.md) resolves the old runtime
+[ADR-026](../decisions/ADR-026-devices-standalone-state.md) resolves the old runtime
 row in favor of ADR-025's grpcio **1.85.3**, grpcio-tools **1.71.0**, protobuf
 **5.29.6**. Kafka **2.8.2**, psycopg/binary **3.2.9**, jsonschema **4.23.0**, and
-pytest **8.3.5** retain their selected pins. Separate [Registry](../../member1/requirements-registry.txt)
-and [simulator](../../member1/requirements-simulator.txt) hash locks/venvs isolate
-runtime dependencies; the [combined test lock](../../member1/requirements.txt)
-is Member_1-only. macOS ARM64 clean offline installs and Linux ARM64 image
+pytest **8.3.5** retain their selected pins. Separate [Registry](../../devices/requirements-registry.txt)
+and [simulator](../../devices/requirements-simulator.txt) hash locks/venvs isolate
+runtime dependencies; the [combined test lock](../../devices/requirements.txt)
+is Devices-only. macOS ARM64 clean offline installs and Linux ARM64 image
 build/start pass. Linux x86_64 wheel resolution/hash verification is separate
-from hosted CI execution. These application results supersede only Member_1's
+from hosted CI execution. These application results supersede only Devices's
 previously unimplemented dependency/startup claims; other application gates
 remain unverified. Exact commands/results are in implementation status.
 
-## Member_2 standalone runtime — verified 2026-11-22
+## Aggregation standalone runtime — verified 2026-11-22
 
 The selected Python **3.12.9**, Flink/PyFlink **2.2.1**, connector **5.0.0-2.2**,
 jsonschema **4.23.0**, pytest **8.3.5** and confluent-kafka **2.8.2** are unchanged.
-[Member_2's independent lock](../../member2/requirements.txt) pins all 56 runtime/
+[Aggregation's independent lock](../../aggregation/requirements.txt) pins all 56 runtime/
 test distributions with published artifact hashes. The pure-test subset in
-`member2/requirements-test.txt` uses the same pins with portable artifact hashes. PyFlink is compiled natively
+`aggregation/requirements-test.txt` uses the same pins with portable artifact hashes. PyFlink is compiled natively
 from its hash-verified sdist; Beam 2.61.0, grpcio 1.65.5 and protobuf 5.29.6 stay
 isolated from Registry/contract environments. Offline built-wheel installation,
 `pip check`, ARM64 import, golden tests and real checkpoint restore pass.
 
 Immutable Flink base: `flink:2.2.1-scala_2.12-java17@sha256:f0aa6be1ea6979e0c0c29d02bb1a41eee0bc1a350b86a39056351db165f9f3ff`.
 Connector JAR SHA-256: `5605c691d11a501382c383fecba37a7a552467da5ab7ba904ef5d6f3d62c5616`.
-The Python base reuses Member_1's accepted immutable Python 3.12.9 base.
+The Python base reuses Devices's accepted immutable Python 3.12.9 base.
 The image retains resolved versions and compiled wheel SHA-256s in
-`/opt/member2-resolved.txt` and `/opt/member2-wheel-sha256.txt`. Build-only apt/
+`/opt/aggregation-resolved.txt` and `/opt/aggregation-wheel-sha256.txt`. Build-only apt/
 isolated Python build tools are not a bit-reproducible toolchain lock. Linux
 amd64 execution, image security scans/SBOM, kind/operator deployment, replicated
 Kafka and full-session HA remain unverified. Earlier statements that PyFlink
 ARM64 build/import/checkpoint execution is unverified are superseded only for
-this standalone profile. See [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md).
+this standalone profile. See [ADR-027](../decisions/ADR-027-standalone-aggregation.md).
 
-## Member_3 standalone Action domain — verified 2026-11-22
+## Action standalone Action domain — verified 2026-11-22
 
-The [Member_3 lock](../../member3/requirements.txt) reuses accepted Python 3.12.9,
+The [Action lock](../../action/requirements.txt) reuses accepted Python 3.12.9,
 psycopg/binary 3.2.9, jsonschema 4.23.0 and pytest 8.3.5 pins/hashes in an independent
-`.tools/member3-venv`. All 12 runtime/test distributions installed offline from
+`.tools/action-venv`. All 12 runtime/test distributions installed offline from
 existing Mac ARM64 wheels with hash checking; `pip check` and 42 real PostgreSQL
 tests pass. No gRPC/Kafka/PyFlink/model dependency is introduced for this domain
 slice. PostgreSQL reuses the existing pinned 17.4 local container. Linux runtime,
 CDC, distributed leadership and kind packaging remain separate gates under
-[ADR-028](../decisions/ADR-028-member3-action-domain.md).
+[ADR-028](../decisions/ADR-028-action-domain.md).
 
 ## Outbox/fencing runtime — 2026-11-22
 
@@ -179,31 +179,31 @@ CDC, distributed leadership and kind packaging remain separate gates under
 Strimzi Kafka/Connect **0.45.2 / 3.9.2** immutable base above and PostgreSQL **17.4**.
 The upstream Debezium PostgreSQL **3.0.8.Final** plugin tarball has SHA-256
 `600806875b810abb96b3774f789d9ed33dbe4ac687d3ed9454bc0caa76b7279c`;
-[Dockerfile](../../infra/member3/Dockerfile.connect) verifies it before extraction.
-The independent Member_3 lock adds only the previously selected **confluent-kafka
-2.8.2** artifact hashes. The Member_1 simulator lock adds the existing **psycopg /
+[Dockerfile](../../infra/connect/Dockerfile.connect) verifies it before extraction.
+The independent Action lock adds only the previously selected **confluent-kafka
+2.8.2** artifact hashes. The Devices simulator lock adds the existing **psycopg /
 psycopg-binary 3.2.9** pins for the optional PostgreSQL effect profile. No Kubernetes
 SDK or new version selection is introduced; the local runner invokes the pinned
 kubectl. Real local CDC and kind Lease failure evidence is in implementation
 status. Full kind workload/security/operations packaging remains unverified.
 
-## Member_4 standalone API execution — 2026-11-22
+## Projection standalone API execution — 2026-11-22
 
 The existing selected FastAPI **0.165.0**, Starlette **1.10.0**, Uvicorn
 **0.35.0**, Pydantic **2.14.4** / core **2.50.5**, HTTPX **0.28.1**,
 confluent-kafka **2.8.2**, psycopg/binary **3.2.9**, jsonschema **4.23.0**
-and pytest **8.3.5** run together in `.tools/member4-venv`. No direct pin changed.
-The [independent 29-distribution hash lock](../../member4/requirements.txt) reuses
+and pytest **8.3.5** run together in `.tools/projection-venv`. No direct pin changed.
+The [independent 29-distribution hash lock](../../projection/requirements.txt) reuses
 existing locks and pins newly resolved transitives; FastAPI's required
 opentelemetry-api **1.45.2** is a runtime dependency, not an observability-stack
 deployment claim. Locked wheels were downloaded and hash-checked for CPython
 3.12/macOS ARM64. Linux native wheel locking/image packaging remains a later
 gate. The selected Starlette emits one TestClient HTTPX deprecation warning;
 tests retain the approved HTTPX pin rather than adding a second client library.
-See [ADR-030](../decisions/ADR-030-member4-projections-api.md) and executed
+See [ADR-030](../decisions/ADR-030-projections-api.md) and executed
 [status](IMPLEMENTATION_STATUS.md).
 
-## Member_4 standalone dashboard — 2026-11-22
+## Projection standalone dashboard — 2026-11-22
 
 The [dashboard runtime lock](../../dashboard/requirements.txt) reuses NiceGUI
 **3.19.0**, built-in ECharts, HTTPX **0.28.1**, jsonschema **4.23.0** and the
@@ -215,10 +215,10 @@ ARM64. Independent runtime/test environments resolve with hash checking;
 Chromium **134.0.6998.35**, Playwright build **1161**, is stored in ignored
 `.tools/playwright`. No direct version selection changed. These locks do not
 claim Linux packaging, vulnerability-scan or kind acceptance; see
-[ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) and implementation
+[ADR-031](../decisions/ADR-031-operator-dashboard.md) and implementation
 status for execution evidence.
 
-## Member_4 local identity — 2026-11-22
+## Projection local identity — 2026-11-22
 
 Keycloak retains **26.1.4**, now verified on ARM64 with PostgreSQL 17.4, realm
 import/recreation, real PKCE browser login/logout and refresh. Immutable base:
@@ -228,12 +228,12 @@ keep it local and never push/export it. Identity owns no new PostgreSQL primary.
 
 [Identity hash lock](../../identity/requirements.txt) adds **PyJWT 2.15.1** and
 **cryptography 50.0.2**, with **cffi 2.1.1** and **pycparser 3.12**, included by the
-independent Member_4 API/dashboard locks. These versions were resolved from package
+independent Projection API/dashboard locks. These versions were resolved from package
 metadata, hash-installed and checked in the existing CPython 3.12/macOS ARM64
 component environments. HTTPX and all earlier direct pins are unchanged. No custom
 signature implementation, Authlib, system package or host JVM is added. Linux
 native hashes/images, security scans and kind identity packaging remain unverified.
-See [ADR-032](../decisions/ADR-032-member4-local-identity.md) and executed status.
+See [ADR-032](../decisions/ADR-032-local-identity.md) and executed status.
 
 
 ## Local kind artifacts

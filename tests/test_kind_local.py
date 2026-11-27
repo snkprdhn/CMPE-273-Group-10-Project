@@ -18,8 +18,8 @@ def test_connector_uses_secret_provider_and_exact_outbox_contract():
 
 def test_runtime_identities_are_split_and_realm_has_only_local_client():
     passwords = {name: name + '-synthetic' for name in
-                 ('local_admin', 'registry', 'control', 'projection', 'keycloak', 'member3_cdc',
-                  'member1_gateway', 'rpc_api', 'rpc_action', 'rpc_simulator', 'cursor',
+                 ('local_admin', 'registry', 'control', 'projection', 'keycloak', 'cdc',
+                  'gateway', 'rpc_api', 'rpc_action', 'rpc_simulator', 'cursor',
                   'viewer', 'operator', 'administrator')}
     values = runtime_secrets(passwords)
     assert set(values['action-runtime']) == {'CONTROL_DSN', 'REGISTRY_ACTION_TOKEN'}
@@ -51,8 +51,6 @@ def test_rendered_profiles_use_frozen_topics_and_internal_services(profile, repl
     output = subprocess.check_output([BIN / 'kubectl', 'kustomize', INFRA / profile], text=True)
     objects = list(yaml.safe_load_all(output))
     bundle = json.loads((ROOT / 'schemas/v1/bundle.json').read_text())
-    assert all(obj['metadata']['labels']['grid-owner'] in ('Member_1', 'Member_2', 'Member_3', 'Member_4')
-               for obj in objects)
     topics = {obj['spec']['topicName']: obj['spec'] for obj in objects if obj['kind'] == 'KafkaTopic'}
     expected = {'integration-kind.' + topic for topic in bundle['x-events']}
     assert set(topics) == {*expected, '__debezium-heartbeat.integration_kind'}

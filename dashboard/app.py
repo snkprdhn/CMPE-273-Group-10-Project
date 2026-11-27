@@ -1,4 +1,4 @@
-"""Python-only operator console, Member_4. Run with python -m dashboard."""
+"""Python-only operator console. Run with python -m dashboard."""
 import asyncio
 import json
 import math
@@ -150,7 +150,7 @@ def configure(fixture=False, api_url=None):
         app.on_shutdown(demo.http.aclose)
     demo_mode = demo is not None or fixture and os.getenv('GRID_DEMO_MODE') == '1'
     login = None
-    if not fixture and os.environ.get('MEMBER4_AUTH_MODE') != 'mock':
+    if not fixture and os.environ.get('AUTH_MODE') != 'mock':
         from identity.browser import BrowserLogin
         login = BrowserLogin(app)
         app.on_shutdown(login.http.aclose)
@@ -201,8 +201,25 @@ def configure(fixture=False, api_url=None):
             ui.label('Investigation unavailable or forbidden.')
         ui.link('Return to operations', '/')
 
+    # The control room is the landing page of the hosted demo. Locally and in tests '/' stays the console.
+    live_home = os.getenv('DASHBOARD_HOME') == 'live'
+    from dashboard import control_room
+    control_room.register()
+    if live_home:
+        @app.get('/')
+        async def home():
+            return RedirectResponse('/live')
+
     @ui.page('/operator')
-    @ui.page('/')
+    @ui.page('/console')
+    async def index_operator(client, request: Request):
+        return await index(client, request)
+
+    if not live_home:
+        @ui.page('/')
+        async def index_root(client, request: Request):
+            return await index(client, request)
+
     async def index(client, request: Request):
         # One open site for everyone: no public/admin split, no login gate.
         # OIDC login only applies when explicitly configured (non-mock auth).
@@ -249,6 +266,7 @@ def configure(fixture=False, api_url=None):
                 ui.icon('electric_bolt', size='30px', color='primary')
                 ui.label('GridBalance').classes('text-xl font-bold')
                 ui.label('OPERATIONS CONSOLE').classes('eyebrow brand-sub')
+                ui.link('Live control room', '/live').classes('text-sm')
             with ui.row().classes('items-center gap-4'):
                 status = ui.label('Loading').props('role=status aria-live=polite aria-atomic=true')
                 snapshot_label = ui.label('Snapshot pending').classes('muted text-sm')
@@ -264,7 +282,7 @@ def configure(fixture=False, api_url=None):
                 nav_buttons[title] = ui.button(title, color=None, icon=icon, on_click=lambda t=title: navigate(t)).props('flat align=left').classes('py-3')
             ui.separator().classes('my-6')
             ui.label('PUBLIC DEMO' if guest else 'LOCAL DEVELOPMENT' if fixture else 'OPERATIONS').classes('px-4 text-sm')
-            ui.label('Grid reliability · EV fleets' if guest else 'Member_4 · Read models').classes('px-4 text-sm').style('color:#afc5d9')
+            ui.label('Grid reliability · EV fleets' if guest else 'Read models').classes('px-4 text-sm').style('color:#afc5d9')
         with ui.column().classes('console').props('id=main tabindex=-1'):
             with ui.row().classes('w-full justify-between items-start'):
                 with ui.column().classes('gap-1'):
@@ -493,7 +511,7 @@ def configure(fixture=False, api_url=None):
                 return
             with ui.card().classes('w-full'):
                 heading('Run an approved scenario')
-                ui.label('Scenario operations use the backend contract mock until the Member_1 live adapter is connected.').classes('muted')
+                ui.label('Scenario operations use the backend contract mock until the live device adapter is connected.').classes('muted')
                 with ui.row().classes('w-full gap-4'):
                     scenario = ui.select(DEFINITIONS['ScenarioStart']['properties']['scenario']['enum'], value='evening_overload', label='Scenario').classes('w-56')
                     scale = ui.number('Scale', value=1, min=1, max=1000, step=1, precision=0).classes('w-32')

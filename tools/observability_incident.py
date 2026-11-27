@@ -1,6 +1,6 @@
 """Seeded, bounded SQL-lock incident against the real projection HTTP boundary.
 
-Use the Member_4 venv plus observability/requirements.txt. The stack stays in
+Use the projection venv plus observability/requirements.txt. The stack stays in
 local kind; the independent service may run on loopback. No destructive reset.
 """
 import argparse
@@ -23,7 +23,7 @@ import psycopg
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
-from member4.store import Store
+from projection.store import Store
 from observability.evidence import validate_packet
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,17 +82,17 @@ def main():
     dsn = make_conninfo(base, options='-csearch_path='+schema)
     store = Store(dsn)
     store.migrate()
-    fixtures = json.loads((ROOT/'member4/fixtures.json').read_text())
+    fixtures = json.loads((ROOT/'projection/fixtures.json').read_text())
     store.context(fixtures)
     for record in fixtures['events']:
         store.ingest(record['topic'], record['key'], record['event'])
     token = uuid4().hex
     env = dict(os.environ, PROJECTION_DSN=dsn, OTEL_SERVICE_NAME='grid-incident-api',
-        MEMBER4_AUTH_MODE='mock', MEMBER4_MOCK_IDENTITIES=json.dumps({token:{'actor':'incident-viewer','role':'Viewer'}}))
+        AUTH_MODE='mock', MOCK_IDENTITIES=json.dumps({token:{'actor':'incident-viewer','role':'Viewer'}}))
     log_path = directory/'api.jsonl'
     started_at = datetime.now(timezone.utc).isoformat()
     with log_path.open('w') as log:
-        process = subprocess.Popen([sys.executable,'-m','member4','serve','--port',str(args.port)],
+        process = subprocess.Popen([sys.executable,'-m','projection','serve','--port',str(args.port)],
             cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT)
         try:
             url=f'http://127.0.0.1:{args.port}/api/v1/overview'

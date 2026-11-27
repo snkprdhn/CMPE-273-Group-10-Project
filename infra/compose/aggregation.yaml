@@ -1,0 +1,39 @@
+# Standalone aggregation runtime. Reuses only Kafka from the local dependency profile.
+services:
+  jobmanager:
+    image: smart-grid-local-dev/aggregation:v1
+    build:
+      context: ../..
+      dockerfile: aggregation/Dockerfile
+    command: jobmanager
+    ports:
+      - '127.0.0.1:18081:8081'
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        jobmanager.memory.process.size: 768m
+        execution.checkpointing.dir: file:///checkpoints
+        execution.checkpointing.interval: 2s
+        rest.flamegraph.enabled: false
+    volumes:
+      - aggregation-checkpoints:/checkpoints
+    mem_limit: 1g
+  taskmanager:
+    image: smart-grid-local-dev/aggregation:v1
+    command: taskmanager
+    depends_on: [jobmanager]
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 1
+        taskmanager.memory.process.size: 1536m
+        taskmanager.memory.task.off-heap.size: 256m
+        taskmanager.memory.managed.size: 128m
+        heartbeat.interval: 1000
+        heartbeat.timeout: 60000
+        python.executable: /opt/venv/bin/python
+    volumes:
+      - aggregation-checkpoints:/checkpoints
+    mem_limit: 2g
+volumes:
+  aggregation-checkpoints:

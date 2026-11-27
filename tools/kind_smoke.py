@@ -72,7 +72,7 @@ def policy_pod(cluster, namespace, name, labels, port=None):
 def enforce_network(cluster):
     command = ['/opt/venv/bin/python', '-c', SOCKET_CHECK]
     outside, inside, target = 'grid-policy-outside', 'grid-policy-inside', 'grid-policy-target'
-    labels = {'grid-owner': 'Member_4'}
+    labels = {}
     # Match the actual PostgreSQL policies without serving credentials or
     # conflating a database restart with a policy denial.
     with policy_pod(cluster, 'default', outside, labels, 8080), policy_pod(

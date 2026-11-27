@@ -2,7 +2,6 @@
 
 - Status: Accepted, 2026-11-21
 - Authority: Requested contract milestone and authorization to resolve blocking choices
-- Owners: Member_1 topology/Registry; Member_2 events/windows; Member_3 control; Member_4 API/SSE/agent/identity
 - Implements: ADR-007, ADR-008, ADR-009, ADR-014, ADR-016, ADR-021 and ADR-023 at the contract boundary. Runtime acceptance remains separate.
 
 ## Context and decision

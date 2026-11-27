@@ -1,10 +1,10 @@
 # Stream Semantics v1
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_1 telemetry/command and Member_2 standalone aggregation runtimes are implemented; the Member_3 fixture-driven Action domain is implemented under [ADR-028](../decisions/ADR-028-member3-action-domain.md), and the Member_4 standalone projection/API runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); see [local component integration](../implementation/LOCAL_INTEGRATION.md) for the live profile. Member_2 runtime boundaries are in [ADR-027](../decisions/ADR-027-member2-standalone-aggregation.md). See [implementation status](../implementation/IMPLEMENTATION_STATUS.md).
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Devices telemetry/command and Aggregation standalone aggregation runtimes are implemented; the Action fixture-driven Action domain is implemented under [ADR-028](../decisions/ADR-028-action-domain.md), and the Projection standalone projection/API runtime is implemented under [ADR-030](../decisions/ADR-030-projections-api.md); see [local component integration](../decisions/ADR-033-live-component-integration.md) for the live profile. Aggregation runtime boundaries are in [ADR-027](../decisions/ADR-027-standalone-aggregation.md). See [implementation status](../implementation/IMPLEMENTATION_STATUS.md).
 
 ## Status and purpose
 
-This document is the v1 implementation baseline for telemetry and transformer-load behavior. It resolves the cross-member questions that would otherwise block independent work. A change requires review from the affected producer and consumer plus updated schemas and golden fixtures.
+This document is the v1 implementation baseline for telemetry and transformer-load behavior. It resolves the cross-service questions that would otherwise block independent work. A change requires review from the affected producer and consumer plus updated schemas and golden fixtures.
 
 ## Device reporting and identity
 
@@ -19,7 +19,7 @@ This document is the v1 implementation baseline for telemetry and transformer-lo
 - `GOOD` readings participate normally.
 - `ESTIMATED` readings participate but make the load window `PARTIAL` and increment `estimated_device_count`.
 - `INVALID`, malformed, impossible, or excessively future-dated readings go to `grid.telemetry.dlq.v1` with a validation reason.
-- A repeated `event_id` is ignored for aggregation and increments a deduplication metric.
+- A repeated `event_id` is ignored for aggregation and increments a deduplication metric. Identity is remembered for the retained window horizon (120 s behind the transformer watermark, [ADR-037](../decisions/ADR-037-continuous-fleet-and-rolling-retention.md)); a repeat of an older reading is audited on the late topic and never recounted.
 - Missing readings are not converted to zero and are not silently carried forward in v1.
 
 ## Window aggregation
@@ -32,9 +32,9 @@ This document is the v1 implementation baseline for telemetry and transformer-lo
 
 ## Transformer topology and capacity
 
-Member_1 owns a versioned scenario-topology fixture containing transformer ID, capacity, expected device IDs/types, and assignment. Member_2 loads the same version as a ConfigMap or fixture; it does not call Member_1 or Member_3 at runtime for capacity.
+Devices owns a versioned scenario-topology fixture containing transformer ID, capacity, expected device IDs/types, and assignment. Aggregation loads the same version as a ConfigMap or fixture; it does not call Devices or Action at runtime for capacity.
 
-Capacity is fixed for one scenario run. Policy thresholds may change through Member_3's control boundary, but physical transformer capacity changes require a new topology version/run. A missing or non-positive capacity produces a `STALE` load with null utilization and `MISSING_CAPACITY`; the Action Service must not act on it.
+Capacity is fixed for one scenario run. Policy thresholds may change through Action's control boundary, but physical transformer capacity changes require a new topology version/run. A missing or non-positive capacity produces a `STALE` load with null utilization and `MISSING_CAPACITY`; the Action Service must not act on it.
 
 ## Completeness
 
@@ -64,13 +64,13 @@ Load events include `expected_device_count`, `good_device_count`, `estimated_dev
 ## Persistence and ownership
 
 - Flink publishes `grid.transformer-load.v1` and never writes PostgreSQL.
-- Member_3 consumes loads for deterministic control.
-- Member_4 consumes loads into the owned `projection` store for history, REST, SSE, UI, and agent evidence.
-- Member_4 consumes `grid.action.v1`, alerts, and command results rather than reading Member_3's `control` tables.
+- Action consumes loads for deterministic control.
+- Projection consumes loads into the owned `projection` store for history, REST, SSE, UI, and agent evidence.
+- Projection consumes `grid.action.v1`, alerts, and command results rather than reading Action's `control` tables.
 
 ## Health evidence
 
-Member_2 exposes bounded metrics for input/output rate, per-partition lag, watermark delay, late/very-late counts, duplicate count, last successful checkpoint, checkpoint duration/failure, restart count, backpressure, and latest output time. Member_4 maps approved metric enums to these signals; the agent cannot submit arbitrary PromQL.
+Aggregation exposes bounded metrics for input/output rate, per-partition lag, watermark delay, late/very-late counts, duplicate count, last successful checkpoint, checkpoint duration/failure, restart count, backpressure, and latest output time. Projection maps approved metric enums to these signals; the agent cannot submit arbitrary PromQL.
 
 ## Required golden cases
 

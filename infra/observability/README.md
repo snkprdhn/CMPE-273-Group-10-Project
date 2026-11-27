@@ -1,7 +1,5 @@
-# Local observability — Member_1
+# Local observability
 
-Member_1 owns collection/Registry/simulation, Member_2 Kafka/PyFlink,
-Member_3 control/PostgreSQL/Debezium, Member_4 projection/API/UI/identity/Copilot.
 See [ADR-035](../../docs/decisions/ADR-035-local-observability.md) for exact
 trace and metric semantics and [status](../../docs/implementation/IMPLEMENTATION_STATUS.md)
 for executed evidence. All commands run from the repository root.
@@ -55,11 +53,11 @@ no separate log backend. Missing panels are unknown, never zero/healthy.
 
 ## Seeded incident packet
 
-Install the additive SDK lock in the existing independent Member_4 venv, then
+Install the additive SDK lock in the existing independent projection venv, then
 run against a deployed kind PostgreSQL/Collector/Prometheus/Tempo:
 
 ```sh
-.tools/member4-venv/bin/python -m pip install --require-hashes -r observability/requirements.txt
+.tools/projection-venv/bin/python -m pip install --require-hashes -r observability/requirements.txt
 .venv/bin/python -m tools.observability incident \
   --context kind-smart-grid-kind-dev-obs --kubeconfig .tools/kind-dev.kubeconfig --run incident01
 ```

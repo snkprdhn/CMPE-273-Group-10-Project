@@ -1,4 +1,4 @@
-"""Member_1-owned explicit instrumentation; disabled exporters need no SDK.
+"""Explicit instrumentation; disabled exporters need no SDK.
 
 No business data, SQL text, credentials, or arbitrary metric labels live here.
 Each service owns its calls to this package and its independent environment.
@@ -72,6 +72,7 @@ def setup(service):
             resets=meter.create_counter('grid_sse_resets'),
             reconnects=meter.create_counter('grid_sse_reconnects'),
             business=meter.create_gauge('grid_business_kw'),
+            window=meter.create_gauge('grid_window_devices'),
             leadership=meter.create_gauge('grid_leader'),
             api=meter.create_counter('grid_api_requests'),
             outcomes=meter.create_counter('grid_domain_outcomes'),
@@ -213,9 +214,16 @@ def business(event):
     tx = p.get('transformer_id')
     if tx not in os.getenv('GRID_TRANSFORMERS', 'tx-001').split(','):
         return  # Unknown inventory never creates new time series.
-    for field in ('net_load_kw', 'ev_demand_kw', 'target_reduction_kw', 'expected_reduction_kw', 'confirmed_reduction_kw'):
+    for field in ('net_load_kw', 'ev_demand_kw', 'meter_demand_kw', 'solar_generation_kw', 'capacity_kw',
+                  'target_reduction_kw', 'expected_reduction_kw', 'confirmed_reduction_kw'):
         if field in p and p[field] is not None:
             _runtime['business'].set(p[field], {'transformer': tx, 'signal': field})
+    if event['event_type'] == 'transformer.load':
+        # Device coverage of the last window: shows data quality and late arrivals per transformer.
+        for kind, field in (('good', 'good_device_count'), ('estimated', 'estimated_device_count'),
+                            ('missing', 'missing_device_count'), ('late', 'late_event_count')):
+            if p.get(field) is not None:
+                _runtime['window'].set(p[field], {'transformer': tx, 'kind': kind})
 
 
 def leader(held):

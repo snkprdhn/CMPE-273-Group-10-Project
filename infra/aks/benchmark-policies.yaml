@@ -1,5 +1,4 @@
 # AKS benchmark overlay: additional network policies for system health tab.
-# Owned by Member_4 (dashboard) and Member_2 (Flink metrics).
 # Applied only in the AKS overlay — not in local kind.
 ---
 # Allow ui pod to query Prometheus in the observability namespace.
@@ -7,7 +6,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: ui-prometheus-egress
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: ui}}
   policyTypes: [Egress]
@@ -25,7 +24,7 @@ kind: NetworkPolicy
 metadata:
   name: prometheus-ui-ingress
   namespace: observability
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {app.kubernetes.io/name: prometheus}}
   policyTypes: [Ingress]
@@ -35,6 +34,11 @@ spec:
             matchLabels: {kubernetes.io/metadata.name: platform}
           podSelector:
             matchLabels: {grid-app: ui}
+        # Grafana reads every dashboard from Prometheus; without this rule all panels time out.
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: observability}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: grafana}
       ports:
         - {port: 9090, protocol: TCP}
 ---
@@ -44,7 +48,7 @@ kind: NetworkPolicy
 metadata:
   name: grafana-ui-ingress
   namespace: observability
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {app.kubernetes.io/name: grafana}}
   policyTypes: [Ingress]
@@ -62,7 +66,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: ui-flink-rest-egress
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: ui}}
   policyTypes: [Egress]
@@ -78,7 +82,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: aggregation-ui-ingress
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: aggregation}}
   policyTypes: [Ingress]
@@ -88,3 +92,22 @@ spec:
             matchLabels: {grid-app: ui}
       ports:
         - {port: 8081, protocol: TCP}
+---
+# Public Grafana at /grafana/: the edge proxy may reach Grafana's container port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana-edge-ingress
+  namespace: observability
+  labels: {grid-stage: policy}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: grafana}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: platform}
+          podSelector:
+            matchLabels: {grid-app: review-edge}
+      ports:
+        - {port: 3000, protocol: TCP}

@@ -11,8 +11,8 @@ were corrected and checked separately; a new concurrent telemetry run with those
 fixes remains unverified. This report establishes bounded measurements, not a
 maximum sustainable rate, production SLO or all scalability-plan acceptance.
 
-Member_1 owns scenarios/measurement/Registry/observability; Member_2 Kafka/PyFlink;
-Member_3 control/PostgreSQL/Debezium; Member_4 projection/API/SSE/UI/identity/Copilot.
+Devices owns scenarios/measurement/Registry/observability; Aggregation Kafka/PyFlink;
+Action control/PostgreSQL/Debezium; Projection projection/API/SSE/UI/identity/Copilot.
 All observations came from one computer, local free infrastructure, simulated
 devices and deterministic mock configuration. No cloud/model-provider calls.
 
@@ -207,10 +207,10 @@ make KIND_NAME=smart-grid-kind-dev-load01 kind-create kind-install kind-deploy
 make KIND_NAME=smart-grid-kind-dev-load01 kind-create
 .venv/bin/python -c "from tools.kind_local import Cluster; Cluster('dev','smart-grid-kind-dev-load01').apps()"
 .venv/bin/python -m tools.load_preflight --cluster smart-grid-kind-dev-load01 --output .tools/load-test/preflight-large.json
-.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load01
-.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load02
-.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run http-renewal --http-only
-.tools/member3-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run http-renewal-fixed --http-only
+.tools/action-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load01
+.tools/action-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run load02
+.tools/action-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run http-renewal --http-only
+.tools/action-venv/bin/python -m tools.load_test --cluster smart-grid-kind-dev-load01 --run http-renewal-fixed --http-only
 ```
 
 The savepoint completed at
@@ -233,7 +233,7 @@ Inspect retained evidence without printing credentials:
 .venv/bin/python -m json.tool .tools/load-test/http-renewal-fixed/report.json
 ```
 
-For a new **concurrent** experiment, follow LOAD_TEST_PLAN.md with a fresh dedicated
+For a new **concurrent** experiment, use the method in this report with a fresh dedicated
 cluster and a new output directory. Do not delete the completed Job/control/edge
 history to manufacture a rerun. The final revised concurrent runner has not yet
 been demonstrated end to end. requirements-load.txt pins the resolved macOS
@@ -252,7 +252,7 @@ not force-closed. Authentication and client bugs are distinguished from service
 saturation. Next: a fresh concurrent run of the corrected runner, plus producer
 pacing profiling before raising the offered rate or claiming consumer capacity.
 
-Final local checks: `.tools/member3-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_integration_evidence.py tests/test_load_test.py tests/test_load_preflight.py`
+Final local checks: `.tools/action-venv/bin/python -m pytest -q tests/test_kind_local.py tests/test_integration_evidence.py tests/test_load_test.py tests/test_load_preflight.py`
 reported 15 passed, 2 skipped. Skips are existing opt-in kind fixture checks in that
 environment, not load successes. `git diff --check` passed. No contracts changed.
 
@@ -265,7 +265,7 @@ restored the saved Cpus=4/MemoryMiB=6144/KubernetesEnabled=false settings, then
 stopped again with `docker stop --timeout 10` before restoring the standalone
 stack. Executed `bash .tools/load-test/restore.sh`: exit 0. It restores from the
 newly captured canonical savepoint rather than an older checkpoint. Flink reported
-`member2-review02` RUNNING as `c0a248ed31c5a5f55b4d5f5dd83d9d1f`.
+`aggregation-review02` RUNNING as `c0a248ed31c5a5f55b4d5f5dd83d9d1f`.
 `restored-allocation.txt` confirms **4 CPUs / 6,210,510,848 usable bytes**;
 `standalone-restored.log` retains the actual result. The original standalone
 containers and `smart-grid-dev` node are restored; the load-test node is stopped.

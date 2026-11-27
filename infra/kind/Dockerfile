@@ -7,19 +7,19 @@ RUN /opt/venv/bin/python -m pip install --no-cache-dir --only-binary=:all: --req
 COPY schemas/v1/bundle.json schemas/v1/openapi.json /app/schemas/v1/
 
 FROM base AS action
-COPY member3 /app/member3
-COPY member1/requirements-registry.txt /tmp/registry.txt
-RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r member3/requirements.txt -r /tmp/registry.txt
+COPY action /app/action
+COPY devices/requirements-registry.txt /tmp/registry.txt
+RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r action/requirements.txt -r /tmp/registry.txt
 COPY .tools/generated/registry_pb2.py .tools/generated/registry_pb2_grpc.py /app/.tools/generated/
 USER 10001:10001
-ENTRYPOINT ["/opt/venv/bin/python", "-m", "member3.worker"]
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "action.worker"]
 
 FROM base AS api
-COPY member4 /app/member4
+COPY projection /app/projection
 COPY identity /app/identity
-RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r member4/requirements.txt
+RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r projection/requirements.txt
 USER 10001:10001
-ENTRYPOINT ["/opt/venv/bin/python", "-m", "member4"]
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "projection"]
 
 FROM base AS ui
 COPY dashboard /app/dashboard
@@ -31,8 +31,8 @@ ENTRYPOINT ["/opt/venv/bin/python", "-m", "dashboard"]
 # Bootstrap and smoke are integration clients, not application dependencies.
 FROM action AS acceptance
 USER root
-COPY member1 /app/member1
-COPY member4 /app/member4
+COPY devices /app/devices
+COPY projection /app/projection
 COPY tools/integration.py /app/tools/integration.py
 COPY tools/kind_workload.py /app/tools/kind_workload.py
 USER 10001:10001
@@ -44,3 +44,7 @@ COPY identity /app/identity
 RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r copilot/requirements.txt
 USER 10001:10001
 ENTRYPOINT ["/opt/venv/bin/python", "-m", "copilot"]
+
+# Continuous synthetic fleet. Same dependencies and user as the acceptance client.
+FROM acceptance AS fleet
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "devices.fleet"]

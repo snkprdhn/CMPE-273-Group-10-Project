@@ -3,13 +3,13 @@ import pickle
 from datetime import datetime, timezone
 from pathlib import Path
 
-from member2.aggregation import Aggregator
-from member2.tracing import remember, output_context
+from aggregation.engine import Aggregator
+from aggregation.tracing import remember, output_context
 
 
 def test_context_checkpoints_selected_reading_and_ignores_invalid_input():
-    topology = json.loads(Path('member1/fixtures/topology.json').read_text())
-    from member1.simulator import scenario
+    topology = json.loads(Path('devices/fixtures/topology.json').read_text())
+    from devices.simulator import scenario
     now = datetime(2026,11,22,18,tzinfo=timezone.utc)
     engine = Aggregator(topology)
     for event in scenario(273, now, steps=21):

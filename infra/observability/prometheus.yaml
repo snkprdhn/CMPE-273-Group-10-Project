@@ -1,6 +1,5 @@
-# Member_1 stack; Member_4 product SLO views. Laptop-sized, 24-hour retention.
+# Metrics stack and product SLO views. Laptop-sized, 24-hour retention.
 fullnameOverride: monitoring
-commonLabels: {grid-owner: Member_1}
 alertmanager: {enabled: false}
 nodeExporter: {enabled: false}
 defaultRules: {create: false}
@@ -19,12 +18,10 @@ prometheusOperator:
   admissionWebhooks: {enabled: false}
   tls: {enabled: false}
 kube-state-metrics:
-  podLabels: {grid-owner: Member_1}
   resources:
     requests: {cpu: 20m, memory: 32Mi}
     limits: {cpu: 200m, memory: 128Mi}
 grafana:
-  podLabels: {grid-owner: Member_1}
   image: {repository: grafana/grafana, tag: '11.6.0'}
   defaultDashboardsEnabled: false
   testFramework: {enabled: false}
@@ -56,10 +53,15 @@ grafana:
     plugins: {preinstall_disabled: true}
     analytics: {reporting_enabled: false, check_for_updates: false, check_for_plugin_updates: false}
     news: {news_feed_enabled: false}
-    auth.anonymous: {enabled: false}
+    # Hosted demo (overridden per host by tools.aks_demo): served under /grafana/, readable without a login.
+    # Anonymous visitors are Viewers: they can open dashboards and Explore, and cannot edit anything.
+    server: {serve_from_sub_path: true, root_url: 'http://localhost:3000/grafana/'}
+    auth.anonymous: {enabled: true, org_name: Main Org., org_role: Viewer}
+    security: {allow_embedding: true, cookie_samesite: lax}
+    users: {viewers_can_edit: false, allow_sign_up: false}
+    dashboards: {default_home_dashboard_path: /tmp/dashboards/grid-control-room.json}
 prometheus:
   prometheusSpec:
-    podMetadata: {labels: {grid-owner: Member_1}}
     image: {registry: quay.io, repository: prometheus/prometheus, tag: v3.2.1}
     retention: 24h
     retentionSize: 1GB

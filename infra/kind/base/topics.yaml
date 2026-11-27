@@ -2,7 +2,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: telemetry
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.telemetry.v1
   partitions: 3
@@ -15,7 +15,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: transformer-load
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.transformer-load.v1
   partitions: 3
@@ -28,7 +28,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: alert
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.alert.v1
   partitions: 3
@@ -41,7 +41,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: action
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.action.v1
   partitions: 3
@@ -54,7 +54,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: charger-command
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.charger-command.v1
   partitions: 3
@@ -67,7 +67,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: command-result
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.command-result.v1
   partitions: 3
@@ -80,7 +80,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: telemetry-late
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.telemetry.late.v1
   partitions: 3
@@ -93,7 +93,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: telemetry-dlq
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: integration-kind.grid.telemetry.dlq.v1
   partitions: 3
@@ -106,7 +106,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: cdc-heartbeat
-  labels: {strimzi.io/cluster: grid, grid-owner: Member_2, grid-stage: topics}
+  labels: {strimzi.io/cluster: grid, grid-stage: topics}
 spec:
   topicName: __debezium-heartbeat.integration_kind
   partitions: 1

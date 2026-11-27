@@ -13,17 +13,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - component: member3
-            lock: member3/requirements.txt
-            tests: tests/member3
-          - component: member4
-            lock: member4/requirements.txt
-            tests: tests/member4 tests/identity/test_auth.py tests/identity/test_browser.py
+          - component: action
+            lock: action/requirements.txt
+            tests: tests/action
+          - component: projection
+            lock: projection/requirements.txt
+            tests: tests/projection tests/identity/test_auth.py tests/identity/test_browser.py
           - component: copilot
             lock: copilot/requirements.txt
             tests: tests/copilot
           - component: observability
-            lock: member2/requirements-test.txt
+            lock: aggregation/requirements-test.txt
             extra_lock: observability/requirements.txt
             tests: tests/observability
     steps:
@@ -45,23 +45,23 @@ jobs:
           .tools/component/bin/python -m pip install --only-binary=:all: --require-hashes "${requirements[@]}"
           .tools/component/bin/python -m pip check
       - name: Generate the gRPC bindings
-        if: matrix.component == 'member3' || matrix.component == 'member4'
+        if: matrix.component == 'action' || matrix.component == 'projection'
         run: |
           .venv/bin/python -m venv .tools/contracts-venv
           .tools/contracts-venv/bin/python -m pip install --only-binary=:all: --require-hashes -r requirements-contracts.txt
           make bindings
       - name: Start the local Kafka and PostgreSQL fixture dependencies
-        if: matrix.component == 'member3' || matrix.component == 'member4'
+        if: matrix.component == 'action' || matrix.component == 'projection'
         run: make infra-up
       - name: Test the isolated component
         env:
           TESTS: ${{ matrix.tests }}
-          MEMBER3_TEST_DSN: postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control
-          MEMBER4_TEST_DSN: postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection
-          MEMBER4_TEST_KAFKA: 127.0.0.1:19092
+          ACTION_TEST_DSN: postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control
+          PROJECTION_TEST_DSN: postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection
+          PROJECTION_TEST_KAFKA: 127.0.0.1:19092
         run: .tools/component/bin/python -m pytest -q $TESTS
       - name: Clean up disposable dependencies
-        if: always() && (matrix.component == 'member3' || matrix.component == 'member4')
+        if: always() && (matrix.component == 'action' || matrix.component == 'projection')
         run: make infra-reset CONFIRM=smart-grid-local-dev
 
   dashboard:

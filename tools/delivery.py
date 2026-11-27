@@ -43,7 +43,7 @@ def _flink_recovery(cluster):
             return json.load(response)
 
     job = next((item for item in query('overview')['jobs']
-                if item['name'] == 'member2-kind' and item['state'] == 'RUNNING'), None)
+                if item['name'] == 'aggregation-kind' and item['state'] == 'RUNNING'), None)
     if job is None:
         raise RuntimeError('The operator-managed aggregation job is not running')
     job_id = job['jid']

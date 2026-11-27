@@ -1,20 +1,20 @@
 # HTTP and Live-Update API Contracts
 
-Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Member_4 standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-member4-projections-api.md); local OIDC is implemented under [ADR-032](../decisions/ADR-032-member4-local-identity.md); kind deployment and observability are implemented; investigations and live mutation adapters remain later gates.
+Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. Projection standalone operations runtime is implemented under [ADR-030](../decisions/ADR-030-projections-api.md); local OIDC is implemented under [ADR-032](../decisions/ADR-032-local-identity.md); kind deployment and observability are implemented; investigations and live mutation adapters remain later gates.
 
 Base path: `/api/v1`. JSON uses `snake_case`; timestamps are UTC ISO 8601. List endpoints use `limit` and opaque `cursor`. Errors use `{ "error": { "code", "message", "request_id", "details" } }`.
 
-The API runs as multiple Kubernetes replicas behind a Service. It reads and writes only its `projection` logical store. Configuration changes use optimistic versions and a typed internal Action control endpoint owned by Member_3 rather than direct access to `control` tables. Scenario operations similarly call the Member_1-owned scenario boundary. Responses include data freshness where it affects operator interpretation, and trace context plus authenticated role are preserved across internal calls.
+The API runs as multiple Kubernetes replicas behind a Service. It reads and writes only its `projection` logical store. Configuration changes use optimistic versions and a typed internal Action control endpoint owned by Action rather than direct access to `control` tables. Scenario operations similarly call the Devices-owned scenario boundary. Responses include data freshness where it affects operator interpretation, and trace context plus authenticated role are preserved across internal calls.
 
 The [standalone dashboard](../../dashboard/README.md) consumes this boundary using
 schema-checked REST snapshots and SSE invalidation. It introduces no v1 shape
-changes. See [ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) for UI
+changes. See [ADR-031](../decisions/ADR-031-operator-dashboard.md) for UI
 limits when the API cannot provide full history, metrics or investigations.
 
 ## Endpoint contract
 
 All routes below except investigation routes are implemented in the standalone
-[Member_4 backend](../../member4/README.md), with OIDC by default, optional explicit mock identity, and
+[Projection backend](../../projection/README.md), with OIDC by default, optional explicit mock identity, and
 scenario/policy contract-mock adapters. Investigation routes remain planned.
 
 | Method and path | Role | Purpose |
@@ -52,7 +52,7 @@ are bound to the original query and expire after five minutes (409 on mismatch
 or expiry). Replay verifies continuity through the high-water mark, including
 interior/tail gaps; initial store failure returns 503 before streaming begins.
 SSE payload freshness is as of publication; refresh REST on reconnect
-and periodically to age data during event silence. See [recovery protocol](../../member4/README.md).
+and periodically to age data during event silence. See [recovery protocol](../../projection/README.md).
 
 Event types are `transformer.updated`, `alert.opened`, `alert.updated`, `action.updated`, `device.updated`, `scenario.updated`, and `system.health`. Each message includes an event cursor, entity ID, version, event time, and payload. Clients reconnect with `Last-Event-ID`; if the cursor cannot be replayed, the server emits `snapshot.required` and the client reloads REST state.
 
@@ -70,11 +70,11 @@ The public API authenticates the user and forwards bounded commands rather than 
 
 | Internal operation | Owner | Required fields | Standalone replacement |
 |---|---|---|---|
-| `PATCH /internal/v1/control/transformers/{id}/policy` | Member_3 Action Service | Expected version, validated thresholds, actor/role, request ID, trace context | Contract mock returning success/conflict/unavailable |
-| `POST /internal/v1/scenario-runs` | Member_1 Scenario Service | Approved scenario, scale, seed, duration, actor/role, request ID | Contract mock returning accepted/conflict |
-| `POST /internal/v1/scenario-runs/{id}/stop` | Member_1 Scenario Service | Run ID, actor/role, request ID | Contract mock returning stopped/not found |
+| `PATCH /internal/v1/control/transformers/{id}/policy` | Action Action Service | Expected version, validated thresholds, actor/role, request ID, trace context | Contract mock returning success/conflict/unavailable |
+| `POST /internal/v1/scenario-runs` | Devices Scenario Service | Approved scenario, scale, seed, duration, actor/role, request ID | Contract mock returning accepted/conflict |
+| `POST /internal/v1/scenario-runs/{id}/stop` | Devices Scenario Service | Run ID, actor/role, request ID | Contract mock returning stopped/not found |
 
-Internal calls have fixed OpenAPI examples, deadlines, idempotency, service identity, and error mapping. Member_4 can test every public path against mocks; Members 1 and 3 can test their boundaries without the UI/API.
+Internal calls have fixed OpenAPI examples, deadlines, idempotency, service identity, and error mapping. The API can test every public path against mocks; the device and Action services can test their boundaries without the UI or API.
 
 ## Status codes
 

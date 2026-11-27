@@ -1,7 +1,5 @@
-# Member_1: single binary, PVC, finite retention, no usage reporting.
+# Single binary, PVC, finite retention, no usage reporting.
 fullnameOverride: tempo
-labels: {grid-owner: Member_1}
-podLabels: {grid-owner: Member_1}
 tempo:
   repository: grafana/tempo
   tag: '2.7.1'

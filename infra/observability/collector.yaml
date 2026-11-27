@@ -1,9 +1,8 @@
-# Member_1: no OTel Operator, external endpoints, or log backend.
+# No OTel Operator, external endpoints, or log backend.
 fullnameOverride: otel
 mode: deployment
 image: {repository: otel/opentelemetry-collector-contrib, tag: '0.120.0'}
 command: {name: otelcol-contrib}
-podLabels: {grid-owner: Member_1}
 resources:
   requests: {cpu: 50m, memory: 64Mi}
   limits: {cpu: 500m, memory: 192Mi}

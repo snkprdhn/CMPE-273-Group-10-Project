@@ -1,7 +1,7 @@
 # Agent Tool and Evidence Contracts
 
 Executable v1 definitions and fixtures are in [schemas](../../schemas/README.md). [ADR-025](../decisions/ADR-025-executable-contract-freeze.md) resolves exact IDs, defaults, compatibility, deadlines and auth rules. The local identity slice implements the Operator/allowlist guard in
-`identity.auth.authorize_tool` under [ADR-032](../decisions/ADR-032-member4-local-identity.md).
+`identity.auth.authorize_tool` under [ADR-032](../decisions/ADR-032-local-identity.md).
 Scoped dispatch, bounded execution and deterministic Copilot are implemented under
 [ADR-036](../decisions/ADR-036-grid-incident-investigator.md). The gateway revalidates
 the caller's OIDC token; separate workload mTLS identity remains deferred.

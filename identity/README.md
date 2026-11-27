@@ -1,23 +1,21 @@
-# Local Keycloak/OIDC — Member_4
+# Local Keycloak/OIDC
 
-Member_4 owns identity/API/UI/Copilot. Member_1 retains simulation/Registry/
-observability, Member_2 Kafka/PyFlink, Member_3 control/PostgreSQL/Debezium.
 This is the independent local identity slice, using Docker Desktop dependencies;
 full kind workload/network-policy packaging remains the platform integration gate.
 No host JVM, JavaScript, cloud, external model or paid service is needed.
 
 From the repository root, install the updated component hash locks into their
-existing independent environments (see Member_4/dashboard runbooks). Start the
+existing independent environments (see the projection and dashboard READMEs). Start the
 existing PostgreSQL dependency using `make infra-up`, then:
 
 ```sh
-.tools/member4-venv/bin/python -m identity.bootstrap
+.tools/projection-venv/bin/python -m identity.bootstrap
 docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml up -d --build --no-deps keycloak
 curl -fsS http://127.0.0.1:18080/realms/smart-grid/.well-known/openid-configuration
 export PROJECTION_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection
-.tools/member4-venv/bin/python -m member4 migrate
-.tools/member4-venv/bin/python -m member4 replay
-.tools/member4-venv/bin/python -m member4 serve
+.tools/projection-venv/bin/python -m projection migrate
+.tools/projection-venv/bin/python -m projection replay
+.tools/projection-venv/bin/python -m projection serve
 ```
 
 In a second terminal:
@@ -32,7 +30,7 @@ Open [the console](http://127.0.0.1:18086). Usernames are `viewer`, `operator`,
 random synthetic local accounts, with no real email or self-registration.
 The independent fixture UI (`make dashboard-demo`) keeps its explicit mock mode.
 For legacy configured tokens, **both** API and UI require
-`MEMBER4_AUTH_MODE=mock`, plus their documented mock token configuration.
+`AUTH_MODE=mock`, plus their documented mock token configuration.
 The normal runtime ignores mock token variables. Never expose mock mode publicly.
 
 The issuer is exactly `http://127.0.0.1:18080/realms/smart-grid`, public client
@@ -80,7 +78,7 @@ recreate **only identity state**, stop Keycloak, reset its database and rebuild:
 
 ```sh
 docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml stop keycloak
-.tools/member4-venv/bin/python -m identity.bootstrap --reset
+.tools/projection-venv/bin/python -m identity.bootstrap --reset
 docker compose -f infra/compose/compose.yaml -f infra/identity/compose.yaml up -d --build --no-deps keycloak
 ```
 
@@ -93,15 +91,15 @@ use `down -v` or `--remove-orphans` against the shared development project.
 Verification commands (live test owns free UI port 18086 and cleans up):
 
 ```sh
-.tools/member4-venv/bin/python -m pytest -q tests/identity/test_auth.py tests/identity/test_browser.py
-MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_oidc.py
+.tools/projection-venv/bin/python -m pytest -q tests/identity/test_auth.py tests/identity/test_browser.py
+PROJECTION_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/projection-venv/bin/python -m pytest -q tests/projection/test_oidc.py
 IDENTITY_LIVE=1 PLAYWRIGHT_BROWSERS_PATH=.tools/playwright .tools/dashboard-test-venv/bin/python -m pytest -q tests/identity/test_live.py
 make dashboard-test
 make contracts BASE_REF=HEAD
 ```
 
 Real Chromium acceptance covers all three roles, login/logout, real refresh,
-read-only tool role guards, then invokes Member_4's direct API tests using transient
+read-only tool role guards, then invokes the projection API tests using transient
 Keycloak-issued tokens and disposable PostgreSQL schemas. Tokens are deleted in
 `finally`; test artifacts stay ignored. It requires both component environments,
 Chromium and the local Keycloak/PostgreSQL dependencies. The separate token flow

@@ -2,7 +2,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: grid-ssd
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 provisioner: disk.csi.azure.com
 parameters: {skuName: StandardSSD_LRS}
 reclaimPolicy: Retain
@@ -13,7 +13,7 @@ kind: CiliumNetworkPolicy
 metadata:
   name: lease-and-topic-api
   namespace: platform
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   endpointSelector:
     matchExpressions:
@@ -30,7 +30,7 @@ kind: ConfigMap
 metadata:
   name: review-caddy
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: edge}
+  labels: {grid-stage: edge}
 data:
   Caddyfile: |
     {
@@ -45,7 +45,13 @@ data:
       header Strict-Transport-Security "max-age=86400"
       @private path /admin* /api/* /docs* /redoc* /metrics* /openapi.json
       respond @private 404
-      reverse_proxy ui:18086
+      # Grafana is a separate observability site under /grafana/, readable without a login.
+      handle /grafana* {
+        reverse_proxy monitoring-grafana.observability.svc.cluster.local:80
+      }
+      handle {
+        reverse_proxy ui:18086
+      }
     }
 ---
 apiVersion: v1
@@ -53,7 +59,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: review-tls
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: edge}
+  labels: {grid-stage: edge}
 spec:
   storageClassName: grid-ssd
   accessModes: [ReadWriteOnce]
@@ -65,7 +71,7 @@ kind: Deployment
 metadata:
   name: review-edge
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: edge}
+  labels: {grid-stage: edge}
 spec:
   replicas: 1
   strategy: {type: Recreate}
@@ -73,7 +79,7 @@ spec:
     matchLabels: {grid-app: review-edge}
   template:
     metadata:
-      labels: {grid-app: review-edge, grid-owner: Member_4}
+      labels: {grid-app: review-edge}
     spec:
       automountServiceAccountToken: false
       securityContext: {runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
@@ -109,7 +115,7 @@ kind: Service
 metadata:
   name: review-edge
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: edge}
+  labels: {grid-stage: edge}
   annotations:
     service.beta.kubernetes.io/azure-pip-name: review-ingress
 spec:
@@ -125,7 +131,7 @@ kind: NetworkPolicy
 metadata:
   name: review-edge
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: review-edge}}
   policyTypes: [Ingress, Egress]
@@ -134,6 +140,8 @@ spec:
   egress:
     - to: [{podSelector: {matchLabels: {grid-app: ui}}}]
       ports: [{port: 18086, protocol: TCP}]
+    - to: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}, podSelector: {matchLabels: {app.kubernetes.io/name: grafana}}}]
+      ports: [{port: 3000, protocol: TCP}]
     - to: [{ipBlock: {cidr: 0.0.0.0/0}}]
       ports: [{port: 443, protocol: TCP}]
 ---
@@ -142,7 +150,7 @@ kind: NetworkPolicy
 metadata:
   name: review-ui-ingress
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: ui}}
   policyTypes: [Ingress]

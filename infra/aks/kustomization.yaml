@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: [../hosted, edge.yaml, benchmark-policies.yaml]
+resources: [../hosted, edge.yaml, benchmark-policies.yaml, fleet.yaml]
 patches:
   # ── Storage: use AKS Standard SSD for Kafka and checkpoint PVCs ──────────────
   - target: {kind: KafkaNodePool, name: brokers}
@@ -51,14 +51,14 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: MEMBER4_AUTH_MODE
+          name: AUTH_MODE
           value: mock
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: MEMBER4_MOCK_IDENTITIES
+          name: MOCK_IDENTITIES
           valueFrom:
-            secretKeyRef: {name: mock-identity-runtime, key: MEMBER4_MOCK_IDENTITIES}
+            secretKeyRef: {name: mock-identity-runtime, key: MOCK_IDENTITIES}
 
   # ── Task 2: UI — mock auth mode, system health env vars, remove demo secret ───
   - target: {kind: Deployment, name: ui}
@@ -66,7 +66,7 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: MEMBER4_AUTH_MODE
+          name: AUTH_MODE
           value: mock
       - op: add
         path: /spec/template/spec/containers/0/env/-
@@ -78,7 +78,7 @@ patches:
         path: /spec/template/spec/containers/0/env/-
         value:
           name: PROMETHEUS_URL
-          value: http://prometheus-stack-kube-prom-prometheus.observability:9090
+          value: http://monitoring-prometheus.observability:9090
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
@@ -88,63 +88,84 @@ patches:
         path: /spec/template/spec/containers/0/env/-
         value:
           name: GRAFANA_URL
-          value: http://prometheus-stack-grafana.observability:80
+          value: http://monitoring-grafana.observability:80
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DASHBOARD_HOME, value: live}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: GRAFANA_PUBLIC_PATH, value: /grafana/}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: FLEET_API_URL, value: "http://api:18084/api/v1"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: FLEET_CONTROL_URL, value: "http://fleet:8003"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: FLEET_CONTROL_TOKEN
+          valueFrom:
+            secretKeyRef: {name: fleet-control, key: token}
 
-  # ── Task 3: Flink — parallelism 3, RocksDB, 5s checkpoints, DS2_v2 node ──────
+  # ── Flink: keyed by transformer, bounded state, two subtasks on the dedicated node ─────────
+  # JobManager and TaskManager share the Flink node (taint grid-role=flink): the ReadWriteOnce
+  # checkpoint disk can attach to one node only.
   - target: {kind: FlinkDeployment, name: aggregation}
     patch: |-
       - op: replace
         path: /spec/job/parallelism
-        value: 3
-      - op: add
-        path: /spec/flinkConfiguration/state.backend.type
-        value: rocksdb
-      - op: add
-        path: /spec/flinkConfiguration/state.backend.incremental
-        value: "true"
-      - op: add
-        path: /spec/flinkConfiguration/state.backend.rocksdb.memory.managed
-        value: "true"
+        value: 2
       - op: replace
         path: /spec/flinkConfiguration/execution.checkpointing.dir
         value: file:///checkpoints/integration-kind
       - op: add
         path: /spec/flinkConfiguration/execution.checkpointing.interval
-        value: "5000"
+        value: "2000"
       - op: replace
         path: /spec/flinkConfiguration/taskmanager.numberOfTaskSlots
-        value: "3"
+        value: "2"
+      - op: replace
+        path: /spec/flinkConfiguration/taskmanager.memory.managed.size
+        value: 384m
       - op: replace
         path: /spec/taskManager/resource/cpu
-        value: 1.0
+        value: 1.3
       - op: replace
         path: /spec/taskManager/resource/memory
-        value: 2560m
+        value: 3200m
       - op: replace
         path: /spec/jobManager/resource/cpu
-        value: 0.3
+        value: 0.25
       - op: replace
         path: /spec/jobManager/resource/memory
-        value: 1024m
+        value: 896m
+      - op: add
+        path: /spec/podTemplate/spec/containers/0/env/-
+        value:
+          name: GRID_TRANSFORMERS
+          value: tx-001,tx-002,tx-003,tx-004,tx-005,tx-006,tx-007,tx-008,tx-009,tx-010,tx-011,tx-012,tx-013,tx-014,tx-015,tx-016,tx-017,tx-018,tx-019,tx-020,tx-021,tx-022,tx-023,tx-024,tx-025
       - op: replace
         path: /spec/job/args
         value:
           - -py
-          - /app/member2/job.py
+          - /app/aggregation/job.py
           - --run
-          - aksbenchmark01
+          - fleet-v1
           - --bootstrap
           - grid-kafka-bootstrap:9092
           - --prefix
           - integration-kind.
           - --topology
-          - /app/member2/integration-topology.json
+          - /app/aggregation/fleet-topology.json
           - --checkpoint
           - file:///checkpoints/integration-kind
           - --checkpoint-ms
-          - "5000"
-          - --max-events
-          - "1100000"
+          - "2000"
+          - --parallelism
+          - "2"
+          - --startup
+          - group-offsets
       - op: add
         path: /spec/podTemplate/spec/tolerations
         value:
@@ -162,6 +183,104 @@ patches:
                     - key: grid-role
                       operator: In
                       values: [flink]
+
+  # The broker volume grows to 8 GiB so the telemetry window is three hours rather than the size cap.
+  - target: {kind: ConfigMap, name: telemetry-runtime}
+    patch: |-
+      - op: replace
+        path: /data/GRID_TRANSFORMERS
+        value: tx-001,tx-002,tx-003,tx-004,tx-005,tx-006,tx-007,tx-008,tx-009,tx-010,tx-011,tx-012,tx-013,tx-014,tx-015,tx-016,tx-017,tx-018,tx-019,tx-020,tx-021,tx-022,tx-023,tx-024,tx-025
+  - target: {kind: KafkaNodePool, name: brokers}
+    patch: |-
+      - op: replace
+        path: /spec/storage/volumes/0/size
+        value: 8Gi
+      # 2026-11-27: a 384m heap hit OutOfMemoryError (transactional producer state from Flink's
+      # 2 s checkpoints plus ~3 h of segments). The JVM hung instead of exiting, so Kubernetes
+      # never restarted it. Larger heap, and exit on OOM so the container restarts.
+      - op: replace
+        path: /spec/resources/limits/memory
+        value: 1536Mi
+      - op: replace
+        path: /spec/resources/requests/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/jvmOptions/-Xms
+        value: 768m
+      - op: replace
+        path: /spec/jvmOptions/-Xmx
+        value: 768m
+      - op: add
+        path: /spec/jvmOptions/-XX
+        value: {ExitOnOutOfMemoryError: "true"}
+
+  # ── Rolling data: three hours, with a size cap per partition as a backstop ───────────────
+  # Kafka only deletes closed segments, so segments are small and roll every ten minutes.
+  - target: {kind: KafkaTopic}
+    patch: |-
+      - op: add
+        path: /spec/config/segment.ms
+        value: 600000
+      - op: add
+        path: /spec/config/segment.bytes
+        value: 8388608
+      - op: add
+        path: /spec/config/retention.bytes
+        value: 25165824
+  - target: {kind: KafkaTopic, name: telemetry}
+    patch: |-
+      - op: replace
+        path: /spec/config/segment.bytes
+        value: 33554432
+      - op: replace
+        path: /spec/config/retention.bytes
+        value: 1073741824
+  - target: {kind: KafkaTopic, name: transformer-load}
+    patch: |-
+      - op: replace
+        path: /spec/config/segment.bytes
+        value: 16777216
+      - op: replace
+        path: /spec/config/retention.bytes
+        value: 134217728
+
+  # ── Control scope: the closed loop manages five hero transformers; the rest are observed only ──
+  - target: {kind: Deployment, name: action}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: CONTROL_TRANSFORMERS, value: "tx-001,tx-002,tx-003,tx-004,tx-005"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: ACTION_AUTO_COMPENSATE, value: "1"}
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "1"
+  # The projection stores only managed inventory and keeps a rolling 30 minute window of loads.
+  - target: {kind: Deployment, name: projection}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: PROJECTION_SCOPE, value: context}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: PROJECTION_WINDOW_MINUTES, value: "15"}
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "1"
+
+  # Windows close ten seconds late and the alert for a window trails its load, so a 15 s freshness limit flickers.
+  - target: {kind: Deployment, name: 'api|projection'}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: PROJECTION_FRESH_SECONDS, value: "30"}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: PROJECTION_ALERT_GRACE_SECONDS, value: "8"}
 
   # ── Task 2: Remove keycloak from postgres-ingress allowed sources ─────────────
   # Keycloak is scaled to 0; its NetworkPolicy allowance is also removed to keep

@@ -10,51 +10,41 @@
 | ADR-004 | Main UI | NiceGUI Python; Locust and Playwright Python tests | [Accepted](ADR-004-python-dashboard.md) |
 | ADR-005 | Live updates | API SSE; NiceGUI browser transport | Baseline accepted in [ADR-004](ADR-004-python-dashboard.md) |
 | ADR-006 | Target runtime | Local kind; Docker Desktop (education); cloud deferred | [Accepted](ADR-006-local-kind.md) |
-| ADR-007 | Command guarantee | At-least-once delivery with idempotent effects | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
-| ADR-008 | Internal RPC | gRPC/Protobuf Device Registry with deadlines | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
-| ADR-009 | Control coordination | Kubernetes Lease plus fencing epoch | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
-| ADR-010 | Atomic event publication | Transactional outbox and idempotent inbox | Proposed |
-| ADR-011 | Database topology | One durable PostgreSQL primary with isolated logical stores and least-privilege roles | Proposed |
+| ADR-007 | Command guarantee | At-least-once delivery with idempotent effects | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
+| ADR-008 | Internal RPC | gRPC/Protobuf Device Registry with deadlines | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
+| ADR-009 | Control coordination | Kubernetes Lease plus fencing epoch | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
+| ADR-010 | Atomic event publication | Transactional outbox and idempotent inbox | Accepted, implemented |
+| ADR-011 | Database topology | One durable PostgreSQL primary with isolated logical stores and least-privilege roles | Accepted, implemented |
 | ADR-012 | Observability | OpenTelemetry Collector with Prometheus, Grafana, traces, and structured logs | Baseline accepted in [ADR-024](ADR-024-pinned-local-baseline.md) |
-| ADR-013 | Logging | Structured Kubernetes logs with trace/correlation fields; no separate log backend required | Proposed |
-| ADR-014 | Agentic feature | Required bounded Grid Incident Investigator; read-only tools and no control-path dependency | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
+| ADR-013 | Logging | Structured Kubernetes logs with trace/correlation fields; no separate log backend required | Accepted, implemented |
+| ADR-014 | Agentic feature | Required bounded Grid Incident Investigator; read-only tools and no control-path dependency | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
 | ADR-015 | Kafka and Flink lifecycle | Strimzi and Apache Flink Kubernetes Operator | Baseline accepted in [ADR-024](ADR-024-pinned-local-baseline.md) |
-| ADR-016 | Kafka schemas | Versioned JSON Schema and examples in Git with CI compatibility checks; Protobuf for gRPC only | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
+| ADR-016 | Kafka schemas | Versioned JSON Schema and examples in Git with CI compatibility checks; Protobuf for gRPC only | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
 | ADR-017 | Outbox publication | Kafka Connect with Debezium Outbox Event Router | Baseline accepted in [ADR-024](ADR-024-pinned-local-baseline.md) |
 | ADR-018 | PostgreSQL lifecycle | One persistent primary installed from a pinned Helm chart; no database operator or replica | Baseline accepted in [ADR-024](ADR-024-pinned-local-baseline.md) |
 | ADR-019 | Packaging | Helm for pinned third-party stacks; Kustomize overlays for project workloads | Baseline accepted in [ADR-024](ADR-024-pinned-local-baseline.md) |
 | ADR-020 | Model integration | Deterministic mock now; external provider deferred | Mock baseline accepted in [ADR-006](ADR-006-local-kind.md); external adapter deferred |
-| ADR-021 | Agent authorization | Seven allowlisted read-only tools; no raw query, infrastructure, or write tools | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
-| ADR-022 | Data ownership | Registry, control, projection, and copilot-audit logical stores; no cross-service table reads | Proposed |
-| ADR-023 | Independent development | Versioned contract bundle, golden fixtures, standalone profiles, then pairwise integration | Contract baseline accepted in [ADR-025](ADR-025-executable-contract-freeze.md); runtime unverified |
+| ADR-021 | Agent authorization | Seven allowlisted read-only tools; no raw query, infrastructure, or write tools | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
+| ADR-022 | Data ownership | Registry, control, projection, and copilot-audit logical stores; no cross-service table reads | Accepted, implemented |
+| ADR-023 | Independent development | Versioned contract bundle, golden fixtures, standalone profiles, then pairwise integration | Accepted; contract in [ADR-025](ADR-025-executable-contract-freeze.md), implemented and verified (see [status](../implementation/IMPLEMENTATION_STATUS.md)) |
 | ADR-024 | Pinned local baseline | Version matrix, component environments, minimal operators | [Accepted](ADR-024-pinned-local-baseline.md) |
 | ADR-025 | Executable v1 contracts and resolved domain/auth defaults | Canonical JSON/Protobuf/OpenAPI, isolated tooling, golden fixtures and conservative compatibility | [Accepted](ADR-025-executable-contract-freeze.md) |
 
-## Remaining decisions by milestone
+## Later decisions
 
-Preparation choices are resolved in the accepted ADRs and [version matrix](../implementation/VERSION_MATRIX.md). No application code or deployment verification is implied.
+Each ADR records context, decision, alternatives, consequences and date in `ADR-NNN-title.md`.
 
-- **Contract/schema milestone completed:** [ADR-025](ADR-025-executable-contract-freeze.md) freezes executable events/API/gRPC/agent schemas, fixtures, compatibility checks, control defaults and local identity names/roles. Runtime identity/bootstrap and service behavior remain component gates. Partition/replication/profile defaults remain in ADR-006.
-- **Foundation/component packaging:** generate per-component hashed dependency locks; capture chart/JAR checksums and image digests; prove native ARM64 PyFlink source build; implement local CNI/security gates and pin rendered sidecars. These are execution gates, not unresolved language/deployment choices.
-- **Before public release:** repository owner selects license; preserve upstream notices and produce SBOMs/scans.
-- **Deferred:** cloud provider/region/budget/registry and external model/provider/credentials. Neither is a local prerequisite.
+- [ADR-026](ADR-026-devices-standalone-state.md): standalone device state and acceptance boundary.
+- [ADR-027](ADR-027-standalone-aggregation.md): standalone aggregation and recovery.
+- [ADR-028](ADR-028-action-domain.md): Action domain and durable saga.
+- [ADR-029](ADR-029-outbox-and-fencing.md): outbox delivery and durable fencing.
+- [ADR-030](ADR-030-projections-api.md): projections and operations API.
+- [ADR-031](ADR-031-operator-dashboard.md): operator dashboard.
+- [ADR-032](ADR-032-local-identity.md): local Keycloak identity and authorization.
+- [ADR-033](ADR-033-live-component-integration.md): live component integration.
+- [ADR-034](ADR-034-local-kind-deployment.md): local kind deployment (Helm and Kustomize profiles, Calico).
+- [ADR-035](ADR-035-local-observability.md): local observability and collected incident evidence.
+- [ADR-036](ADR-036-grid-incident-investigator.md): bounded deterministic Grid Incident Investigator.
+- [ADR-037](ADR-037-continuous-fleet-and-rolling-retention.md): continuous fleet, bounded keyed state and rolling retention. Amends ADR-027 and ADR-030.
 
-Each accepted ADR should record context, decision, alternatives, consequences, date, and approvers in a separate `ADR-NNN-title.md` file.
-
-- [ADR-026 — Member_1 standalone state and acceptance boundary](ADR-026-member1-standalone-state.md) — accepted.
-
-- [ADR-027 — Member_2 standalone aggregation and recovery](ADR-027-member2-standalone-aggregation.md) — accepted; native ARM64 build and TaskManager checkpoint/replay verified, kind/rescaling remain future gates.
-
-- [ADR-028 — Member_3 Action domain and durable saga](ADR-028-member3-action-domain.md) — accepted; PostgreSQL fixture/restart acceptance, CDC/leadership remain later gates.
-
-- [ADR-029 — Outbox delivery and durable fencing](ADR-029-outbox-and-fencing.md) — accepted; local CDC, kind Lease and atomic simulated gateway effect boundaries.
-
-- [ADR-030 — Member_4 standalone projections and operations API](ADR-030-member4-projections-api.md) — accepted; durable replay, REST/SSE and contract-mock operations; UI/identity/live integration remain later gates.
-
-- [ADR-031 — Member_4 operator dashboard](ADR-031-member4-operator-dashboard.md) — accepted; NiceGUI REST/SSE console, independent fixture mode, accessible states and scoped investigation entry points; identity/Copilot/kind remain separate.
-
-- [ADR-034 — Local kind deployment](ADR-034-local-kind-deployment.md) — selected Helm/Kustomize profiles, Calico enforcement and loopback identity scope.
-
-- [ADR-035 — Local observability and collected incident evidence](ADR-035-local-observability.md)
-
-- [ADR-036 — Bounded deterministic Grid Incident Investigator](ADR-036-grid-incident-investigator.md)
+Deferred: cloud provider and budget beyond the AKS review, external model provider and credentials, repository license (choose before a public release, with SBOMs and scans).

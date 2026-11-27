@@ -1,4 +1,4 @@
-"""Playwright tests for the System health tab (Member_4).
+"""Playwright tests for the System health tab.
 
 These tests use the same fixture server as the other dashboard browser tests.
 The fixture API does not serve Prometheus or Flink metrics, so both polling

@@ -2,7 +2,6 @@
 
 - Status: Accepted, 2026-11-21
 - Authority: User instruction: one computer, local infrastructure, free tools, no cloud resources
-- Owners: Member_1 through Member_4 retain their documented boundaries
 
 ## Context and decision
 
@@ -22,4 +21,4 @@ EKS adds cost, credentials, remote access, and lifecycle work; deferred. Minikub
 
 The user authorized installing missing prerequisites and starting/configuring the local environment. Docker Desktop was already installed; Engine 29.9.3 and CLI 29.8.0 communicate successfully. Set development resources to 4 CPUs/6144 MiB; the engine reports 6,210,510,848 usable guest bytes after VM overhead. The larger 8-CPU/10-GiB review profile remains proposed. Disk-image capacity and unrelated Docker data/settings were preserved; 40/80-GiB figures are usage budgets, not resized disks.
 
-Colima is a valid alternative but no longer the selected runtime. Docker Desktop offers the requested GUI and requires fewer project-specific VM lifecycle commands. kind remains mandatory; enabling Desktop's separately managed Kubernetes would create a competing cluster/version. All prerequisite Python tooling uses `.venv`; no global Python packages, JDK, or Node.js were installed. See current [environment evidence](../implementation/PREPARATION_VERIFICATION.md).
+Colima is a valid alternative but no longer the selected runtime. Docker Desktop offers the requested GUI and requires fewer project-specific VM lifecycle commands. kind remains mandatory; enabling Desktop's separately managed Kubernetes would create a competing cluster/version. All prerequisite Python tooling uses `.venv`; no global Python packages, JDK, or Node.js were installed. See current environment evidence (private evidence).

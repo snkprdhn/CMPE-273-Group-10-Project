@@ -60,7 +60,7 @@ def test_signature_roles_and_tool_guard(signing):
 
 
 def test_direct_api_denies_before_store_or_body(signing):
-    from member4.api import create_app
+    from projection.api import create_app
     oidc, token = signing
     with TestClient(create_app(object(), oidc=oidc)) as client:
         assert client.get('/api/v1/overview', headers={'X-Actor-Role': 'Administrator'}).status_code == 401

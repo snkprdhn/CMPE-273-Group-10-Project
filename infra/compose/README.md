@@ -1,7 +1,6 @@
 # Lightweight local dependencies
 
-Member_2 owns Kafka/topics; Member_3 owns PostgreSQL; Member_1 owns fault tooling;
-Member_4 owns projection and Copilot audit stores. This is the standalone development
+Kafka/topics, PostgreSQL, fault tooling, and the projection and Copilot audit stores run here. This is the standalone development
 milestone, not the Kubernetes deployment or full foundation milestone. No operators,
 monitoring, identity, Connect, Flink, applications or model providers are started.
 
@@ -57,29 +56,29 @@ startup failure; stop the conflicting dependency rather than silently selecting 
 new endpoint. SQL initialization runs only when the PostgreSQL volume is empty;
 future schema changes require owning-service migrations or an explicit reset.
 
-| Setting | Type/default and allowed values | Owner | Classification |
+| Setting | Type/default and allowed values | Component | Classification |
 |---|---|---|---|
 | Environment/project | fixed `local-dev` / `smart-grid-local-dev` | Shared | Non-secret |
-| Host Kafka | `127.0.0.1:19092`; container clients `kafka:9092` | Member_2 | Non-secret |
-| Topic prefix | fixed `local-dev.` | Member_2 | Non-secret |
-| Topic topology | 3 partitions, RF=1, minISR=1, retention 86400000 ms | Member_2 | Non-secret |
+| Host Kafka | `127.0.0.1:19092`; container clients `kafka:9092` | Kafka | Non-secret |
+| Topic prefix | fixed `local-dev.` | Kafka | Non-secret |
+| Topic topology | 3 partitions, RF=1, minISR=1, retention 86400000 ms | Kafka | Non-secret |
 | Producer acknowledgement | `all` required | Producer owner | Non-secret |
-| Host PostgreSQL | `127.0.0.1:15432`; container clients `postgres:5432` | Member_3 | Non-secret |
+| Host PostgreSQL | `127.0.0.1:15432`; container clients `postgres:5432` | PostgreSQL | Non-secret |
 | Store/role | table below; no cross-store CONNECT | Store owner | Non-secret |
-| Password | `<role>_disposable`; admin `local_admin_disposable` | Store owner / Member_3 | Disposable local secret placeholder |
-| Fault API / DB proxy | `127.0.0.1:18474` / `127.0.0.1:15433` | Member_1 | Non-secret |
-| Provider mode | `MOCK` only | Member_4 | Non-secret |
+| Password | `<role>_disposable`; admin `local_admin_disposable` | Store owner / PostgreSQL | Disposable local secret placeholder |
+| Fault API / DB proxy | `127.0.0.1:18474` / `127.0.0.1:15433` | Fault tooling | Non-secret |
+| Provider mode | `MOCK` only | Investigator | Non-secret |
 
-| Database | Login role | Owner |
+| Database | Login role | Component |
 |---|---|---|
-| `local_dev_registry` | `registry` | Member_1 |
-| `local_dev_control` | `control` | Member_3 |
-| `local_dev_projection` | `projection` | Member_4 |
-| `local_dev_copilot_audit` | `copilot_audit` | Member_4 |
+| `local_dev_registry` | `registry` | Devices |
+| `local_dev_control` | `control` | Action |
+| `local_dev_projection` | `projection` | Projection |
+| `local_dev_copilot_audit` | `copilot_audit` | Investigator |
 
 Roles own only their database, have no superuser/create-role/create-database/replication
-privileges, and have no cross-membership. Each owner runs its own future migrations.
-`local_admin` is bootstrap administration only; never give it to services. Member_2
+privileges, and have no cross-membership. Each service runs its own migrations.
+`local_admin` is bootstrap administration only; never give it to services. Aggregation
 has no database role. Logical WAL is enabled for the planned Debezium stack, but
 no CDC identity, connector, publication or replication slot is created yet.
 
@@ -94,12 +93,12 @@ existing topics/partition counts during ordered scenarios. Use reset for clean d
 
 | Canonical topics | Producer | Consumer group convention |
 |---|---|---|
-| `grid.telemetry.v1` | Member_1 simulators | `local-dev.aggregation.windows.v1` (Member_2) |
-| `grid.transformer-load.v1` | Member_2 aggregation | `local-dev.control.loads.v1` (Member_3), `local-dev.projection.events.v1` (Member_4) |
-| `grid.alert.v1`, `grid.action.v1` | Member_3 control | `local-dev.projection.events.v1` (Member_4) |
-| `grid.charger-command.v1` | Member_3 control | `local-dev.simulator.<device-id>.commands.v1` (Member_1; filter own device) |
-| `grid.command-result.v1` | Member_1 simulators | `local-dev.control.results.v1` (Member_3), `local-dev.projection.events.v1` (Member_4) |
-| `grid.telemetry.late.v1`, `grid.telemetry.dlq.v1` | Member_2 validation/aggregation | `local-dev.diagnostics.<run-id>` (Member_1) |
+| `grid.telemetry.v1` | Simulators | `local-dev.aggregation.windows.v1` (aggregation) |
+| `grid.transformer-load.v1` | Aggregation | `local-dev.control.loads.v1` (Action), `local-dev.projection.events.v1` (projection) |
+| `grid.alert.v1`, `grid.action.v1` | Action | `local-dev.projection.events.v1` (projection) |
+| `grid.charger-command.v1` | Action | `local-dev.simulator.<device-id>.commands.v1` (devices; filter own device) |
+| `grid.command-result.v1` | Simulators | `local-dev.control.results.v1` (Action), `local-dev.projection.events.v1` (projection) |
+| `grid.telemetry.late.v1`, `grid.telemetry.dlq.v1` | Aggregation | `local-dev.diagnostics.<run-id>` (devices) |
 
 Registry has no event consumer group in v1. Copilot has no Kafka credentials/group;
 it reads approved projections through the future Tool Gateway and writes only its

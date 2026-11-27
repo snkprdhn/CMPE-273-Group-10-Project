@@ -1,4 +1,4 @@
-"""Member_4 UI boundary: REST is authoritative; SSE invalidates cached snapshots."""
+"""UI boundary: REST is authoritative; SSE invalidates cached snapshots."""
 import asyncio
 import json
 import math

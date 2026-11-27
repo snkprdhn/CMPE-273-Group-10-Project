@@ -1,8 +1,6 @@
 # ADR-036 — Bounded deterministic Grid Incident Investigator
 
 - Status: Accepted within the requested Investigator milestone, 2026-11-23.
-- Owners: Member_4 projection/API/UI/identity/Copilot; Member_1 simulation/Registry/observability;
-  Member_2 Kafka/PyFlink; Member_3 control/PostgreSQL/Debezium.
 
 ## Decision
 

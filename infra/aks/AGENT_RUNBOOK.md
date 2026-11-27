@@ -95,13 +95,53 @@ flowchart LR
   and Keycloak administration are private.
 - The `grid-ssd` CSI StorageClass uses Standard SSD and Retain. Platform
   claims hold PostgreSQL, Kafka, Flink checkpoints, Investigator SQLite audit
-  and Caddy TLS. Kafka and Investigator review evidence have nine-day retention.
+  and Caddy TLS. Kafka keeps a rolling three hours (size capped, 8 GiB volume); Investigator evidence has nine-day retention.
 - Kustomize inheritance is
   [AKS](kustomization.yaml) → [hosted](../hosted/kustomization.yaml) →
   [kind dev](../kind/dev/kustomization.yaml) → [kind base](../kind/base/kustomization.yaml).
   Hosted identity and retention changes belong in `infra/hosted`. Azure
   storage, ingress and Cilium changes belong in `infra/aks`. Shared workload
   changes belong in the base or appropriate overlay.
+
+### Continuous demo, current state (2026-11-26)
+
+The cluster is already at the regional limit of 6 vCPUs (`Standard_DS3_v2` system node plus a `Standard_D2_v2` node labelled
+`grid-role=flink`), so no node can be added. Two-subtask Flink runs on the Flink node only; its JobManager must stay there too because the
+checkpoint disk is ReadWriteOnce.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Fleet | `Deployment/fleet`, [fleet.yaml](fleet.yaml) | 25 transformers x 40 devices, 200 events/s, five managed transformers. Control port 8003 (token in Secret `fleet-control`). |
+| Control room | `https://<host>/` and `/live`, `/operator` for the console | `DASHBOARD_HOME=live` makes `/` the control room. |
+| Grafana | `https://<host>/grafana/` | Anonymous Viewer, five dashboards from `observability/demo_dashboards.py`, route in [edge.yaml](edge.yaml). |
+| Action scope | `CONTROL_TRANSFORMERS`, `ACTION_AUTO_COMPENSATE` | Held plans are retried with approved compensation. |
+| Projection scope | `PROJECTION_SCOPE=context` | Managed inventory only. Add transformers with `tools.fleet_context` and `projection.live_context` (about 24 chargers per Registry call). |
+
+Build and roll out a code change with source-only layers over the published digests (no emulated dependency build):
+
+```bash
+infra/aks/build-layer.sh <fleet|aggregation|action|ui|api|registry> <tag>      # builds, pushes, records the digest
+.venv/bin/python -m tools.aks_demo render Deployment/ui                # inspect what will be applied
+.venv/bin/python -m tools.aks_demo apply Deployment/ui                 # scoped apply by digest
+.venv/bin/python -m tools.demo_check                                   # read-only checklist, exit 1 on a failure
+```
+
+To change the fleet size, regenerate the fixture the aggregation image carries and set the fleet environment to match:
+`.venv/bin/python -m devices.fleet topology 40 40 5 > devices/fixtures/fleet-topology.json` (the fleet test fails if the committed file differs from the generator),
+rebuild the `aggregation` layer, set `FLEET_TRANSFORMERS`, `FLEET_DEVICES`, `FLEET_HEROES` on `Deployment/fleet`, add the new transformer IDs to
+`GRID_TRANSFORMERS` (`telemetry-runtime` and the Flink pod environment) and publish context for new managed transformers with `tools.fleet_context`.
+Flink handled about 1,100 records/s on its node, so keep devices x (1 / 5 s) under about 700 events/s.
+
+Keep the previous digest (`.tools/aks-demo/ui-previous-image.txt` and the other `*-previous-image` notes) and roll back with `kubectl set image`.
+Do not restart Action, PostgreSQL or Kafka during the demonstration: the closed loop recovers by itself, but a held plan takes about a minute to retry.
+A Flink spec change restarts the job statelessly; open windows are re-emitted and Action keeps the first copy.
+
+Rules learned from restarts on this cluster:
+
+- Resume a suspended Flink job only after `status.lifecycleState` is `SUSPENDED`. Set `spec.job.state` to `suspended`, wait, then set `running`. Resuming early left the JobManager without its `flink-config-aggregation` ConfigMap.
+- Bring `fleet` (the gateway) up before Action. Action retries held plans with compensation at most three times. If it restarts while the gateway is down the retries run out and the plan waits in `NEEDS_OPERATOR_REVIEW`. Close such a plan by setting `status` to `COMPLETED`, `active=false` and `version+1` in both the `version` column and `state->>'version'`, then set the chargers back to 7.2 kW. Never reset `compensations` to 0.
+- Renaming a Kafka consumer group is a migration. Stop the consumers, copy the committed offsets with `kafka-consumer-groups.sh --reset-offsets --from-file`, then start the new code. Renaming a PostgreSQL table or role needs the same stop, rename and restart order.
+- Flink starts `group-offsets` at the end of the topic for a group that has no committed offsets.
 
 ## 3. Initial provisioning in an authorized environment
 
@@ -177,7 +217,7 @@ done
 
 1. Inspect `git status --short`, the diff, and original handoff. Preserve
    unrelated changes. Run focused local tests before publishing. Use
-   `make dashboard-test` for UI, `make member2-test` for aggregation, and the
+   `make dashboard-test` for UI, `make aggregation-test` for aggregation, and the
    relevant component targets elsewhere. Run `make contracts` for a contract
    change and `make delivery-render` for deployment changes.
 2. Identify all affected images and resources. Scope the rollout to them.
@@ -199,13 +239,13 @@ done
 | Code or configuration | Build | Runtime update target |
 |---|---|---|
 | `dashboard/` | `infra/kind/Dockerfile --target ui` | `deployment/ui`, container `ui` |
-| `member4/` | `infra/kind/Dockerfile --target api` | `deployment/api` and `deployment/projection` |
+| `projection/` | `infra/kind/Dockerfile --target api` | `deployment/api` and `deployment/projection` |
 | `identity/` | Affected consumers of the package in `infra/kind/Dockerfile` | Review UI, API/projection and Copilot together |
-| `member3/` | `infra/kind/Dockerfile --target action` and acceptance if bootstrap or simulator dependencies changed | Action Deployment and future Jobs as applicable |
-| `member1/` | `member1/Dockerfile --target registry` and acceptance if simulator changed | Registry Deployment and future simulator Job |
+| `action/` | `infra/kind/Dockerfile --target action` and acceptance if bootstrap or simulator dependencies changed | Action Deployment and future Jobs as applicable |
+| `devices/` | `devices/Dockerfile --target registry` and acceptance if simulator changed | Registry Deployment and future simulator Job |
 | `copilot/` | `infra/kind/Dockerfile --target copilot` | `deployment/copilot` |
-| `member2/` | `member2/Dockerfile` | `FlinkDeployment/aggregation` via its operator |
-| Connect image | `infra/member3/Dockerfile.connect --target strimzi` | `KafkaConnect/grid-connect` via Strimzi |
+| `aggregation/` | `aggregation/Dockerfile` | `FlinkDeployment/aggregation` via its operator |
+| Connect image | `infra/connect/Dockerfile.connect --target strimzi` | `KafkaConnect/grid-connect` via Strimzi |
 | Bootstrap or smoke inputs | `infra/kind/Dockerfile --target acceptance` | Future bootstrap/simulator Jobs with explicit approval when state is involved |
 
 For a UI-only change, use this pattern. The other Deployments use their
@@ -243,53 +283,11 @@ new digest has been verified in ACR.
 
 ## 5. Post-deploy checks and rollback
 
-### Public MVP entry (November 25 update)
+### Hosted entry points
 
-The review root `/` opens without a login screen. It uses a dedicated confidential
-Keycloak service client `smart-grid-demo`, with only the Viewer realm role and
-Viewer scope mapping. Its API audience is `smart-grid-api`. Authorization-code,
-implicit and password grants are disabled for this client. UI obtains short-lived
-signed tokens over the private backchannel, caches/renews them server-side, and
-never returns the client secret or bearer to the browser. API explicitly rejects
-this client if its effective application role is higher than Viewer.
+The site opens without a login (mock-auth mode, `AUTH_MODE=mock`). `/` and `/live` show the live control room, `/operator` shows the full console, and `/grafana/` serves the read-only dashboards. The UI and API read a Viewer-level mock identity from the Secret `mock-identity-runtime` (keys `DASHBOARD_API_TOKEN` and `MOCK_IDENTITIES`). Keycloak and the Investigator run at zero replicas on this cluster. Public API and administration routes stay blocked at the edge, and Prometheus stays private. Do not reset or import over the existing realm.
 
-The AKS overlay references Secret `platform/demo-runtime`, key
-`GRID_DEMO_CLIENT_SECRET`, only in the UI environment. Keep this secret out of
-Git/chat. Removing the environment reference and rolling UI back restores the
-normal authenticated entry. Local kind retains normal OIDC by default. Public
-navigation is Overview, Flow Map and Actions; transformer detail remains reachable
-from the overview/map. **Start guided demo** starts the session-local overload
-playback. Other simulations and prior measured scale evidence remain in Flow Map.
-Public users cannot acknowledge alerts, edit policies, launch backend scenarios,
-or run Investigator. Existing professor authentication and MOCK Investigator
-remain at `/operator`; a successful sign-in returns there.
-
-For maintenance of an already provisioned demo, preserve the client and secret;
-an image rollout does not require identity reprovisioning. For a separately
-authorized initial setup, create the client through the internal Keycloak admin
-API with the configuration above. `tools/review_demo_client.py` implements this
-using an ephemeral `review-bootstrap` admin service client. It needs
-`GRID_BOOTSTRAP_SECRET`, `GRID_DEMO_CLIENT_SECRET`, and `PYTHONPATH=/app` in an
-internal maintenance job using the UI image; never pass secrets as CLI literals.
-The installed Keycloak command for creating that temporary admin is
-`kc.sh bootstrap-admin service --client-id review-bootstrap --client-secret:env GRID_BOOTSTRAP_SECRET --no-prompt`.
-Stop all Keycloak server instances before this offline command and restore them
-afterward, using the existing database settings. The helper removes the temporary
-admin client after success. Remove temporary bootstrap secrets/jobs afterward.
-Do not reset/import over the existing realm or expose Keycloak administration.
-
-Verify the public root in a fresh browser with no cookies, three navigation items,
-guided overload through measured restoration, solar/steady scenarios, return to
-live grid, charger expansion, and retained completed action/history. Separately
-verify `/operator` sign-in and Investigator. Check signed demo-token reads return
-200 and mutations/privileged projection return 403. Keep public API/admin routes
-blocked at the edge. Monitoring remains private and unchanged.
-
-Action restart diagnosis found transient Lease GET timeouts. Member_3 now retries
-only those reads up to three times; uncertain writes still fail immediately and
-the original monotonic deadline/fencing checks remain. Check the replacement
-pod's restart count over an observed interval; a successful short smoke is not a
-claim of week-long availability.
+Action once exited on a transient three-second Lease GET timeout. It now retries only transient Lease reads, up to three attempts. Uncertain writes still fail immediately, and the monotonic deadlines and PostgreSQL fencing still deny expired leadership. Check the restart count of the replacement pod over an observed interval.
 
 ```bash
 curl -fsS --max-time 15 "https://$REVIEW_HOST/healthz"
@@ -307,31 +305,7 @@ k exec grid-connect-connect-0 -- curl -fsS --max-time 5 \
   `k annotate kafkaconnector integration-kind strimzi.io/restart-task=0 --overwrite`,
   then recheck REST status. The previously verified recovery used the
   existing replication slot after a PostgreSQL connectivity timeout.
-- In Chromium, open the HTTPS URL at `/operator` and sign in with the existing professor
-  account. Read the password into the browser test from
-  `$REVIEW_DIR/local.json`. Avoid printing it, copying it into this guide,
-  or recording login screenshots. For manual access retrieve it using the
-  private clipboard command in the [review README](README.md).
-- Confirm live REST/SSE connectivity and **Flow Map**. Check solar on the left,
-  transformer centered, demand on the right, and expandable device groups.
-  Run **Evening EV overload** and **Sudden solar drop** in the Flow Map, verify
-  acknowledgement precedes measured reduction and restoration, then select
-  **Return to live grid**. These scenarios are session-local synthetic playback.
-  The real seeded run is already finished, so its measurements can show stale.
-- In the real view open `tx-001` and the completed action listed in
-  `handoff.json`. Verify retained overload, measured EV draw reduction
-  (7.2 → 2.0 kW) and restoration (2.0 → 7.2 kW), then open
-  **Investigate action → Run investigation** and confirm a grounded MOCK result.
-  If history is held while the panel has keyboard focus, move focus outside
-  the panel, then let the REST snapshot refresh.
-- For a scripted identity/REST/SSE/Investigator regression use
-  `tools.kind_smoke.browser_check(ReviewCluster(...), after_restart=True)`
-  from [the helper](../../tools/kind_smoke.py). It expects the retained
-  evidence/credentials and uses a loopback API tunnel. It creates a new MOCK
-  investigation and writes screenshots/evidence to the review directory.
-  Preserve the previous evidence first. The additional hosted Flow Map browser
-  check from the last rollout is in the workstation's ignored
-  `flow-demo-hosted-check.py`; it is optional and may not exist elsewhere.
+- In a fresh browser open `/` and `/live` (KPI strip, heat map, action feed), `/operator` (Flow Map, Alerts & actions) and `/grafana/d/grid-control-room`. Trigger an overload on `tx-003` from the fault panel and watch the action go from plan to restore. `tools.demo_check` covers the same ground without a browser.
 - If a targeted rollout fails, capture the failure and restore the exact
   previous digest, then rerun readiness and the hosted smoke path. For UI use
   `k set image deployment/ui "ui=$(cat "$REVIEW_DIR/$rev-previous-image")"`
@@ -347,5 +321,5 @@ The primary implementation references are
 [tools/aks_review.py](../../tools/aks_review.py),
 [tools/kind_local.py](../../tools/kind_local.py),
 [tools/delivery_images.py](../../tools/delivery_images.py),
-[the final demo guide](../../docs/demo/FINAL_DEMO.md), and
+[the master guide](../../docs/MASTER_GUIDE.md), and
 [implementation status](../../docs/implementation/IMPLEMENTATION_STATUS.md).

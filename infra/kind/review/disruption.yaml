@@ -3,7 +3,7 @@ kind: PodDisruptionBudget
 metadata:
   name: action
   namespace: platform
-  labels: {grid-owner: Member_3, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   minAvailable: 1
   selector: {matchLabels: {grid-app: action}}
@@ -13,7 +13,7 @@ kind: PodDisruptionBudget
 metadata:
   name: api
   namespace: platform
-  labels: {grid-owner: Member_4, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   minAvailable: 1
   selector: {matchLabels: {grid-app: api}}
@@ -23,7 +23,7 @@ kind: PodDisruptionBudget
 metadata:
   name: registry
   namespace: platform
-  labels: {grid-owner: Member_1, grid-stage: apps}
+  labels: {grid-stage: apps}
 spec:
   minAvailable: 1
   selector: {matchLabels: {grid-app: registry}}

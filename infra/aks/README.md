@@ -5,7 +5,7 @@ for current-target checks, scoped rollouts, hosted verification, and rollback.
 
 This seven-day review uses the local developer profile's one Kafka broker,
 synthetic overload-to-recovery Job, and deterministic MOCK Investigator.
-The review overlay adds managed SSD volumes, Cilium policy, nine-day Kafka and
+The review overlay adds managed SSD volumes, Cilium policy, three-hour rolling Kafka retention (size capped) and nine-day
 Investigator evidence retention, and a Caddy HTTPS entry point. Only the UI
 and the named Keycloak realm's browser routes go through that entry point.
 The professor has the existing Operator role required by the Investigator.

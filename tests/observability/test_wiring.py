@@ -18,11 +18,11 @@ def test_dashboards_use_fixed_dimensions_and_do_not_hide_missing_data():
 
 
 def test_deployment_propagates_headers_without_changing_event_contract():
-    job=Path('member2/job.py').read_text()
+    job=Path('aggregation/job.py').read_text()
     assert "METADATA FROM 'headers' VIRTUAL" in job
     assert "MAP<STRING, BYTES> METADATA FROM 'headers'" in job
     assert "'sink.delivery-guarantee'='exactly-once'" in job
-    from member3.cdc import configuration
+    from action.cdc import configuration
     placement=configuration()['transforms.outbox.table.fields.additional.placement']
     assert placement=='traceparent:header:traceparent,correlation_id:header:correlation_id,causation_id:header:causation_id'
     assert '1.45.2' in Path('observability/requirements.txt').read_text()

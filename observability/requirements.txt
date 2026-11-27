@@ -1,4 +1,4 @@
-# Member_1 shared OTLP SDK; Python 3.12 macOS/ARM64 + Linux/ARM64.
+# Shared OTLP SDK; Python 3.12 macOS/ARM64 + Linux/ARM64.
 certifi==2026.11.20 --hash=sha256:7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f
 charset-normalizer==3.5.2 --hash=sha256:b91363207bd9dc966a691e959bb47f64b30f7ac4b072be9968b366982f7db77c --hash=sha256:ed2a239c0ea213acc1908150a3037257083c7c083128f1a4cec2ec4b97dca491 --hash=sha256:3d31298449090ab8d47b7b1b2a555ff73cac7ed438a08b7ac160980c7ebed649
 googleapis-common-protos==1.75.0 --hash=sha256:961ed60399c457ceb0ee8f285a84c870aabc9c6a832b9d37bb281b5bebde43ed

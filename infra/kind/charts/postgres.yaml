@@ -7,7 +7,6 @@ auth:
   database: postgres
   existingSecret: postgres-admin
 podLabels:
-  grid-owner: Member_3
   grid-app: postgres
 config:
   postgresql:
@@ -18,6 +17,11 @@ config:
     max_wal_senders: 4
   extraConfig:
     - max_replication_slots = 4
+    # Bound WAL on a small volume: no standby needs retained segments, and a stalled
+    # replication slot is invalidated (visible failure) before it can fill the disk.
+    - wal_keep_size = 0
+    - max_wal_size = 512MB
+    - max_slot_wal_keep_size = 768MB
 persistence:
   storageClass: standard
   size: 2Gi

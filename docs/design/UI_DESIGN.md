@@ -2,9 +2,9 @@
 
 ## Implemented standalone boundary — 2026-11-22
 
-The [Member_4 dashboard](../../dashboard/README.md) implements the operator console
+The [dashboard](../../dashboard/README.md) implements the operator console
 against the frozen REST/SSE API, with an explicit independent fixture mode.
-[ADR-031](../decisions/ADR-031-member4-operator-dashboard.md) resolves differences
+[ADR-031](../decisions/ADR-031-operator-dashboard.md) resolves differences
 between the conceptual screens below and executable v1: four approved scenario
 IDs without transformer-count input; recovery as an Action lifecycle; bounded
 command results rather than candidate/full-command history; a named transformer's
@@ -17,7 +17,7 @@ while header connection/critical status stays live. Action explanations refresh
 while open. The investigator uses a responsive modal at the right edge for native
 keyboard dismissal/focus return; its service remains unavailable.
 Investigation entry points preserve scope but show the service as unavailable;
-Local Keycloak login/logout/renewal is implemented under [ADR-032](../decisions/ADR-032-member4-local-identity.md). Copilot progress/results/evidence remain a later milestone.
+Local Keycloak login/logout/renewal is implemented under [ADR-032](../decisions/ADR-032-local-identity.md). Copilot progress/results/evidence remain a later milestone.
 The screen descriptions below remain the full product target where the current
 API cannot yet supply the data; they do not authorize inventing new v1 fields.
 

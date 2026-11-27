@@ -1,14 +1,18 @@
-# Test strategy
+# Tests
 
-Preparation and executable contract checks are implemented. Member_1, local infrastructure and Member_2 standalone behavior are verified; other components and full platform behavior remain future gates.
+Every component has an isolated test environment (`.tools/<component>-venv`, or `.venv` for aggregation) and runs without the others. Database and Kafka tests skip with an explicit reason unless their DSN is set; `make infra-up` starts the disposable local PostgreSQL and Kafka they use.
 
-- `make contracts`: canonical schema/OpenAPI/Protobuf validation, valid/invalid fixtures with exact failure reasons, deterministic stream/control/agent golden cases, generated capability consistency and deliberate compatibility mutations. See [the bundle guide](../schemas/README.md).
-- `make contracts BASE_REF=HEAD`: also compare the old contracts from Git; the first introduction explicitly reports an absent executable baseline.
-- `.venv/bin/python -m pytest -q tests/test_preparation_docs.py tests/test_preparation_environment.py`: ten local documentation/environment checks, requiring the prepared Mac ARM64 environment. These are separate from portable contract CI.
+| Area | Command | What it covers |
+|---|---|---|
+| Contracts | `make contracts` (add `BASE_REF=HEAD` to compare against Git) | Schemas, OpenAPI, Protobuf, valid and invalid fixtures, golden stream, control and agent cases, compatibility mutations. See [schemas](../schemas/README.md). |
+| Devices | `make devices-test`; `make devices-live` with `DEVICES_TEST_DSN` and `DEVICES_TEST_KAFKA` | Simulator, fleet model, fenced edge gateway, Registry. See [devices](../devices/README.md). |
+| Aggregation | `make aggregation-test`; `make aggregation-live` (real Kafka and Flink TaskManager kill) | Windows, lateness, duplicates, keyed bounded state, checkpoint recovery. See [aggregation](../aggregation/README.md). |
+| Action | `ACTION_TEST_DSN=... make action-test` | Policy, saga, inbox and outbox, fencing, Lease, Debezium delivery. See [action](../action/README.md). |
+| Projection and API | `PROJECTION_TEST_DSN=... PROJECTION_TEST_KAFKA=... make projection-test` | Journal, views, REST, SSE, OIDC, review. See [projection](../projection/README.md). |
+| Identity | `make identity-test` | Keycloak realm, tokens, browser sign-in. See [identity](../identity/README.md). |
+| Dashboard | `make dashboard-test` | NiceGUI pages in Chromium (Playwright), control room, client. See [dashboard](../dashboard/README.md). |
+| Investigator | `make copilot-test` | Bounded read-only tools, citations, authorization. |
+| Observability | `make observability-test` | Telemetry, dashboards, Flink tracing, evidence packet. |
+| Tooling | `.venv/bin/python -m pytest -q tests/test_*.py` | Kind rendering, delivery, load tools, documentation links. |
 
-Every shared fixture has fixed expected results. Reference replay is an offline specification; it does not establish actual Kafka/Flink checkpoint recovery, persistent fencing, authentication, SSE transport, cluster persistence or workload performance. Future component tests must run the same fixtures against real behavior without another member’s unpublished branch. See [independent testing](../docs/testing/INDEPENDENT_COMPONENT_TESTING.md) and [acceptance](../docs/demo/ACCEPTANCE_PLAN.md).
-
-- `make member2-test`: production aggregation engine against frozen stream golden cases and failure/replay boundaries.
-- `make member2-build`; `make member2-live`: hash-locked native image and real Kafka/Flink TaskManager SIGKILL with an open Kafka transaction. Committed revisions remain 0/1 at 15/17 kW. See [Member_2 runbook](../member2/README.md).
-
-- `MEMBER3_TEST_DSN=postgresql://control:control_disposable@127.0.0.1:15432/local_dev_control make member3-test`: real PostgreSQL Action domain acceptance using isolated disposable schemas, fixed load/result fixtures and a fake Registry; no Kafka, simulator or Flink dependency. Omitting the DSN skips database tests explicitly. See [Member_3](../member3/README.md).
+Live and cluster acceptance (kind) is `make local-acceptance`. The hosted AKS checks are `tools.demo_check` and the runbook in [infra/aks](../infra/aks/AGENT_RUNBOOK.md). Reference replay of the contract fixtures is an offline specification. It does not establish Kafka recovery, persistent fencing or workload performance, which the live suites measure.

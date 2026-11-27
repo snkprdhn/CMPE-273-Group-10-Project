@@ -1,6 +1,6 @@
 """Live system health tab: Kafka throughput + Flink metrics via Prometheus HTTP API and Flink REST.
 
-Member_4 — dashboard component. No Keycloak dependency; reads only from Prometheus and
+Dashboard component. No Keycloak dependency; reads only from Prometheus and
 the Flink REST service. Both sources are optional: the tab renders with partial data if
 either source is unreachable, so a Flink restart during the demo does not blank the page.
 

@@ -1,0 +1,47 @@
+# Optional devices overlay. No Flink, Action, UI or model dependency.
+services:
+  registry:
+    image: smart-grid-local-dev/devices-registry:v1
+    build:
+      context: ../..
+      dockerfile: devices/Dockerfile
+      target: registry
+    environment:
+      REGISTRY_DSN: postgresql://registry:registry_disposable@postgres:5432/local_dev_registry
+      REGISTRY_SIMULATOR_TOKEN: simulator_disposable
+      REGISTRY_ACTION_TOKEN: action_disposable
+      REGISTRY_API_TOKEN: api_disposable
+      REGISTRY_CURSOR_KEY: local-disposable-cursor-key-273
+    ports:
+      - '127.0.0.1:15051:50051'
+      - '127.0.0.1:8001:8001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    stop_grace_period: 5s
+  simulator:
+    image: smart-grid-local-dev/devices-simulator:v1
+    build:
+      context: ../..
+      dockerfile: devices/Dockerfile
+      target: simulator
+    ports:
+      - '127.0.0.1:8002:8002'
+    volumes:
+      - edge:/state
+    depends_on:
+      kafka:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    stop_grace_period: 15s
+volumes:
+  edge:

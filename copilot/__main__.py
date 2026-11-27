@@ -1,4 +1,4 @@
-"""Run with the existing Member_4 isolated lock/environment."""
+"""Run with the projection isolated lock/environment."""
 import os
 from pathlib import Path
 import uvicorn
@@ -8,7 +8,7 @@ from copilot.service import Service
 from copilot.api import create_app
 
 from observability import setup
-setup('member4.copilot')
+setup('copilot')
 path=Path(os.getenv('COPILOT_AUDIT_PATH','.tools/copilot/audit.sqlite'))
 path.parent.mkdir(parents=True,exist_ok=True)
 identity=OIDC()

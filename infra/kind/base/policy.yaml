@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
@@ -11,7 +11,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: dns
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {}
   policyTypes: [Egress]
@@ -29,7 +29,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: postgres-ingress
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: postgres}}
   policyTypes: [Ingress]
@@ -45,7 +45,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: postgres-clients
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector:
     matchExpressions:
@@ -62,7 +62,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: registry-ingress
-  labels: {grid-owner: Member_1, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: registry}}
   policyTypes: [Ingress]
@@ -78,7 +78,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: registry-clients
-  labels: {grid-owner: Member_1, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector:
     matchExpressions:
@@ -95,7 +95,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: api-ingress
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: api}}
   policyTypes: [Ingress]
@@ -110,7 +110,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: api-clients
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: ui}}
   policyTypes: [Egress]
@@ -125,7 +125,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: keycloak-ingress
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: keycloak}}
   policyTypes: [Ingress]
@@ -141,7 +141,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: keycloak-clients
-  labels: {grid-owner: Member_4, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector:
     matchExpressions:
@@ -158,7 +158,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: connect-ingress
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: connect}}
   policyTypes: [Ingress]
@@ -174,7 +174,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: connect-clients
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector:
     matchExpressions:
@@ -191,7 +191,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: aggregation-ingress
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: aggregation}}
   policyTypes: [Ingress]
@@ -207,7 +207,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: aggregation-clients
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector:
     matchExpressions:
@@ -224,7 +224,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: kafka-ingress
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: kafka}}
   policyTypes: [Ingress]
@@ -240,7 +240,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: kafka-clients
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector:
     matchExpressions:
@@ -257,7 +257,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: kafka-peers
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: kafka}}
   policyTypes: [Ingress, Egress]
@@ -280,7 +280,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: aggregation-peers
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: aggregation}}
   policyTypes: [Ingress, Egress]
@@ -309,7 +309,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: broker-internal-ingress
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: kafka}}
   policyTypes: [Ingress]
@@ -328,7 +328,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: topic-operator-egress
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: topic-operator}}
   policyTypes: [Egress]
@@ -343,7 +343,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: aggregation-operator
-  labels: {grid-owner: Member_2, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: aggregation}}
   policyTypes: [Ingress]
@@ -360,7 +360,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: connect-operator
-  labels: {grid-owner: Member_3, grid-stage: policy}
+  labels: {grid-stage: policy}
 spec:
   podSelector: {matchLabels: {grid-app: connect}}
   policyTypes: [Ingress]

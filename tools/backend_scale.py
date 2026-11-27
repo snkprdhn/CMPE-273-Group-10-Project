@@ -1,8 +1,7 @@
 """Local 2,500-device closed-loop acceptance: Registry/Kafka/Flink/Action/CDC/API.
 
 Uses a fresh additive schema/topic namespace. Never deploys to AKS or resets data.
-Member_1 owns simulator/Registry; Member_2 aggregation; Member_3 control/CDC;
-Member_4 projections/API/UI. Real service boundaries; simulated charger effects.
+Real service boundaries (simulator/Registry, aggregation, control/CDC, projections/API/UI); simulated charger effects.
 """
 import argparse
 from collections import Counter, defaultdict
@@ -20,12 +19,12 @@ from urllib.error import URLError
 import psycopg
 from confluent_kafka import Consumer, TopicPartition
 
-from member1.common import event, stamp, utc
-from member1.fencing import FencedEdgeState
-from member1.kafka import Publisher, handle_message
-from member1.registry import Client, device_dict, device_message, pb
-from member3.domain import default_policy
-from member4.live_context import RegistryContext
+from devices.common import event, stamp, utc
+from devices.fencing import FencedEdgeState
+from devices.kafka import Publisher, handle_message
+from devices.registry import Client, device_dict, device_message, pb
+from action.domain import default_policy
+from projection.live_context import RegistryContext
 from tools.integration import Runner, http, from_beginning, wait
 from tools.integration_setup import provision
 
@@ -84,10 +83,10 @@ def main():
             for tx in sorted({d['transformer_id'] for d in devices})]}
         fixture=root/'topology.json';fixture.write_text(json.dumps(topology))
         subprocess.run(['docker','cp',str(fixture),'grid-million-jobmanager-1:/tmp/'+args.run+'.json'],check=True)
-        result=subprocess.check_output(['docker','exec','grid-million-jobmanager-1','flink','run','-d','-py','/app/member2/job.py',
+        result=subprocess.check_output(['docker','exec','grid-million-jobmanager-1','flink','run','-d','-py','/app/aggregation/job.py',
             '--run',args.run,'--prefix',options.prefix,'--topology','/tmp/'+args.run+'.json',
             '--bootstrap','kafka1:9092,kafka2:9092,kafka3:9092','--checkpoint','file:///checkpoints/'+args.run,
-            '--checkpoint-ms','1000','--max-events','1000000','--state-backend','rocksdb'],text=True,timeout=180)
+            '--checkpoint-ms','1000'],text=True,timeout=180)
         job=result.split('JobID ')[-1].strip();report['job']=job
         os.environ['LEASE_API_URL']='http://127.0.0.1:18199'
         runner.start_workers()

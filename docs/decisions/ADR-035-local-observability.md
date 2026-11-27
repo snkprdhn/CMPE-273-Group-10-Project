@@ -2,8 +2,6 @@
 
 - Status: Accepted within the requested observability milestone; execution evidence
   is maintained separately in IMPLEMENTATION_STATUS.md.
-- Owners: Member_1 collection/Registry/simulation; Member_2 Kafka/PyFlink;
-  Member_3 control/PostgreSQL/Debezium; Member_4 projection/API/SSE/UI/identity/Copilot.
 
 Use the already selected Collector 0.120.0/chart 0.117.3,
 kube-prometheus-stack 69.8.2 (Operator 0.80.1/Prometheus 3.2.1),
@@ -18,7 +16,7 @@ exporter 1.45.2, compatible with FastAPI's existing API >=1.44 requirement and
 PyFlink's Protobuf 5.29.6. The earlier 1.31.1 candidate failed that dependency
 check and is not an accepted runtime. A separate additive hash lock covers
 macOS ARM64 and Linux ARM64. Install it in each component's own venv/image;
-no component imports another member's implementation for instrumentation.
+no component imports another service's implementation for instrumentation.
 With no OTLP endpoint, standalone domain/tests use JSON logs without exporters.
 When enabled, SDK import/configuration failure fails startup. Export queues,
 timeouts, batch sizes, Collector memory, and retention are finite. Collection
@@ -26,25 +24,25 @@ loss does not hold a database transaction or change control decisions.
 
 ## Actual boundaries and semantics
 
-- Member_1 spans Kafka enqueue and asynchronous delivery acknowledgements
+- Devices spans Kafka enqueue and asynchronous delivery acknowledgements
   separately. A successful enqueue span is not a committed-delivery claim.
   Processing spans cover durable gateway effects, result delivery and offset
   commits. Current processing context is persisted in the result outbox.
-- Member_1 Registry spans include authorization failures, RPC deadlines and the
-  actual PostgreSQL transaction. Member_1/3/4 gRPC clients inject current W3C
+- Devices Registry spans include authorization failures, RPC deadlines and the
+  actual PostgreSQL transaction. Devices/3/4 gRPC clients inject current W3C
   context within their existing shared deadlines and retry policies.
-- Member_2 Table source reads native Kafka header metadata; Table sinks write
+- Aggregation Table source reads native Kafka header metadata; Table sinks write
   header metadata without changing raw event bodies or transactional sinks.
   Selected reading context is retained per device/window in the existing
   checkpointed run object. A publication span links to a contributing reading;
   the processing span remains its parent. The 100,000-event run ceiling and
   stream semantics remain unchanged. Existing old checkpoints lack this optional
   context and safely begin producing it with new selected readings.
-- Member_3 spans real load/result/timer/reconciliation, SQL transaction commits,
+- Action spans real load/result/timer/reconciliation, SQL transaction commits,
   and Lease calls. Additive outbox transport columns retain traceparent and
   envelope correlation/causation IDs through Debezium's header placement.
   Retrying a command retains its logical envelope and deduplication identity.
-- Member_4 spans Kafka projection, SQL commits, HTTP response-start latency and
+- Projection spans Kafka projection, SQL commits, HTTP response-start latency and
   the entire SSE lifecycle. An internal sequence-keyed trace table follows the
   existing stream retention/deletion rules. SSE links to the originating
   projection span across API replicas/restarts; JSON payloads remain v1.

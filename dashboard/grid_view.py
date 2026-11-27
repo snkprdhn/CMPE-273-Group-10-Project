@@ -1,4 +1,4 @@
-"""Member_4 transformer flow and action evidence from existing v1 snapshots."""
+"""Transformer flow and action evidence from existing v1 snapshots."""
 from nicegui import ui
 
 from dashboard.client import instant

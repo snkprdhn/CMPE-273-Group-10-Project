@@ -16,7 +16,7 @@ import sys
 import time
 
 from identity.realm import realm
-from member3.cdc import configuration
+from action.cdc import configuration
 
 ROOT = Path(__file__).resolve().parents[1]
 INFRA = ROOT / 'infra/kind'
@@ -98,10 +98,10 @@ def runtime_secrets(passwords, origin=None):
     schema = '?options=-csearch_path%3Dintegration_kind'
     control = dsn('control', 'local_dev_control', schema)
     projection = dsn('projection', 'local_dev_projection', schema)
-    edge = dsn('member1_gateway', 'local_dev_control', '?options=-csearch_path%3Dintegration_edge%2Cintegration_kind')
+    edge = dsn('gateway', 'local_dev_control', '?options=-csearch_path%3Dintegration_edge%2Cintegration_kind')
     admin = dsn('local_admin', 'postgres')
     registry_tokens = {f'REGISTRY_{actor.upper()}_TOKEN': passwords[f'rpc_{actor}'] for actor in ('action', 'api', 'simulator')}
-    roles = ('registry', 'control', 'projection', 'keycloak', 'member3_cdc', 'member1_gateway')
+    roles = ('registry', 'control', 'projection', 'keycloak', 'cdc', 'gateway')
     return {
         'postgres-admin': {'postgres-password': passwords['local_admin']},
         'database-bootstrap': {**{role.upper() + '_PASSWORD': passwords[role] for role in roles},
@@ -113,7 +113,7 @@ def runtime_secrets(passwords, origin=None):
         'simulator-runtime': {'CONTROL_DSN': control, 'EDGE_DSN': edge, 'PROJECTION_DSN': projection,
                               'REGISTRY_SIMULATOR_TOKEN': registry_tokens['REGISTRY_SIMULATOR_TOKEN'],
                               'REGISTRY_API_TOKEN': registry_tokens['REGISTRY_API_TOKEN']},
-        'cdc-runtime': {'password': passwords['member3_cdc']},
+        'cdc-runtime': {'password': passwords['cdc']},
         'keycloak-runtime': {'KC_DB_PASSWORD': passwords['keycloak']},
         'keycloak-realm': {'realm.json': json.dumps(realm(passwords, origin, review=True) if origin else realm(passwords))},
     }
@@ -126,11 +126,16 @@ def connector():
         'slot.name': 'integration_kind', 'publication.name': 'integration_kind',
         'table.include.list': 'integration_kind.action_outbox', 'topic.prefix': 'integration_kind',
         'transforms.outbox.route.topic.replacement': 'integration-kind.${routedByValue}',
+        # Other databases in the instance generate WAL. Without a change in this database the slot never
+        # advances and WAL fills the volume. The heartbeat row is a change the connector confirms.
+        'heartbeat.interval.ms': '5000',
+        'heartbeat.action.query': 'INSERT INTO integration_kind.cdc_heartbeat (id, ts) VALUES (1, now()) '
+                                  'ON CONFLICT (id) DO UPDATE SET ts = now()',
     })
     return {
         'apiVersion': 'kafka.strimzi.io/v1beta2', 'kind': 'KafkaConnector',
         'metadata': {'name': 'integration-kind', 'namespace': 'platform',
-                     'labels': {'strimzi.io/cluster': 'grid-connect', 'grid-owner': 'Member_3'}},
+                     'labels': {'strimzi.io/cluster': 'grid-connect'}},
         'spec': {'class': config.pop('connector.class'), 'tasksMax': int(config.pop('tasks.max')), 'config': config},
     }
 
@@ -252,8 +257,8 @@ class Cluster:
             return json.loads(path.read_text())
         if self.k('get', 'secret/postgres-admin', '--ignore-not-found', '-o', 'name', capture=True):
             raise RuntimeError(f'Restore the original {path} before redeploying this persistent cluster.')
-        names = ('local_admin', 'registry', 'control', 'projection', 'keycloak', 'member3_cdc',
-                 'member1_gateway', 'rpc_api', 'rpc_action', 'rpc_simulator', 'cursor')
+        names = ('local_admin', 'registry', 'control', 'projection', 'keycloak', 'cdc',
+                 'gateway', 'rpc_api', 'rpc_action', 'rpc_simulator', 'cursor')
         names += ('professor',) if self.origin else ('viewer', 'operator', 'administrator')
         passwords = {name: secrets.token_urlsafe(24) for name in names}
         write_private(path, json.dumps(passwords, indent=2) + '\n')
@@ -270,7 +275,7 @@ class Cluster:
             ips.update(address for endpoint in item['endpoints'] for address in endpoint['addresses'])
         peers = [{'ipBlock': {'cidr': str(ipaddress.ip_network(ip))}} for ip in sorted(ips)]
         self.apply({'apiVersion': 'networking.k8s.io/v1', 'kind': 'NetworkPolicy',
-                    'metadata': {'name': 'lease-and-topic-api', 'namespace': 'platform', 'labels': {'grid-owner': 'Member_3'}},
+                    'metadata': {'name': 'lease-and-topic-api', 'namespace': 'platform'},
                     'spec': {'podSelector': {'matchExpressions': [{'key': 'grid-app', 'operator': 'In',
                                                                   'values': ['action', 'topic-operator']}]},
                              'policyTypes': ['Egress'], 'egress': [{'to': peers, 'ports': [
@@ -313,8 +318,8 @@ class Cluster:
             self.k('rollout', 'status', 'deployment/' + name, '--timeout=360s')
 
     def inspect(self):
-        self.k('get', 'pods,svc,pvc,netpol,kafka,kafkatopic,kafkaconnect,kafkaconnector,flinkdeployment', '-L', 'grid-owner')
-        self.k('-n', 'grid-operators', 'get', 'deploy,pods', '-L', 'grid-owner')
+        self.k('get', 'pods,svc,pvc,netpol,kafka,kafkatopic,kafkaconnect,kafkaconnector,flinkdeployment')
+        self.k('-n', 'grid-operators', 'get', 'deploy,pods')
 
     def stop(self):
         if run('docker', 'inspect', '-f', '{{.State.Running}}', self.node, capture=True).strip() != 'true':

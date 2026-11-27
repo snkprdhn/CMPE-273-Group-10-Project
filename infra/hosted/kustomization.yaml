@@ -6,12 +6,12 @@ patches:
     patch: |-
       - op: replace
         path: /spec/config/retention.ms
-        value: 777600000
+        value: 10800000
   - target: {kind: Kafka, name: grid}
     patch: |-
       - op: replace
         path: /spec/kafka/config/log.retention.hours
-        value: 216
+        value: 3
   - target: {kind: Deployment, name: 'api|ui|copilot'}
     patch: |-
       - op: add

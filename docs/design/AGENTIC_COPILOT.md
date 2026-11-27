@@ -169,7 +169,7 @@ The provider adapter follows the structured tool-calling flow documented by the 
 
 [ADR-036](../decisions/ADR-036-grid-incident-investigator.md) records the implemented
 projection gateway, independent mock service, audit, budgets and UI. The
-[runbook](../../services/copilot/README.md) distinguishes executed checks from
+[runbook](../../copilot/README.md) distinguishes executed checks from
 remaining live kind and full control-loop/provider-outage acceptance. SQLite is
 a single-replica owned audit store; the gateway shares the owned projection API
 and verifies caller OIDC. Full normalized stream-health signals and correlation

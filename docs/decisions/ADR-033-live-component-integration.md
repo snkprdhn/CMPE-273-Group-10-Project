@@ -2,13 +2,11 @@
 
 - Status: Accepted implementation decisions for the requested integration milestone;
   acceptance depends on executed evidence in the implementation status.
-- Owners: Member_1 simulation/Registry/observability; Member_2 Kafka/PyFlink;
-  Member_3 control/PostgreSQL/Debezium; Member_4 projection/API/UI/identity/Copilot.
 
 ## Decision
 
 Keep the existing independently runnable component profiles and their fixtures.
-Integration uses real local dependencies and explicit topic namespaces. Member_2
+Integration uses real local dependencies and explicit topic namespaces. Aggregation
 accepts an optional shared namespace; its standalone namespace and unique Flink
 transaction identity remain unchanged. Capacity comes from the same versioned
 topology as the producer, rather than the unrelated 100 kW golden-test topology.
@@ -17,13 +15,13 @@ Registry v1 supplies capabilities only. Control must join those capabilities to
 actual validated charger telemetry; a heartbeat never supplies a current rate or
 proves restoration safety. Missing or stale observations retain the conservative
 hold behavior. Registry and projection clients use generated RPC bindings, not
-another member's implementation or database tables. Inventory IDs and transformer
+another service's implementation or database tables. Inventory IDs and transformer
 configuration are explicit run inputs because Registry v1 has no inventory-list
 or transformer-policy RPC.
 
 ## Resolved scenario mismatch
 
-The Member_1 standalone waveform's overload is approximately 23.2 kW on a 20 kW
+The Devices standalone waveform's overload is approximately 23.2 kW on a 20 kW
 transformer. Its single charger offers only 6.2 kW flexibility, insufficient to
 reach the frozen 15 kW recovery target. A reviewed hold is correct for that input;
 changing control thresholds to force success would violate the accepted policy.

@@ -1,23 +1,15 @@
-# GridBalance operator dashboard — Member_4
+# GridBalance operator dashboard
 
 Python/NiceGUI 3.19.0 console using the separate operations REST/SSE API. Includes
 overview, transformer detail/history/thresholds, alerts and acknowledgement,
 action explanations and command results, devices, scenario confirmations,
 reported health, settings, and scoped investigation entry points. See
-[UI design](../docs/design/UI_DESIGN.md) and [ADR-031](../docs/decisions/ADR-031-member4-operator-dashboard.md).
-Member_1 retains simulation/Registry/observability, Member_2 Kafka/PyFlink,
-Member_3 control/PostgreSQL/Debezium, Member_4 projection/API/UI/identity/Copilot.
+[UI design](../docs/design/UI_DESIGN.md) and [ADR-031](../docs/decisions/ADR-031-operator-dashboard.md).
 
-The authorized AKS MVP has a login-free, read-only public entry at `/`, with
-Overview, Flow Map and Actions navigation. **Start guided demo** walks through
-synthetic overload, throttling and restoration; playback is private to the tab
-and is distinct from retained backend measurements and the local 100k benchmark.
-The existing authenticated console/Investigator is available at `/operator`.
-This hosted option uses a dedicated Viewer-only Keycloak service client and the
-server-only `GRID_DEMO_CLIENT_SECRET` Kubernetes Secret reference. It does not
-enable public mock authentication or grant public write permissions. Without
-that secret the normal local OIDC workflow is unchanged. Observability remains
-private. See the [AKS agent runbook](../infra/aks/AGENT_RUNBOOK.md).
+On the hosted AKS review the site opens without a login (mock-auth mode). `/` and `/live` show the live control
+room, and `/operator` shows the full console (Overview, Flow Map, Transformers, Alerts & actions, Devices, Scenarios,
+System health, Settings). Local kind keeps normal OIDC. See the [master guide](../docs/MASTER_GUIDE.md) and the
+[AKS runbook](../infra/aks/AGENT_RUNBOOK.md).
 
 From the repository root, preparation (CPython 3.12.9, macOS ARM64):
 
@@ -50,18 +42,17 @@ records a run, while the toolbar independently advances the demonstration.
 For real per-user Keycloak login, follow the [identity runbook](../identity/README.md).
 OIDC is the normal runtime; logout and renewal run on the Python server.
 
-For explicit mock mode with the existing backend, start/replay it using the [Member_4 runbook](../member4/README.md).
+For explicit mock mode with the existing backend, start/replay it using the [projection runbook](../projection/README.md).
 Set `DASHBOARD_API_TOKEN` to one of its explicitly configured mock bearer tokens
 in your shell (never commit it), then:
 
 ```sh
-MEMBER4_AUTH_MODE=mock DASHBOARD_API_URL=http://127.0.0.1:18084/api/v1 make dashboard
+AUTH_MODE=mock DASHBOARD_API_URL=http://127.0.0.1:18084/api/v1 make dashboard
 ```
 
 UI defaults to loopback `18086`; `--port` and `--api-url` override local ports.
 The API default is loopback `18084/api/v1`; fixture mode uses `18085/api/v1`.
-URLs must use HTTP and a loopback host. These non-secret settings are owned by
-Member_4. `DASHBOARD_API_TOKEN` is required/secret in explicit mock mode and remains on the
+URLs must use HTTP and a loopback host. These are non-secret settings. `DASHBOARD_API_TOKEN` is required/secret in explicit mock mode and remains on the
 UI server. The local fixture mode uses an explicit disposable Operator token.
 A separate UI process can use a backend Viewer token to inspect denied operations.
 Explicit mock mode has one configured identity per process. OIDC mode instead
@@ -96,10 +87,10 @@ keyboard/screen-reader use. Keyboard Tab reaches navigation/controls, Enter
 activates, and dialogs/drawers have explicit close controls.
 
 Optional real backend boundary verification (existing local PostgreSQL, isolated
-temporary schema; use the existing Member_4 environment):
+temporary schema; use the projection environment):
 
 ```sh
-MEMBER4_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/member4-venv/bin/python -m pytest -q tests/member4/test_dashboard_boundary.py
+PROJECTION_TEST_DSN=postgresql://projection:projection_disposable@127.0.0.1:15432/local_dev_projection .tools/projection-venv/bin/python -m pytest -q tests/projection/test_dashboard_boundary.py
 ```
 
 Known API limits are displayed rather than invented: the trend is one explicitly
@@ -131,7 +122,7 @@ For a local UI walkthrough, run `make dashboard-fixtures` and
 `make dashboard-demo`, open [GridBalance](http://127.0.0.1:18086), select
 `tx-001`, and advance the fixture through Overload, Throttling and Recovery.
 For a local platform walkthrough using the real seeded scenario, follow the
-[final demo guide](../docs/demo/FINAL_DEMO.md) and select the same transformer.
+[master guide](../docs/MASTER_GUIDE.md) and select the same transformer.
 
 **Flow Map** shows every transformer in the
 published inventory. Each transformer has its own schematic with household,

@@ -41,18 +41,18 @@ erDiagram
 
 One PostgreSQL primary is shared only to fit student hardware; services do not share tables or credentials. The fenced simulated gateway
 adds the narrow same-database isolated-schema boundary in
-[ADR-029](../decisions/ADR-029-outbox-and-fencing.md): Member_1 owns
-`member1_gateway` in the control database and calls only a typed authorization
+[ADR-029](../decisions/ADR-029-outbox-and-fencing.md): the device service owns
+`gateway` in the control database and calls only a typed authorization
 function, so its simulated effect and epoch check can commit atomically.
 
-| Logical store | Owner | Records | Rebuildability |
+| Logical store | Service | Records | Rebuildability |
 |---|---|---|---|
-| `registry` | Member_1 / Device Registry | Device registration, assignment, capabilities, heartbeat summary | Restored from registry backup/re-registration |
-| `control` | Member_3 / Action Service | Policies, action plans, commands, inbox/outbox, fencing and audit state | Authoritative; requires backup and recovery |
-| `projection` | Member_4 / Projection API | Load history, alerts, action/result views, UI cursors | Rebuildable from Kafka topics within retention |
-| `copilot_audit` | Member_4 / Copilot Service | Investigations, tool calls, evidence references | Non-authoritative, retention bounded |
+| `registry` | Device Registry | Device registration, assignment, capabilities, heartbeat summary | Restored from registry backup/re-registration |
+| `control` | Action Service | Policies, action plans, commands, inbox/outbox, fencing and audit state | Authoritative; requires backup and recovery |
+| `projection` | Projection API | Load history, alerts, action/result views, UI cursors | Rebuildable from Kafka topics within retention |
+| `copilot_audit` | Copilot Service | Investigations, tool calls, evidence references | Non-authoritative, retention bounded |
 
-Member_2 writes no PostgreSQL data. Flink publishes transformer-load events, and the projection consumer persists load history. Configuration changes cross a typed internal service API rather than allowing the Projection API to write `control` tables.
+Aggregation writes no PostgreSQL data. Flink publishes transformer-load events, and the projection consumer persists load history. Configuration changes cross a typed internal service API rather than allowing the Projection API to write `control` tables.
 
 ## 4. State machines
 
@@ -60,8 +60,8 @@ Member_2 writes no PostgreSQL data. Flink publishes transformer-load events, and
 
 This conceptual lifecycle includes RECOVERING. The executable v1 Transformer
 response permits NORMAL/WARNING/CRITICAL/STALE only; recovery is shown through
-the owned Action lifecycle. Member_4 preserves owner classifications and does
-not calculate this state machine. See [ADR-030](../decisions/ADR-030-member4-projections-api.md).
+the owned Action lifecycle. The projection preserves owner classifications and does
+not calculate this state machine. See [ADR-030](../decisions/ADR-030-projections-api.md).
 
 ```mermaid
 stateDiagram-v2

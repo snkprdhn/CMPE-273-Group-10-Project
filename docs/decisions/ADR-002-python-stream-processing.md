@@ -2,7 +2,6 @@
 
 - Status: Accepted, 2026-11-21
 - Authority: User-approved Python application code with containerized infrastructure
-- Owner: Member_2; affected boundaries: Member_1 and Member_3
 
 ## Context
 

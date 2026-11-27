@@ -1,6 +1,6 @@
 # Local prerequisites and environment
 
-Rechecked **2026-11-21 19:58 PST (America/Los_Angeles)**. The selected runtime is **Docker Desktop**, with **kind** supplying the project Kubernetes cluster. All application/test code stays Python; infrastructure JVMs remain inside containers. See the [version matrix](VERSION_MATRIX.md), [execution evidence](PREPARATION_VERIFICATION.md), and [status](IMPLEMENTATION_STATUS.md).
+Rechecked **2026-11-21 19:58 PST (America/Los_Angeles)**. The selected runtime is **Docker Desktop**, with **kind** supplying the project Kubernetes cluster. All application/test code stays Python; infrastructure JVMs remain inside containers. See the [version matrix](VERSION_MATRIX.md), execution evidence (private evidence), and [status](IMPLEMENTATION_STATUS.md).
 
 The latest recheck passed all installed-tool and current-cluster probes. Disk availability is now **258 GiB** and the macOS free-memory snapshot is **32%**; workload capacity remains unmeasured. No reinstall or configuration change was needed. See the newest section of the evidence report for exact results; older snapshots there are historical.
 

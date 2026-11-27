@@ -2,7 +2,6 @@ watchNamespaces: [platform]
 webhook:
   create: false
 operatorPod:
-  labels: {grid-owner: Member_2}
   resources:
     requests: {cpu: 100m, memory: 192Mi}
     limits: {cpu: 500m, memory: 384Mi}

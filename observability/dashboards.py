@@ -1,4 +1,4 @@
-"""Member_1 technical views, Member_4 grid and proposed SLO views."""
+"""Technical, grid and proposed SLO views."""
 import json
 
 VIEWS = {
@@ -38,7 +38,7 @@ VIEWS = {
 def dashboards():
     for uid, (title, panels) in VIEWS.items():
         yield uid, {'uid': uid, 'title': title, 'schemaVersion': 40, 'version': 1,
-            'tags': ['smart-grid', 'Member_1', 'Member_4'], 'timezone': 'utc',
+            'tags': ['smart-grid'], 'timezone': 'utc',
             'time': {'from': 'now-15m', 'to': 'now'}, 'refresh': '5s',
             'description': 'Local observed signals. No data is unknown, never healthy. SLOs are proposed targets, not acceptance claims. Prometheus retains 24h.',
             'panels': [{'id': n+1, 'title': label, 'type': 'timeseries',
@@ -52,7 +52,7 @@ def dashboards():
 def configmaps():
     return {'apiVersion': 'v1', 'kind': 'List', 'items': [
         {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': uid,
-            'namespace': 'observability', 'labels': {'grafana_dashboard': '1', 'grid-owner': 'Member_1'}},
+            'namespace': 'observability', 'labels': {'grafana_dashboard': '1', }},
          'data': {uid+'.json': json.dumps(body)}} for uid, body in dashboards()]}
 
 
