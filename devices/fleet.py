@@ -87,14 +87,14 @@ def sun(t):
     return min(1.0, max(.1, .55 + .35 * math.sin(2 * math.pi * t / 1800 + .5)))
 
 
-def offered_kw(device, kind, index, hero, t, window, cycle=CYCLE_SECONDS, length=OVERLOAD_SECONDS, forced=False):
+def offered_kw(device, kind, index, hero, t, window, cycle=CYCLE_SECONDS, length=OVERLOAD_SECONDS, forced=False, solar_scale=1):
     """Power the device would draw without any command. Solar is negative."""
     wave = 1 + (HERO_WAVE if hero else WAVE) * math.sin(2 * math.pi * t / 600 + index)
     noise = (frac(device, window) - .5) * .16
     if kind == 'SMART_METER':
         return round(max(.05, METER_KW * wave * (.8 + .4 * frac(device)) * (1 + noise)), 3)
     if kind == 'SOLAR':
-        return round(-SOLAR_PEAK_KW * sun(t) * (.85 + .3 * frac(device)) * (1 + noise / 2), 3)
+        return round(-SOLAR_PEAK_KW * sun(t) * solar_scale * (.85 + .3 * frac(device)) * (1 + noise / 2), 3)
     if hero and (forced or overload_active(index - 1, t, cycle, length)) and frac(device, 'overload') < OVERLOAD_SHARE:
         return EV_MAX   # a full-rate evening charge; also keeps the restore target equal to the maximum
     return round(min(EV_MAX, max(EV_MIN, (2.0 + 2.0 * frac(device)) * wave * (1 + noise))), 3)
@@ -103,7 +103,7 @@ def offered_kw(device, kind, index, hero, t, window, cycle=CYCLE_SECONDS, length
 class Knobs:
     """Fault injection fractions. A timed burst overrides the baseline until it expires."""
     LIMITS = {'late': (0, .5), 'duplicate': (0, .5), 'drop': (0, .1), 'very_late': (0, .2)}
-    BURSTS = {'out_of_order': {'late': .25}, 'duplicates': {'duplicate': .30}, 'very_late': {'very_late': .10}}
+    BURSTS = {'out_of_order': {'late': .25}, 'duplicates': {'duplicate': .30}, 'very_late': {'very_late': .10}, 'cloud_cover': {}}
 
     def __init__(self, late=.01, duplicate=.01, drop=.003, very_late=.001, clock=time.monotonic):
         self.base = dict(late=late, duplicate=duplicate, drop=drop, very_late=very_late)
@@ -134,9 +134,14 @@ class Knobs:
 
     def inject(self, kind, seconds):
         if kind not in self.BURSTS or isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or not 5 <= seconds <= 300:
-            raise ValueError('kind is out_of_order, duplicates or very_late and seconds is 5..300')
+            raise ValueError(f'kind must be one of {", ".join(self.BURSTS)} and seconds must be 5..300')
         with self.lock:
             self.bursts[kind] = self.clock() + seconds
+
+    def solar_scale(self, transformer):
+        with self.lock:
+            covered = transformer in self.heroes[:5] and self.bursts.get('cloud_cover', 0) > self.clock()
+        return .2 if covered else 1
 
     def current(self):
         with self.lock:
@@ -278,6 +283,16 @@ def schedule(topology_devices, window_index, phases):
     return sorted(((start + phases[d['device_id']], d) for d in topology_devices), key=lambda item: item[0])
 
 
+def record_offered(totals, transformer, wanted, device_count):
+    count, total = totals.get(transformer, (0, 0.0))
+    count, total = count + 1, total + wanted
+    if count == device_count:
+        METRICS[f'fleet_unmanaged_kw{{transformer="{transformer}"}}'] = round(total, 3)
+        totals.pop(transformer, None)
+    else:
+        totals[transformer] = count, total
+
+
 def main():
     from confluent_kafka import Producer
     from devices.kafka import consumer, flush_results, Publisher
@@ -359,6 +374,7 @@ def main():
     log('FLEET_STARTED')
     rng = random.Random(f'{boot}')
     ready, delayed = deque(), []       # due readings; (release time, topic, key, value) for injected delays
+    offered_totals = {}
     generated = int(time.time() // WINDOW)
     try:
         flush = time.monotonic() + 10
@@ -376,17 +392,21 @@ def main():
                 index, hero = int(tx[3:]), tx in hero_set
                 at = datetime.fromtimestamp(at_epoch, timezone.utc)
                 controlled = device in states
+                ev = kind == 'EV_CHARGER'
+                wanted = offered_kw(device, kind, index, hero and ev, at_epoch, window, cycle, length,
+                                    ev and hero and knobs.is_forced(tx),
+                                    solar_scale=knobs.solar_scale(tx) if kind == 'SOLAR' else 1)
+                record_offered(offered_totals, tx, wanted, len(by_tx[tx]))
                 if controlled:
                     rate = states[device].current()[0]
-                    wanted = offered_kw(device, kind, index, hero, at_epoch, window, cycle, length, knobs.is_forced(tx))
                     # A commanded limit is what the charger delivers. At the maximum it follows demand.
                     power = rate if rate < EV_MAX - 1e-9 else wanted
                     extra = dict(current_rate_kw=power, minimum_rate_kw=EV_MIN, priority=1 + int(frac(device) * 3))
-                elif kind == 'EV_CHARGER':
-                    power = offered_kw(device, kind, index, hero, at_epoch, window, cycle, length, knobs.is_forced(tx))
+                elif ev:
+                    power = wanted
                     extra = dict(current_rate_kw=power, minimum_rate_kw=EV_MIN, priority=1 + int(frac(device) * 3))
                 else:
-                    power, extra = offered_kw(device, kind, index, hero, at_epoch, window), None
+                    power, extra = wanted, None
                 value = reading(device, kind, tx, boot, window, at, utc(), run, power, extra)
                 if not controlled:
                     roll = rng.random()

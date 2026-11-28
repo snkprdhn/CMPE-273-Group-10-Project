@@ -107,6 +107,10 @@ patches:
           name: FLEET_CONTROL_TOKEN
           valueFrom:
             secretKeyRef: {name: fleet-control, key: token}
+      # No Investigator on the AKS demo: an empty value hides every Investigate button.
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: COPILOT_URL, value: ""}
 
   # ── Flink: keyed by transformer, bounded state, two subtasks on the dedicated node ─────────
   # JobManager and TaskManager share the Flink node (taint grid-role=flink): the ReadWriteOnce
@@ -256,9 +260,12 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
         value: "1"
-  # The projection stores only managed inventory and keeps a rolling 30 minute window of loads.
+  # Both workers store managed inventory only. The control worker prunes to the configured window.
   - target: {kind: Deployment, name: projection}
     patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/1/imagePullPolicy
+        value: IfNotPresent
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value: {name: PROJECTION_SCOPE, value: context}
@@ -267,10 +274,22 @@ patches:
         value: {name: PROJECTION_WINDOW_MINUTES, value: "15"}
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 512Mi
+        value: 320Mi
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: "1"
+        value: 600m
+      - op: add
+        path: /spec/template/spec/containers/1/env/-
+        value: {name: PROJECTION_SCOPE, value: context}
+      - op: add
+        path: /spec/template/spec/containers/1/env/-
+        value: {name: PROJECTION_FRESH_SECONDS, value: "30"}
+      - op: replace
+        path: /spec/template/spec/containers/1/resources/limits/memory
+        value: 192Mi
+      - op: replace
+        path: /spec/template/spec/containers/1/resources/limits/cpu
+        value: 400m
 
   # Windows close ten seconds late and the alert for a window trails its load, so a 15 s freshness limit flickers.
   - target: {kind: Deployment, name: 'api|projection'}

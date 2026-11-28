@@ -174,7 +174,7 @@ def test_positive_normal_classification_requires_exact_owner_marker_and_revision
     assert view(store, NOW + timedelta(seconds=16))['transformers'][0]['state'] == 'STALE'
 
 
-@pytest.mark.parametrize('kind', ['Telemetry', 'Result'])
+@pytest.mark.parametrize('kind', ['Telemetry', 'Result', 'Load', 'Alert', 'Action', 'Command'])
 def test_device_notification_matches_snapshot_without_fleet_scan(store, records, monkeypatch, kind):
     store.context(records)
     feed(store, records['events'])
@@ -182,18 +182,45 @@ def test_device_notification_matches_snapshot_without_fleet_scan(store, records,
     record['event']['event_id'] = str(uuid4())
     if kind == 'Telemetry':
         record['event']['payload']['sequence_number'] = 1000
+    elif kind == 'Load':
+        record['event']['payload']['revision'] = 1
+    elif kind == 'Alert':
+        record['event']['event_time'] = '2026-11-09T18:30:07Z'
+        record['event']['payload']['status'] = 'RESOLVED'
+    elif kind == 'Action':
+        record['event']['saga_version'] = 99
+        record['event']['payload']['status'] = 'COMPLETED'
+    elif kind == 'Command':
+        record['event']['saga_version'] = 99
+        record['event']['payload']['saga_version'] = 99
     snapshot = store.views
     def no_fleet_scan(*args):
-        raise AssertionError('device ingestion must not rebuild the complete fleet')
+        raise AssertionError('event ingestion must not rebuild the complete fleet')
     monkeypatch.setattr(store, 'views', no_fleet_scan)
     with store.transaction() as db:
         cursor = store.cursor(db)
     feed(store, [record])
-    with store.transaction() as db:
-        expected = next(d for d in snapshot(db, NOW)['devices']
-                        if d['device']['device_id'] == record['event']['payload']['device_id'])
-    notifications = [e for e in store.events(cursor, NOW) if e['event_type'] == 'device.updated']
-    assert notifications[-1]['payload'] == expected
+    notifications = store.events(cursor, NOW)
+    if kind in ('Telemetry', 'Result'):
+        with store.transaction() as db:
+            expected = next(d for d in snapshot(db, NOW)['devices']
+                            if d['device']['device_id'] == record['event']['payload']['device_id'])
+        device_notes = [e for e in notifications if e['event_type'] == 'device.updated']
+        assert device_notes[-1]['payload'] == expected
+    elif kind == 'Load':
+        with store.transaction() as db:
+            expected = next(t for t in snapshot(db, NOW)['transformers']
+                            if t['transformer_id'] == record['event']['payload']['transformer_id'])
+        tx_notes = [e for e in notifications if e['event_type'] == 'transformer.updated']
+        assert tx_notes[-1]['payload'] == expected
+    elif kind == 'Alert':
+        alert_notes = [e for e in notifications if e['event_type'] == 'alert.updated']
+        assert alert_notes[-1]['payload']['status'] == 'RESOLVED'
+    elif kind == 'Action':
+        action_notes = [e for e in notifications if e['event_type'] == 'action.updated']
+        assert action_notes[-1]['payload']['status'] == 'COMPLETED'
+    else:
+        assert notifications == []
 
 
 def test_worker_owned_connection_rolls_back_and_remains_usable(store, records):

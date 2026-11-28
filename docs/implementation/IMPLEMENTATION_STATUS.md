@@ -1,8 +1,121 @@
 # Implementation status
 
-Updated **2026-11-27 (America/Los_Angeles)**. The system is deployed on the AKS review cluster and in soak toward the Mon 2026-11-30 demonstration. Read the [master guide](../MASTER_GUIDE.md) for the architecture and the demo script. Nothing is committed or pushed. The detailed per-milestone logs from before this cleanup are kept privately in `.tools/backup/`.
+Updated **2026-11-27 (America/Los_Angeles)**. The system is deployed on the AKS review cluster and in soak toward the Mon 2026-11-30 demonstration. Read the [master guide](../MASTER_GUIDE.md) and [demo UI plan](DEMO_UI_PLAN.md) for the architecture, deferred Phase 3 scope, and demo script. Nothing is committed or pushed. The detailed per-milestone logs from before this cleanup are kept privately in `.tools/backup/`.
 
-## Current milestone: repository cleanup and naming — 2026-11-27
+## Current milestone: Live demo audit fixes (`ui` & Grafana) rolled out to AKS — 2026-11-27
+
+Rolled out UI and Grafana fixes on top of the Phase 1/2 AKS deployment after auditing live `/live`, `/operator`, and `/grafana/` against the PRD and [demo UI plan](DEMO_UI_PLAN.md) (Phase 3 remains explicitly deferred).
+
+- **`/live` (`ui`)**: `Late, accepted` switched to 5-minute window matching injected delays (`565` vs `568` live); added `Watermark delay` row (`10.5 s` vs `10 s` target), `Rejected (DLQ)` `0` fallback when Flink is live, and per-partition/subtask readouts (`P0–P2`, `S0–S1`); mapped `'integration-kind.projection-telemetry'` in the lag bar chart and excluded historical `grid.telemetry.dlq.v1` lag; stopped `STALE` fixture `ev-001` from showing as `Spared`; tuned `1440×900` right-rail heights to clear `.cr-dock`.
+- **`/operator` (`ui`)**: parallelized `Operations.snapshot()`, coalesced high-rate SSE bursts (`sse_min_interval=2.0`), bumped `revision` only when `data`/`errors` change, and replaced `0.3s` full `json.dumps` diffs with `current_fingerprint()`. Fixed page-navigation freezes and WebSocket `Connection lost` disconnects.
+- **Grafana (`observability/demo_dashboards.py`)**: changed `Online partitions` from `kafka_topic_partition_leader == 1` to `>= 0` (fixes `0` → `24`), excluded `grid.telemetry.dlq.v1` from `SERVICE_LAG`, and shortened stat titles (`demo-grid-control-room`, `demo-grid-pipeline`, `demo-grid-kafka` updated; `demo-grid-platform` & `demo-grid-storage` unchanged).
+
+### Deployed AKS image digests
+
+| Deployment | Image | Rollback template |
+|---|---|---|
+| `Deployment/projection` & `Deployment/api` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/api@sha256:3bcb2e51e6b9eecd8ab9ce541a6e4e8a0d6cf1981fa58f30f96780e18da4a825` | `.tools/aks-review/phase1-2/{projection,api}-before.json` |
+| `Deployment/ui` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/ui@sha256:29cd425fa71b13ec93defab3c4bb315fe7ca6e21fb84ac6a5988feff346f7397` (`ui-fix-20261128060831`) | `.tools/aks-demo/ui-previous-image.txt` (`ui@sha256:1b4b6361…`) & `.tools/aks-review/phase1-2/ui-before-fix.json` |
+| `Deployment/fleet` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/fleet@sha256:cc81a1355dcbfc2d87c9314635bc835fa1c79148c59142c90bc994d9dfd8ceb2` | `.tools/aks-review/phase1-2/fleet-before.json` |
+| Grafana `demo-grid-*` ConfigMaps (`observability`) | Updated `demo-grid-{control-room,pipeline,kafka}` | `.tools/aks-review/phase1-2/demo-dashboards-before.json` |
+
+### Executed verification
+
+| Target | Command / check | Executed result |
+|---|---|---|
+| Contracts & manifests | `make contracts && make delivery-render` | `214` contract checks passed (`0.23s`); all 6 Helm charts & compose config `PASS` |
+| Observability & dashboards | `make observability-test && make dashboard-test` | `8` observability tests (`0.13s`) and `128` Chromium Playwright dashboard tests (`135.23s`) passed; `observability.demo_dashboards` YAML generation passed |
+| AKS health & endpoints | `/healthz`, `/readyz`, `.venv/bin/python -m tools.demo_check` | All checks `PASS` (`output freshness 4.5 s`, `flink consumer lag 162`, `flink busy 22.5%`, `12.1 completed in 10 min`, `0` held plans, `ui-7b46fd678f-zn26q` `READY=true`, `RESTARTS=0`) |
+| AKS live browser audit | Playwright Chromium on `/live`, `/operator`, `/grafana/d/{grid-kafka,grid-pipeline,grid-control-room}` | `/live`: `0` errors, `1440×900` fits above dock, `Late, accepted 565`, `Rejected (DLQ) 0`, `Watermark delay 10.5 s`, `P0–P2` + `S0–S1` live, `ev-001` `Stale`/`Normal`. `/operator`: loads in `19.5s` and navigates across all views (`0` disconnects). Grafana: `Online partitions 24`, `integration-kind.projection` lag `4` (no `3.33 Mil`), `0` console errors. |
+
+Limitations / unverified:
+- `ev-001` legacy fixture entry remains in the `/devices` DB (`Stale` / `Normal` in `/live` Devices table).
+- `/operator` initial load takes ~`19.5s` while paging ~3,600 retained `/alerts`, and logs one NiceGUI `echart.js` `beforeUnmount` error when leaving `Overview` (`0` errors on `/live`).
+- `make aggregation-test` (`65 passed`), `make devices-test` (`214 + 35 passed`), and `make copilot-test` (`12 passed`) ran before the UI/Grafana edits cleanly (`dashboard/` and `observability/` changes do not touch those services). Phase 3 PRD features remain deferred per [DEMO_UI_PLAN.md](DEMO_UI_PLAN.md).
+
+## Previous milestone: Phase 1 projection/UI catch-up and Phase 2 fleet controls on AKS — 2026-11-27
+
+Phase 1 (`/live` closed-loop control room, `COPILOT_URL=""`, projection topic split + shared read-lock/per-entity update optimization) and Phase 2 (`devices_fleet_unmanaged_kw{transformer}` Prometheus gauge and `/inject kind=cloud_cover`) are deployed and verified on the AKS review cluster (`smart-grid-aks-review` in `rg-smart-grid-professor-review`, `$85` approved ceiling, spending limit `On`).
+
+### Deployed AKS image digests
+
+| Deployment | Image | Rollback template |
+|---|---|---|
+| `Deployment/projection` & `Deployment/api` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/api@sha256:3bcb2e51e6b9eecd8ab9ce541a6e4e8a0d6cf1981fa58f30f96780e18da4a825` | `.tools/aks-review/phase1-2/{projection,api}-before.json` |
+| `Deployment/ui` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/ui@sha256:1b4b6361bf0d3b211af62cbc937565e977fe5b67c2a9a049f12582984913cdf3` | `.tools/aks-review/phase1-2/ui-before.json` |
+| `Deployment/fleet` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/fleet@sha256:cc81a1355dcbfc2d87c9314635bc835fa1c79148c59142c90bc994d9dfd8ceb2` | `.tools/aks-review/phase1-2/fleet-before.json` |
+
+### Executed verification
+
+| Target | Command / check | Executed result |
+|---|---|---|
+| Contracts & `devices` Phase 2 | `make devices-test` | `214` contract checks passed (`0.24s`); `35` device/fleet tests passed (`11.64s`), covering `fleet_unmanaged_kw` and `cloud_cover` |
+| Projection lock, ordering & freshness | `PROJECTION_TEST_DSN=... pytest -q tests/projection/test_api.py test_projection.py test_review.py test_dashboard_boundary.py` + `test_review.py test_kafka_live.py -k "not test_real_kafka"` | `45 passed` (`test_api.py`, `test_projection.py`, `test_dashboard_boundary.py`; 1 transient cold DB connect timeout in `test_review.py` re-verified: `23 passed in 32.77s`); earlier full run also passed `test_real_kafka_crash_restart_replay` (`57 passed`, `1` live Keycloak skipped before test pattern fix) |
+| Dashboard Phase 1/1b & manifests | `make dashboard-test`, `test_live.py`, `make delivery-render` | `126 passed`, `17 passed` in Playwright Chromium, `PASS` across 6 Helm charts |
+| AKS Phase 1 catch-up & `/live` | `tools.demo_check`, Kafka group lag, `/api/v1/{actions,overview}`, browser check (`21:11–21:12 PST`) | `tools.demo_check` `PASS` (`output freshness 1.9 s`); `integration-kind.projection` lag `0–3`, `integration-kind.projection-telemetry` lag `36–41`; `/actions` & `/overview` `FRESH`; `/live` Decision Log live without `feed stale: projection behind`, active saga stepper, live Decisions and Devices (`FRESH`) |
+| AKS Phase 2 gauge & `cloud_cover` | `deploy/fleet` `/metrics`, Prometheus `devices_fleet_unmanaged_kw`, `/live` Chaos Dock, 3 × `10 s` `POST /inject` `cloud_cover` + `tools.demo_check` (`21:12–21:13 PST`) | `25` `devices_fleet_unmanaged_kw` series in Prometheus; `Cloud cover` dock button visible and `"Prometheus history · Without throttling uses fleet offered demand"` active on `/live`; 3 `cloud_cover` injections succeeded, post-run `tools.demo_check` `PASS` (`output freshness 1.4 s`, `plans held for review: 0`) |
+
+Limitations / unverified:
+- `ev-001` legacy fixture entry remains in `/devices` alongside the 70 live chargers (`Stale` in the Devices table).
+- Phase 2 `cloud_cover` was verified on AKS; local kind `cloud_cover` test and a separate post-Phase-2 1-hour continuous soak were not run. `/ponytail-review` slash command was not invoked.
+
+## Isolate raw telemetry in the projection — 2026-11-27
+
+The existing `integration-kind.projection` group now handles the control and load topics. A second container in the same Pod consumes raw readings under `integration-kind.projection-telemetry`. Both groups resume from existing topic-partition SQL checkpoints. The load worker owns pruning. The Deployment uses Recreate for the transition and the AKS overlay splits the existing CPU and memory limits across workers. The lag panels switch to the new group's telemetry offsets as they appear.
+
+Local verification passed on the dedicated `smart-grid-kind-dev-projection` cluster on Docker Desktop. AKS remains paused for visual inspection and separate rollout authorization. Hosted verification still needs to measure how quickly `/actions` and `/loads` catch up and whether telemetry keeps pace with ingestion. See [the projection runbook](../../projection/README.md#kafka-and-rebuild).
+
+| Command | Executed result |
+|---|---|
+| `PROJECTION_TEST_DSN=<local projection DSN> PROJECTION_TEST_KAFKA=127.0.0.1:19092 make projection-test` | 53 passed, one live Keycloak test skipped. The control worker projected a revised load and a new action with 5,001 telemetry inputs queued. The telemetry worker then reused the old SQL checkpoint and advanced past the queue, including one logged poison record. |
+| `make delivery-render` | PASS. The dev, review, hosted and AKS renders cover all six topics exactly once across two groups. |
+| `make observability-test` | 8 passed. |
+| `make dashboard-test` | 125 passed after the consumer-lag query change. |
+| `make kind-create KIND_NAME=smart-grid-kind-dev-projection` and `make kind-install KIND_NAME=smart-grid-kind-dev-projection` | Passed on the dedicated Docker Desktop cluster. |
+| `make kind-deploy KIND_NAME=smart-grid-kind-dev-projection` | PASS. During first boot the Docker node briefly went NotReady and several components restarted on probe timeouts. Deployment recovered after temporarily scaling down the optional monitoring workloads in this cluster. |
+| `make kind-smoke KIND_NAME=smart-grid-kind-dev-projection` | Full closed loop PASS, including real throttle and restore, SQL replay equality, action equality across Kafka, REST, SSE and Chromium, RBAC, and network policy. The optional monitoring workloads were paused for the smoke and their replica settings were restored afterward. |
+| `make kind-stop KIND_NAME=smart-grid-kind-dev-projection` | Stopped after readiness became unstable again on monitoring restart. The Kubernetes drain timed out and the command used its Docker shutdown fallback. The node is stopped with its volumes retained. The separate fixture preview at `http://127.0.0.1:18191/live` still returned HTTP 200. |
+| `kubectl exec` with Kafka `AdminClient.describe_consumer_groups` | Both deployed groups stable. The control group owns the five control/load topics and the telemetry group owns only raw telemetry. The running image's consumer source hash matched the checkout. |
+| Prometheus `/api/v1/query` via local port-forward | Both revised lag expressions parsed successfully before the simulator emitted data. |
+| Local `Job/projection-lag-check` on kind | Passed. Isolated Kafka topics and SQL schema, 70 managed fixture chargers among 1,000 IDs, 50,000 records initially queued and 201 new readings/s for 36 batches. The cold-start action appeared in PostgreSQL in 4.08 s. The eight later transitions appeared within 1.12 s. Telemetry lag reached 42 records at the 20 s sample and all 57,236 records were checkpointed. The first attempt hit a Decimal-to-JSON error in the temporary reporting script. The corrected run and its inputs are retained in `.tools/kind-dev-projection/`. |
+
+## `/live` closed-loop control room — 2026-11-27
+
+**Status: paused before AKS rollout for local inspection and projection lag.** The Phase 1 changes cover the UI, its tests and documentation, and the hosted `COPILOT_URL` setting. See [DEMO_UI_PLAN.md](DEMO_UI_PLAN.md).
+
+### What changed
+
+| Area | Change |
+|---|---|
+| Audit fixes | Topology effect `trailLength` 0 (blank chart after a tab switch); Prometheus selectors skip the projection copy of the gauges; Decision Log shows the utilization of the action's trigger window; charts use UTC; monitor-only transformers never request `/loads`; the dock's EV rush picks the least loaded quiet hero; legend and Correctness layout fixes |
+| Closed loop | Four-column topology (Grid + Solar, transformers, chargers, control saga) with telemetry, command and acknowledgment lines; a seven-step saga stepper; outbox / CDC and fenced gateway on the pipeline strip with a return rail |
+| Asset explorer | Tabs Grid operations, Transformers (25), Devices (1,000), Pipeline health. All 25 transformers with row detail. 70 managed chargers with Throttled / Spared / Normal, polled every 10 s only while the Devices tab is open |
+| Data | `tx_history` per transformer (live and backfilled), trigger-window cache, loads fall back to Prometheus when the API has nothing recent |
+| Follow-up audit | The saga skips steps without evidence, Spared starts only after confirmed reduction, and an actions API outage freezes the KPIs and shows an amber status. The rush dock retains the accepted target during its active rush, asset detail scrolls into view, and monitor-only transformers omit the shadow comparison. Hosted `/operator` hides Flow Map, Scenarios and Investigate. |
+
+### Executed verification
+
+| Command | Result |
+|---|---|
+| `make dashboard-test` | 125 passed in the follow-up audit run (includes `/live` tab switching and node selection, outage recovery, hosted-style `/operator` navigation and layout fit at 1440×900 and 1280×720) |
+| `.tools/dashboard-test-venv/bin/python -m pytest -q tests/dashboard/test_control_room.py` | 67 passed, including the 60 s selection-cache renewal and insufficient-capacity saga checks |
+| `make delivery-render` | PASS |
+| `curl -fsS http://127.0.0.1:18191/live` | HTTP 200 for the local visual-inspection preview against the disposable backend |
+| Live read-only checks through the Grafana proxy | `max by (transformer) (grid_business_kw{signal="net_load_kw",exported_job!~"projection.*"})` returns 25 series; the unfiltered query also returns 25 here because the projection only exports 5 |
+| Live read-only checks through `kubectl port-forward svc/api` | `GET /devices?device_type=EV_CHARGER&limit=200` returns one page (`next_cursor` null) of 71 devices, and the new `FleetData` code parses it and classifies the chargers against real actions |
+| Live `Deployment/ui` | `smartgridevreview9e9.azurecr.io/smart-grid-kind/ui@sha256:2d49fbd80363e405535fccaaa7f0b7fe816f6e50242754443fb103a6dab08d3a`, rollback target |
+
+Not run: a kind run, the AKS rollout, `tools.demo_check` for this build, the one-hour soak.
+
+### Limitations found on the live cluster
+
+- The follow-up read-only Grafana audit reported telemetry lag growing from 1,158,655 to 1,684,135 and action lag from 102 to 153 in one hour. It measured about 46 records/s consumed and 201 telemetry records/s arriving, and estimated an ensuing 8–9 minute action delay. The audit used the `integration-kind.projection` consumer group. The current UI changes leave that consumer behavior in place.
+- The API's `freshness` is `STALE` for every device and for `/transformers/{id}/loads`. The projection consumer group lags (about 8.9k records on the load topic at 01:10 UTC), and `/loads` held only 5 to 9 windows per 10 minutes for the managed transformers, the newest about nine minutes old. The detail chart therefore falls back to Prometheus history ("loads API behind") and the trigger percentage in the Decision Log is omitted when its window is missing. The cause is in the projection, outside this change.
+- The device list has 71 entries: the 70 fleet chargers (`ev-00N-01..14`) plus a leftover `ev-001` from an earlier end-to-end run. The Devices tab shows all 71.
+- Live chargers carry no `departure_time`, so the Departure column shows "–". "Spared" cannot use the API's per-device freshness (always `STALE`), so it requires GOOD or ESTIMATED telemetry, charging and controllable.
+- Layout fit was measured in Chromium at 1440x900 and 1280x720 against the test backend; the compact layout is chosen once at page load from the viewport height.
+
+## Previous milestone: repository cleanup and naming — 2026-11-27
 
 **Status: done locally and rolled out to AKS. Behavior is unchanged.**
 

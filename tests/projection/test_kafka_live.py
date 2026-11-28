@@ -11,7 +11,7 @@ from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient, NewTopic
 import pytest
 
-from projection.consumer import process
+from projection.consumer import process, selected_topics
 from projection.contracts import TOPICS
 
 
@@ -30,7 +30,17 @@ def test_transport_rejects_poison_without_checkpoint(store):
         assert db.execute('SELECT count(*) FROM projection_offsets').fetchone()[0] == 0
 
 
-def test_real_kafka_crash_restart_replay(store, records):
+def test_projection_topic_filter_uses_canonical_names():
+    assert set(selected_topics(None)) == set(TOPICS)
+    assert selected_topics(' grid.action.v1, grid.transformer-load.v1 ') == (
+        'grid.action.v1', 'grid.transformer-load.v1')
+    for invalid in ('', 'grid.action.v1,', 'integration-kind.grid.action.v1', 'grid.action.v1,grid.action.v1'):
+        with pytest.raises(ValueError, match='PROJECTION_TOPICS'):
+            selected_topics(invalid)
+
+
+@pytest.mark.parametrize('split', [False, True], ids=['same-group', 'split-telemetry'])
+def test_real_kafka_crash_restart_replay(store, records, split):
     bootstrap = os.getenv('PROJECTION_TEST_KAFKA')
     if not bootstrap:
         pytest.skip('set PROJECTION_TEST_KAFKA for real broker acceptance')
@@ -43,7 +53,10 @@ def test_real_kafka_crash_restart_replay(store, records):
     producer = Producer({'bootstrap.servers': bootstrap, 'acks':'all'})
     env = dict(os.environ, PROJECTION_DSN=store.dsn, KAFKA_PREFIX=prefix,
                KAFKA_BOOTSTRAP=bootstrap, PROJECTION_GROUP=prefix+'projection')
-    worker = None
+    for name in ('PROJECTION_TOPICS', 'PROJECTION_SCOPE', 'WORKER_HEALTH_FILE'):
+        env.pop(name, None)
+    worker = telemetry = None
+    telemetry_topic = 'grid.telemetry.v1'
     log = []
     def publish(events):
         for r in events:
@@ -51,13 +64,15 @@ def test_real_kafka_crash_restart_replay(store, records):
                              on_delivery=lambda err, msg: log.append(err))
         assert producer.flush(10) == 0
         assert not any(log)
-    def start():
-        return subprocess.Popen([sys.executable, '-m', 'projection', 'consume'], env=env,
+    def start(**settings):
+        return subprocess.Popen([sys.executable, '-m', 'projection', 'consume'], env=env | settings,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     def wait_for(predicate):
         deadline = time.monotonic()+20
         while time.monotonic() < deadline:
-            assert worker.poll() is None, worker.communicate()
+            for process in (worker, telemetry):
+                if process:
+                    assert process.poll() is None, process.communicate()
             with store.transaction() as db:
                 if predicate(db):
                     return
@@ -70,28 +85,53 @@ def test_real_kafka_crash_restart_replay(store, records):
                  db.execute('SELECT min(offset_value) FROM projection_offsets').fetchone()[0] == 1)
         worker.kill()  # durable SQL checkpoint survives process loss and broker retries
         worker.communicate(timeout=5)
-        worker = start()
+        if split:
+            reading = deepcopy(next(r for r in records['events'] if r['topic'] == telemetry_topic))
+            reading['event']['payload']['device_id'] = 'unmanaged-ev'
+            publish([reading] * 5_000 + [reading | {'event': []}])
+            worker = start(PROJECTION_TOPICS=','.join(t for t in TOPICS if t != telemetry_topic))
+        else:
+            worker = start()
         load = deepcopy(next(r for r in records['events'] if r['topic'] == 'grid.transformer-load.v1'))
         load['event']['event_id'] = str(uuid4())
         load['event']['payload']['revision'] = 12
-        publish([load, records['events'][1], load])
+        updates = [load, records['events'][1], load]
+        if split:
+            action = deepcopy(next(r for r in records['events'] if r['topic'] == 'grid.action.v1'))
+            action['event'].update(event_id=str(uuid4()), saga_version=3)
+            action['event']['payload']['status'] = 'RECOVERY_MONITORING'
+            updates.append(action)
+        expected_events = 8 if split else 7
+        publish(updates)
         wait_for(lambda db: db.execute("SELECT event->'payload'->>'revision' FROM projection_current "
                                       "WHERE kind='Load'").fetchone()[0] == '12' and
-                 db.execute('SELECT count(*) FROM projection_events').fetchone()[0] == 7)
+                 db.execute('SELECT count(*) FROM projection_events').fetchone()[0] == expected_events)
         with store.transaction() as db:
             # Freshness aside, the same authoritative corrected payload is retained once.
             assert db.execute("SELECT event->'payload' FROM projection_current WHERE kind='Load'").fetchone()[0] == load['event']['payload']
+            assert db.execute('SELECT offset_value FROM projection_offsets WHERE topic=%s', (telemetry_topic,)).fetchone()[0] == 1
+            if split:
+                assert db.execute("SELECT event->'payload'->>'status' FROM projection_current "
+                                  "WHERE kind='Action'").fetchone()[0] == 'RECOVERY_MONITORING'
+        if split:
+            telemetry = start(PROJECTION_TOPICS=telemetry_topic, PROJECTION_GROUP=env['PROJECTION_GROUP']+'-telemetry',
+                              PROJECTION_SCOPE='context')
+            wait_for(lambda db: db.execute('SELECT offset_value FROM projection_offsets WHERE topic=%s',
+                                          (telemetry_topic,)).fetchone()[0] == 5002)
+            with store.transaction() as db:
+                assert db.execute('SELECT count(*) FROM projection_events').fetchone()[0] == expected_events
         store.rebuild()
         with store.transaction() as db:
             assert db.execute("SELECT event->'payload' FROM projection_current WHERE kind='Load'").fetchone()[0] == load['event']['payload']
     finally:
-        if worker and worker.poll() is None:
-            worker.terminate()
-            try:
-                worker.communicate(timeout=10)
-            except subprocess.TimeoutExpired:
-                worker.kill()
-                worker.communicate(timeout=5)
+        for process in (worker, telemetry):
+            if process and process.poll() is None:
+                process.terminate()
+                try:
+                    process.communicate(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate(timeout=5)
         for future in admin.delete_topics(topics).values():
             future.result(10)
 

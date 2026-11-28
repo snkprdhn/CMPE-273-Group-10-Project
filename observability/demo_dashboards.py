@@ -11,7 +11,11 @@ CAP = 'max by (transformer) (grid_business_kw{signal="capacity_kw"})'
 UTIL = f'100 * {NET} / {CAP}'
 TELEMETRY = 'topic=~".*grid.telemetry.v1"'
 LOADS = 'topic=~".*grid.transformer-load.v1"'
-GROUPS = 'consumergroup=~"agg-fleet.*|integration-kind.action.control.v1|integration-kind.projection"'
+GROUPS = 'consumergroup=~"agg-fleet.*|integration-kind[.]action[.]control[.]v1|integration-kind[.]projection(-telemetry)?"'
+SERVICE_LAG = (f'kafka_consumergroup_lag{{{GROUPS}}}'
+               f' unless (kafka_consumergroup_lag{{consumergroup="integration-kind.projection",{TELEMETRY}}}'
+               ' and on (topic, partition) kafka_consumergroup_lag{consumergroup="integration-kind.projection-telemetry"})'
+               ' unless kafka_consumergroup_lag{consumergroup="integration-kind.projection",topic=~".*grid[.]telemetry[.]dlq[.]v1"}')
 THRESHOLDS_UTIL = [{'color': 'green', 'value': None}, {'color': 'orange', 'value': 80}, {'color': 'red', 'value': 95}]
 
 
@@ -101,10 +105,10 @@ def control_room():
     b.stat('Fleet net demand', f'sum({NET})', 'kwatt', width=4, decimals=2)
     b.stat('Fleet capacity', f'sum({CAP})', 'kwatt', width=4, decimals=2)
     b.stat('Fleet utilization', f'100 * sum({NET}) / sum({CAP})', 'percent', THRESHOLDS_UTIL, width=4, decimals=0)
-    b.stat('Transformers over 80%', f'count(({UTIL}) >= 80) or vector(0)', None,
+    b.stat('Over 80% load', f'count(({UTIL}) >= 80) or vector(0)', None,
            [{'color': 'green', 'value': None}, {'color': 'orange', 'value': 3}, {'color': 'red', 'value': 8}], width=4)
-    b.stat('Transformers over 95%', f'count(({UTIL}) >= 95) or vector(0)', None, [{'color': 'green', 'value': None}, {'color': 'red', 'value': 1}], width=4)
-    b.stat('Incidents in progress', 'sum(devices_fleet_overload_active) or vector(0)', None,
+    b.stat('Over 95% load', f'count(({UTIL}) >= 95) or vector(0)', None, [{'color': 'green', 'value': None}, {'color': 'red', 'value': 1}], width=4)
+    b.stat('Active incidents', 'sum(devices_fleet_overload_active) or vector(0)', None,
            [{'color': 'green', 'value': None}, {'color': 'orange', 'value': 1}], width=4)
     b.series('Fleet demand by source', [
         ('sum(max by (transformer) (grid_business_kw{signal="meter_demand_kw"}))', 'Households'),
@@ -126,8 +130,8 @@ def control_room():
 def pipeline():
     b = Board('grid-pipeline', 'Streaming pipeline', 'Devices to Kafka to Flink windows to control, with correctness counters.', ['pipeline'])
     b.stat('Devices publishing', 'max(devices_fleet_devices)', None, width=4)
-    b.stat('Events per second', f'sum(rate(kafka_topic_partition_current_offset{{{TELEMETRY}}}[30s]))', 'ops', width=4, decimals=0)
-    b.stat('Windows per second', f'sum(rate(kafka_topic_partition_current_offset{{{LOADS}}}[30s]))', 'ops', width=4, decimals=1)
+    b.stat('Events / sec', f'sum(rate(kafka_topic_partition_current_offset{{{TELEMETRY}}}[30s]))', 'ops', width=4, decimals=0)
+    b.stat('Windows / sec', f'sum(rate(kafka_topic_partition_current_offset{{{LOADS}}}[30s]))', 'ops', width=4, decimals=1)
     b.stat('Output freshness', 'time() - max(flink_taskmanager_job_task_operator_latest_output_ms) / 1000', 's',
            [{'color': 'green', 'value': None}, {'color': 'orange', 'value': 15}, {'color': 'red', 'value': 30}], width=4, decimals=1)
     b.stat('Consumer lag, Flink', f'sum(kafka_consumergroup_lag{{{TELEMETRY},consumergroup=~"agg-fleet.*"}})', None, LAG_STEPS, width=4, decimals=0)
@@ -137,7 +141,7 @@ def pipeline():
                             (f'sum(rate(kafka_topic_partition_current_offset{{{TELEMETRY}}}[30s]))', 'kafka ingest'),
                             (f'sum(rate(kafka_topic_partition_current_offset{{{LOADS}}}[30s])) * 10', 'load windows x10')],
              width=12, unit='ops')
-    b.series('Consumer lag by service', [(f'sum by (consumergroup) (kafka_consumergroup_lag{{{GROUPS}}})', '{{consumergroup}}')], width=12, unit='short')
+    b.series('Consumer lag by service', [(f'sum by (consumergroup) ({SERVICE_LAG})', '{{consumergroup}}')], width=12, unit='short')
     b.row('Flink')
     b.series('Task busy and backpressure, % of time', [
         ('max(flink_taskmanager_job_task_busyTimeMsPerSecond) / 10', 'busy'),
@@ -166,12 +170,12 @@ def pipeline():
 def kafka():
     b = Board('grid-kafka', 'Kafka', 'Topics, partitions, retention and broker health (one broker on the student cluster).', ['kafka'])
     b.stat('Brokers', 'max(kafka_brokers)', None, [{'color': 'red', 'value': None}, {'color': 'green', 'value': 1}], width=4, spark=False)
-    b.stat('Partitions with a leader', 'count(kafka_topic_partition_leader == 1) or vector(0)', None, width=4, spark=False)
-    b.stat('Under-replicated partitions', 'sum(kafka_topic_partition_under_replicated_partition) or vector(0)', None,
+    b.stat('Online partitions', 'count(kafka_topic_partition_leader >= 0) or vector(0)', None, width=4, spark=False)
+    b.stat('Under-replicated', 'sum(kafka_topic_partition_under_replicated_partition) or vector(0)', None,
            [{'color': 'green', 'value': None}, {'color': 'red', 'value': 1}], width=4, spark=False,
            description='Zero on one broker by definition. Replication across three brokers was verified on the local cluster.')
     b.stat('Telemetry retained', f'sum(kafka_topic_partition_current_offset{{{TELEMETRY}}} - kafka_topic_partition_oldest_offset{{{TELEMETRY}}})', 'short', width=4, decimals=0)
-    b.stat('Retention window, minutes',
+    b.stat('Retention window',
            f'sum(kafka_topic_partition_current_offset{{{TELEMETRY}}} - kafka_topic_partition_oldest_offset{{{TELEMETRY}}}) / sum(rate(kafka_topic_partition_current_offset{{{TELEMETRY}}}[5m])) / 60',
            'm', width=4, decimals=0, description='Old records are deleted by time and by size, so the volume never fills.')
     b.stat('Kafka volume used', '100 * kubelet_volume_stats_used_bytes{persistentvolumeclaim="data-0-grid-brokers-0"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim="data-0-grid-brokers-0"}',

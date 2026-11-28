@@ -4,9 +4,9 @@ import json
 
 import pytest
 
-from devices.common import validate
+from devices.common import METRICS, validate
 from devices.fleet import (CYCLE_SECONDS, EV_MAX, Knobs, counts, fleet, frac, offered_kw, overload_active,
-                           reading, schedule, sun, WINDOW)
+                           reading, record_offered, schedule, sun, WINDOW)
 from aggregation.engine import Aggregator, DLQ, LOAD
 from aggregation.keyed import Keyed
 
@@ -32,6 +32,56 @@ def test_shape_and_registry_candidates():
     for c in capabilities:
         validate('Device', dict(c, updated_at='2026-11-26T20:00:00Z'))
     assert len({c['device_id'] for c in capabilities}) == 1000
+
+
+def test_offered_gauge_publishes_complete_windows_independently_of_limits(monkeypatch):
+    metric = 'fleet_unmanaged_kw{transformer="tx-001"}'
+    monkeypatch.setitem(METRICS, metric, 0)
+    total = {}
+    for limit in (2, EV_MAX):
+        offered = offered_kw('ev-001-01', 'EV_CHARGER', 1, True, 100, 20, forced=True)
+        record_offered(total, 'tx-001', offered, 2)
+        assert METRICS[metric] == (0 if limit == 2 else 6.2)
+        record_offered(total, 'tx-001', -1.0, 2)
+        assert METRICS[metric] == 6.2 and not total
+        assert METRICS[metric] - (min(offered, limit) - 1) == pytest.approx(offered - limit)
+
+
+def test_cloud_cover_is_bounded_to_heroes_and_expires():
+    from urllib.error import HTTPError
+    from urllib.request import Request, urlopen
+    from devices.fleet import serve_control
+
+    now = [100.0]
+    knobs = Knobs(clock=lambda: now[0])
+    knobs.heroes = tuple(f'tx-{i:03d}' for i in range(1, 7))
+    server = serve_control(knobs, 'test-token', 0, host='127.0.0.1')
+
+    def inject(seconds, token='test-token'):
+        request = Request(f'http://127.0.0.1:{server.server_port}/inject',
+                          data=json.dumps({'kind': 'cloud_cover', 'seconds': seconds}).encode(),
+                          headers={'Authorization': f'Bearer {token}'})
+        with urlopen(request, timeout=3) as response:
+            return json.load(response)
+
+    try:
+        with pytest.raises(HTTPError) as failure:
+            inject(30, token='wrong')
+        assert failure.value.code == 401
+        for seconds in (4, 301, True, '30', float('nan')):
+            with pytest.raises(HTTPError) as failure:
+                inject(seconds)
+            assert failure.value.code == 400
+        assert inject(5)['active']['cloud_cover'] == 5
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert knobs.status()['active']['cloud_cover'] == 5
+    args = ('solar-005-01', 'SOLAR', 5, False, 100, 20)
+    assert offered_kw(*args, solar_scale=knobs.solar_scale('tx-005')) == pytest.approx(.2 * offered_kw(*args), abs=.001)
+    assert knobs.solar_scale('tx-006') == knobs.solar_scale('tx-025') == 1
+    now[0] += 5
+    assert knobs.solar_scale('tx-005') == 1 and 'cloud_cover' not in knobs.status()['active']
 
 
 @pytest.mark.parametrize('t', [0, 311, 777, 1500, 5000, 9000])

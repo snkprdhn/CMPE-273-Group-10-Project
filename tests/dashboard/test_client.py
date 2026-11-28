@@ -133,6 +133,44 @@ def test_sse_versions_ignore_duplicates_and_old_events():
         pool.submit(asyncio.run, check()).result(timeout=10)
 
 
+def test_sse_min_interval_coalesces_bursts_and_bumps_revision():
+    async def check():
+        source = Operations('http://fixture/api/v1', 'fixture-operator-token', sse_min_interval=5.0)
+        await source.http.aclose()
+        calls = []
+        async def snapshot(reset=False):
+            calls.append(reset)
+            source.data = {'present': True}
+            source.revision += 1
+            from time import monotonic
+            source._last_snapshot_at = monotonic()
+            source._sse_pending = False
+            if reset:
+                source.cursor = 'fixture:0'
+            return True
+        class Stream(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                for cursor, version in enumerate([2, 3, 4], 1):
+                    event = dict(cursor=f'fixture:{cursor}', event_type='device.updated', entity_id=f'ev-{cursor}',
+                                 version=version, event_time='2026-11-09T18:30:06Z', payload=BASE['devices'][0])
+                    yield f'id: {event["cursor"]}\nevent: device.updated\ndata: {json.dumps(event)}\n\n'.encode()
+                await asyncio.Event().wait()
+        source.snapshot = snapshot
+        source.http = httpx.AsyncClient(base_url='http://fixture/api/v1',
+                                        transport=httpx.MockTransport(lambda r: httpx.Response(200, headers={'content-type': 'text/event-stream'}, stream=Stream())))
+        task = asyncio.create_task(source.listen())
+        for _ in range(100):
+            if source.cursor == 'fixture:3':
+                break
+            await asyncio.sleep(.01)
+        assert source.cursor == 'fixture:3' and calls == [True] and source._sse_pending is True
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await source.close()
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(asyncio.run, check()).result(timeout=10)
+
+
 def test_invalid_success_payload_is_reported_as_error():
     async def check():
         source = Operations('http://fixture/api/v1', 'fixture-operator-token')

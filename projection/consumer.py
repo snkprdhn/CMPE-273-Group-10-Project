@@ -15,6 +15,16 @@ from observability import setup, boundary, business
 from projection.contracts import TOPICS
 
 
+def selected_topics(value):
+    """Resolve canonical topic names before binding the store or connecting to Kafka."""
+    if value is None:
+        return tuple(TOPICS)
+    topics = tuple(topic.strip() for topic in value.split(','))
+    if len(set(topics)) != len(topics) or any(topic not in TOPICS for topic in topics):
+        raise ValueError('PROJECTION_TOPICS must list distinct canonical projection topics')
+    return topics
+
+
 class Scope:
     """Only managed inventory is projected: the transformers and devices in the projection context.
 
@@ -56,6 +66,8 @@ def process(store, message, prefix='', scope=None):
         raise ValueError('missing or oversized event')
     topic = message.topic().removeprefix(prefix)
     event = json.loads(raw)
+    if not isinstance(event, dict) or message.key() is None:
+        raise ValueError('expected an event object and a partition key')
     if scope is not None and isinstance(event.get('payload'), dict) and not scope.allows(TOPICS[topic], event['payload']):
         return 'skipped'
     with boundary('kafka.process', message.headers()):
@@ -68,6 +80,7 @@ def process(store, message, prefix='', scope=None):
 
 
 def consume(store):
+    topics = selected_topics(os.getenv('PROJECTION_TOPICS'))
     setup('projection.projection')
     prefix = os.getenv('KAFKA_PREFIX', '')
     stop = threading.Event()
@@ -87,6 +100,9 @@ def consume(store):
             health.touch()
 
     health = Path(os.environ['WORKER_HEALTH_FILE']) if 'WORKER_HEALTH_FILE' in os.environ else None
+    scope = Scope(store) if os.getenv('PROJECTION_SCOPE') == 'context' else None
+    # The load worker owns retention. Both workers use the same journal and offset table.
+    prune = scope is not None and 'grid.transformer-load.v1' in topics
 
     client = Consumer({'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP', '127.0.0.1:19092'),
                        'group.id': os.getenv('PROJECTION_GROUP', 'projection.v1'),
@@ -99,14 +115,14 @@ def consume(store):
                        'queued.max.messages.kbytes': 8192, 'fetch.max.bytes': 4194304})
 
     try:
-        client.subscribe([prefix+t for t in TOPICS], on_assign=assigned)
+        client.subscribe([prefix+t for t in topics], on_assign=assigned)
         pending, commit_at = 0, time.monotonic() + .5
-        scope = Scope(store) if os.getenv('PROJECTION_SCOPE') == 'context' else None
         window = int(os.getenv('PROJECTION_WINDOW_MINUTES', '30'))
-        skipped, flush_at, prune_at = {}, time.monotonic() + 1, time.monotonic() + 60
+        skipped, prune_at = {}, time.monotonic() + 60
         while not stop.is_set():
             message = client.poll(.2)
-            if message is not None:
+            drained = 0
+            while message is not None and not stop.is_set():
                 try:
                     if process(store, message, prefix, scope) == 'skipped':
                         skipped[(message.topic().removeprefix(prefix), message.partition())] = message.offset()
@@ -119,21 +135,26 @@ def consume(store):
                     _log('projection_skip_invalid', topic=message.topic(),
                          partition=message.partition(), offset=message.offset(),
                          reason=str(exc)[:200])
+                    skipped[(message.topic().removeprefix(prefix), message.partition())] = message.offset()
                 client.store_offsets(message=message)
                 pending += 1
-            if time.monotonic() >= flush_at:
-                store.advance(skipped)
-                skipped, flush_at = {}, time.monotonic() + 1
-            if scope is not None and time.monotonic() >= prune_at:
+                drained += 1
+                if pending >= 2000 or drained >= 500 or time.monotonic() >= commit_at:
+                    break
+                message = client.poll(0)
+            if prune and time.monotonic() >= prune_at:
                 store.prune(minutes=window, alert_minutes=int(os.getenv('PROJECTION_ALERT_MINUTES', '60')),
                             command_minutes=int(os.getenv('PROJECTION_COMMAND_MINUTES', '180')),
                             action_minutes=int(os.getenv('PROJECTION_ACTION_MINUTES', '1440')))
                 prune_at = time.monotonic() + 300
-            if pending and (pending >= 100 or time.monotonic() >= commit_at):
+            if pending and (pending >= 2000 or time.monotonic() >= commit_at):
+                store.advance(skipped)
+                skipped.clear()
                 client.commit(asynchronous=False)
                 pending, commit_at = 0, time.monotonic() + .5
             if health is not None and client.assignment():
                 health.touch()
+        store.advance(skipped)
     finally:
         client.close()
 

@@ -117,6 +117,8 @@ checkpoint disk is ReadWriteOnce.
 | Action scope | `CONTROL_TRANSFORMERS`, `ACTION_AUTO_COMPENSATE` | Held plans are retried with approved compensation. |
 | Projection scope | `PROJECTION_SCOPE=context` | Managed inventory only. Add transformers with `tools.fleet_context` and `projection.live_context` (about 24 chargers per Registry call). |
 
+The pending projection split uses a newly built `api` image digest for both containers in `Deployment/projection`. Save the previous single-container Deployment template and image digest for rollback. The control group retains `integration-kind.projection`. The `integration-kind.projection-telemetry` group handles raw readings. Both use the existing SQL checkpoints. Preserve the Deployment's `Recreate` strategy through rollout and rollback. Before deploying the dashboard, verify both projection containers are ready and inspect fresh `/actions` and `/loads` data and per-topic lag. Old raw telemetry offsets in the control group may appear in Kafka exporter data until they expire.
+
 Build and roll out a code change with source-only layers over the published digests (no emulated dependency build):
 
 ```bash

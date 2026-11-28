@@ -54,6 +54,7 @@ COLORS = {'NORMAL': ('check_circle', '#166344'), 'WARNING': ('warning', '#805000
 NAV = [('Overview', 'space_dashboard'), ('Flow Map', 'account_tree'), ('Transformers', 'electrical_services'),
        ('Alerts & actions', 'notifications_active'), ('Devices', 'ev_station'),
        ('Scenarios', 'science'), ('System health', 'monitor_heart'), ('Settings', 'settings')]
+SYNTHETIC_PAGES = ('Flow Map', 'Scenarios')   # synthetic playback and scenario mocks: hidden on the hosted live deployment
 
 
 def heading(text, level=2):
@@ -142,6 +143,8 @@ def configure(fixture=False, api_url=None):
                      or parsed.path.rstrip('/') != '/api/v1' or parsed.username or parsed.password
                      or parsed.query or parsed.fragment):
         raise ValueError('Dashboard API must be a loopback HTTP /api/v1 URL')
+    # An explicitly empty COPILOT_URL (the AKS demo sets it) means no Investigator is deployed: hide every Investigate button.
+    investigate_enabled = os.environ.get('COPILOT_URL') != ''
     token = 'fixture-operator-token' if fixture else os.environ.get('DASHBOARD_API_TOKEN', '')
     demo = None
     if not fixture and os.getenv('GRID_DEMO_CLIENT_SECRET'):
@@ -228,7 +231,8 @@ def configure(fixture=False, api_url=None):
         if login and not login.session(sid):
             return RedirectResponse('/auth/login')
         ui.colors(primary='#235b91', secondary='#52657b', positive='#166344', negative='#b42332', warning='#805000')
-        source = Operations(base, token, token_provider=demo.token if guest and demo else (lambda: login.token(sid)) if login else None)
+        source = Operations(base, token, token_provider=demo.token if guest and demo else (lambda: login.token(sid)) if login else None,
+                            sse_min_interval=0.0 if fixture else 2.0)
         selected = {'page': 'Overview', 'transformer': None, 'search': '', 'severity': 'All', 'status': 'All'}
         last = {'fingerprint': None}
         tasks = []
@@ -279,6 +283,8 @@ def configure(fixture=False, api_url=None):
             ui.label('WORKSPACE').classes('eyebrow p-4').style('color:#afc5d9')
             nav_buttons = {}
             for title, icon in NAV:
+                if title in SYNTHETIC_PAGES and live_home and not fixture:
+                    continue
                 nav_buttons[title] = ui.button(title, color=None, icon=icon, on_click=lambda t=title: navigate(t)).props('flat align=left').classes('py-3')
             ui.separator().classes('my-6')
             ui.label('PUBLIC DEMO' if guest else 'LOCAL DEVELOPMENT' if fixture else 'OPERATIONS').classes('px-4 text-sm')
@@ -289,7 +295,7 @@ def configure(fixture=False, api_url=None):
                     ui.label('SMART GRID / EV FLEET').classes('eyebrow')
                     title_label = heading('Grid overview', 1)
                     ui.label('Observe demand. Follow the response. Verify recovery.').classes('muted')
-                if not guest:
+                if not guest and investigate_enabled:
                     ui.button('Investigate', icon='manage_search', on_click=lambda: investigate(selected['transformer'])).props('outline')
             if fixture:
                 with ui.expansion('Fixture controls · synthetic data only', icon='science').classes('w-full bg-white rounded-lg'):
@@ -311,7 +317,7 @@ def configure(fixture=False, api_url=None):
             detail_body = ui.column().classes('w-full gap-4')
             detail_pending = ui.label('Live updates pending while focus is in the explanation. Displayed values may be stale. Move focus to Close details to apply them.').classes('notice').props('role=status aria-live=polite')
             detail_pending.set_visibility(False)
-            if not guest:
+            if not guest and investigate_enabled:
                 ui.button('Investigate action', on_click=lambda: investigate_action()).props('outline')
             ui.button('Close details', on_click=details.close).props('outline autofocus')
         # Native modal semantics provide focus containment, Escape and focus return.
@@ -453,6 +459,7 @@ def configure(fixture=False, api_url=None):
                     scenario_form()
             last['fingerprint'] = None
             render()
+            last['fingerprint'] = current_fingerprint()
             if transformer:
                 tasks.append(asyncio.create_task(source.snapshot()))
 
@@ -588,9 +595,9 @@ def configure(fixture=False, api_url=None):
                     badge(t['state'])
                 ui.label(kw(t['load']['net_load_kw'])).classes('metric')
                 u = t['load']['utilization_pct']
-                ui.label(f'{u if u is not None else "Unknown"}% utilization · capacity {kw(t["load"]["capacity_kw"])}').classes('muted')
+                ui.label(f'{"Unknown" if u is None else f"{u:.1f}"}% utilization · capacity {kw(t["load"]["capacity_kw"])}').classes('muted')
                 if u is not None:
-                    ui.linear_progress(value=min(1, max(0, u/100)), show_value=False, color={'CRITICAL':'negative','WARNING':'warning'}.get(t['state'], 'primary')).props(f'aria-label="Utilization {u} percent"')
+                    ui.linear_progress(value=min(1, max(0, u/100)), show_value=False, color={'CRITICAL':'negative','WARNING':'warning'}.get(t['state'], 'primary')).props(f'aria-label="Utilization {u:.1f} percent"')
                 ui.label(f'{t["freshness"]} · data age {t["data_age_seconds"]:.0f}s · {t["load"]["window_end"]}').classes('text-sm muted')
                 ui.button(f'Open {t["transformer_id"]}', on_click=lambda: navigate('Transformers', t['transformer_id'])).props('outline')
 
@@ -739,7 +746,7 @@ def configure(fixture=False, api_url=None):
                     ui.label(f'Window {alert["load_window_id"]} · revision {alert["load_revision"]} · opened {alert["opened_at"]}').classes('muted text-sm')
                     with ui.row():
                         ui.button('Open transformer', on_click=lambda a=alert: navigate('Transformers', a['transformer_id'])).props('outline dense')
-                        if not guest:
+                        if not guest and investigate_enabled:
                             ui.button('Investigate alert', on_click=lambda a=alert: investigate(a['transformer_id'], alert=a['alert_id'])).props('outline dense')
                         if not guest and alert['status'] == 'OPEN':
                             ui.button('Acknowledge alert', on_click=lambda a=alert: perform(f'/alerts/{a["alert_id"]}/acknowledge')).props('dense')
@@ -787,6 +794,11 @@ def configure(fixture=False, api_url=None):
             table(sorted(timeline, key=lambda r:instant(r['time'])), [('time','Time UTC'),('event','Published event'),('reference','Reference')], 'reference')
             ui.label('Timeline contains retained load windows and latest alert/action transitions. v1 does not expose every historical saga transition.').classes('muted text-sm')
 
+        def current_fingerprint():
+            return (source.revision, source.status, tuple(sorted(source.errors.items())), tuple(sorted(source.health.items())),
+                    selected['page'], selected['transformer'], selected['search'], selected['severity'], selected['status'],
+                    playback['scenario'], playback['phase'], source.range_minutes)
+
         def tick():
             if login and not guest and not login.session(sid):
                 # Invalidate every open tab, including panels held for keyboard reading.
@@ -806,11 +818,11 @@ def configure(fixture=False, api_url=None):
             if login and not guest:
                 session = login.session(sid)
                 role_label.set_text(session['actor']['role'] if session else 'Login required')
-            notice_fingerprint = json.dumps([source.status, source.errors, freshness_notice()], sort_keys=True)
+            notice_fingerprint = (source.status, tuple(sorted(source.errors.items())), freshness_notice())
             if notice_fingerprint != last_notice['fingerprint']:
                 show_errors()
                 last_notice['fingerprint'] = notice_fingerprint
-            fingerprint = json.dumps([source.data, source.errors, source.status, source.health], sort_keys=True)
+            fingerprint = current_fingerprint()
             changed = fingerprint != last['fingerprint']
             playing = selected['page'] == 'Flow Map' and playback['scenario']
             if playing and playback['next_at'] is not None and monotonic() >= playback['next_at']:
@@ -824,7 +836,11 @@ def configure(fixture=False, api_url=None):
                 last['fingerprint'] = fingerprint
             if details.value:
                 action = next((a for a in items('actions') if a['action_id'] == active_action['id']), None)
-                detail_fingerprint = json.dumps([action, source.data.get('devices'), source.errors], sort_keys=True)
+                cmd_outcomes = tuple(
+                    (r['command_id'], r['outcome'], r.get('result_time'))
+                    for d in items('devices') for r in d['command_history'] if r['action_id'] == active_action['id']
+                )
+                detail_fingerprint = (source.revision, action, cmd_outcomes, tuple(sorted(source.errors.items())))
                 detail_changed = detail_fingerprint != active_action['fingerprint']
                 detail_pending.set_visibility(detail_changed and reading['detail'])
                 if detail_changed and not reading['detail']:

@@ -1,5 +1,6 @@
 """Transactional journal, materialized views and cross-replica durable SSE log."""
 from contextlib import contextmanager, nullcontext
+from contextvars import ContextVar
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
@@ -18,6 +19,7 @@ from projection.contracts import ApiError, BUNDLE, TOPICS, instant, stamp, utc, 
 # A deployment whose windows close late (a ten second watermark plus transport) may widen these; defaults keep v1 behavior.
 FRESH_SECONDS = float(os.getenv('PROJECTION_FRESH_SECONDS', '15'))
 ALERT_GRACE_SECONDS = float(os.getenv('PROJECTION_ALERT_GRACE_SECONDS', '0'))
+_READONLY = ContextVar('projection_store_readonly', default=False)
 
 
 def freshness(values):
@@ -34,13 +36,23 @@ class Store:
         self.connection = connection
 
     @contextmanager
+    def readonly(self):
+        token = _READONLY.set(True)
+        try:
+            yield
+        finally:
+            _READONLY.reset(token)
+
+    @contextmanager
     def transaction(self):
         resource = nullcontext(self.connection) if self.connection is not None else psycopg.connect(self.dsn, connect_timeout=3)
+        lock_sql = ('SELECT pg_advisory_xact_lock_shared(427304)' if _READONLY.get()
+                    else 'SELECT pg_advisory_xact_lock(427304)')
         with boundary('db.projection'), resource as db:
             with db.transaction():
-                # Serial writes retain the existing replay and notification ordering.
+                # Serial writes retain the existing replay and notification ordering; readers share the snapshot lock.
                 db.execute('SET LOCAL statement_timeout = 3000')
-                db.execute('SELECT pg_advisory_xact_lock(427304)')
+                db.execute(lock_sql)
                 yield db
 
     def migrate(self):
@@ -160,24 +172,60 @@ class Store:
                            (topic, partition, offset))
             return changed
 
-    def _rows(self, db, kind):
-        return [r[0] for r in db.execute('SELECT event FROM projection_current WHERE kind=%s ORDER BY id', (kind,))]
+    def _rows(self, db, kind, transformer_id=None):
+        if transformer_id is None:
+            return [r[0] for r in db.execute('SELECT event FROM projection_current WHERE kind=%s ORDER BY id', (kind,))]
+        return [r[0] for r in db.execute(
+            "SELECT event FROM projection_current WHERE kind=%s AND event->'payload'->>'transformer_id'=%s ORDER BY id",
+            (kind, transformer_id))]
 
-    def _context(self, db, kind):
-        return [r[0] for r in db.execute('SELECT value FROM projection_context WHERE kind=%s ORDER BY id', (kind,))]
+    def _context(self, db, kind, entity_id=None):
+        if entity_id is None:
+            return [r[0] for r in db.execute('SELECT value FROM projection_context WHERE kind=%s ORDER BY id', (kind,))]
+        return [r[0] for r in db.execute('SELECT value FROM projection_context WHERE kind=%s AND id=%s', (kind, entity_id))]
 
-    def views(self, db, now):
-        loads = [e['payload'] for e in self._rows(db, 'Load')]
-        alerts = [e['payload'] for e in self._rows(db, 'Alert')]
-        acknowledgements = {r[0] for r in db.execute("SELECT response->>'alert_id' FROM projection_operations "
-                                                     "WHERE fingerprint->>0='acknowledge'")}
+    def _acknowledgements(self, db):
+        return {r[0] for r in db.execute("SELECT response->>'alert_id' FROM projection_operations "
+                                          "WHERE fingerprint->>0='acknowledge'")}
+
+    def alert_views(self, db, alert_id=None):
+        acknowledgements = self._acknowledgements(db)
+        rows = (db.execute("SELECT event FROM projection_current WHERE kind='Alert' AND id=%s", (alert_id,)).fetchall()
+                if alert_id is not None else
+                db.execute("SELECT event FROM projection_current WHERE kind='Alert' ORDER BY id").fetchall())
+        alerts = [r[0]['payload'] for r in rows]
         for a in alerts:
             if a['alert_id'] in acknowledgements and a['status'] == 'OPEN':
                 a['status'] = 'ACKNOWLEDGED'
+        return alerts
+
+    def load_views(self, db, transformer_id=None):
+        return [e['payload'] for e in self._rows(db, 'Load', transformer_id=transformer_id)]
+
+    def action_views(self, db):
+        return [e['payload'] for e in self._rows(db, 'Action')]
+
+    def transformer_views(self, db, now, transformer_id=None, *, loads=None, alerts=None):
+        if loads is None:
+            loads = self.load_views(db, transformer_id=transformer_id)
+        if alerts is None:
+            if transformer_id is None:
+                alerts = self.alert_views(db)
+            else:
+                acknowledgements = self._acknowledgements(db)
+                alerts = [e['payload'] for e in self._rows(db, 'Alert', transformer_id=transformer_id)]
+                for a in alerts:
+                    if a['alert_id'] in acknowledgements and a['status'] == 'OPEN':
+                        a['status'] = 'ACKNOWLEDGED'
+        if transformer_id is None:
+            policies = {p[0]: p[1] for p in db.execute(
+                "SELECT id,value FROM projection_context WHERE kind='mock_policy'")}
+        else:
+            row = db.execute("SELECT value FROM projection_context WHERE kind='mock_policy' AND id=%s",
+                             (transformer_id,)).fetchone()
+            policies = {transformer_id: row[0]} if row else {}
         transformers = []
-        policies = {p[0]: p[1] for p in db.execute(
-            "SELECT id,value FROM projection_context WHERE kind='mock_policy'")}
-        for base in self._context(db, 'transformers'):
+        for base in self._context(db, 'transformers', entity_id=transformer_id):
             t = deepcopy(base)
             candidates = [base['load']] + [p for p in loads if p['transformer_id'] == t['transformer_id']]
             if candidates:
@@ -211,20 +259,29 @@ class Store:
             if t['freshness'] == 'STALE':
                 t['state'] = 'STALE'
             transformers.append(t)
+        return transformers
+
+    def device_views(self, db, now):
         devices = []
         telemetry = {e['payload']['device_id']: e for e in self._rows(db, 'Telemetry')}
         results = self._rows(db, 'Result')
         for device in self._context(db, 'devices'):
             e = telemetry.get(device['device_id'])
-            state = 'UNKNOWN' if not e else ('STALE' if (now-instant(e['event_time'])).total_seconds() > 15
+            state = 'UNKNOWN' if not e else ('STALE' if (now-instant(e['event_time'])).total_seconds() > FRESH_SECONDS
                     or e['payload']['quality'] == 'INVALID' else (
                         'PARTIAL' if e['payload']['quality'] == 'ESTIMATED' else 'FRESH'))
             history = [r['payload'] for r in results if r['payload']['device_id'] == device['device_id']]
             history.sort(key=lambda r: (instant(r['result_time']), r['command_id'], r['outcome']))
             devices.append(dict(device=device, freshness=state,
                                 latest_telemetry=e['payload'] if e else None, command_history=history[-200:]))
-        return dict(transformers=transformers, devices=devices, alerts=alerts,
-                    actions=[e['payload'] for e in self._rows(db, 'Action')], loads=loads)
+        return devices
+
+    def views(self, db, now):
+        loads = self.load_views(db)
+        alerts = self.alert_views(db)
+        return dict(transformers=self.transformer_views(db, now, loads=loads, alerts=alerts),
+                    devices=self.device_views(db, now), alerts=alerts,
+                    actions=self.action_views(db), loads=loads)
 
     @staticmethod
     def _carried(transformer, latest, loads, alerts):
@@ -254,6 +311,34 @@ class Store:
                    ('transformer_id' in e['payload'] and e['payload']['transformer_id'] not in transformers)
                    for kind in ('Telemetry', 'Command', 'Result') for e in self._rows(db, kind))
 
+    def incomplete_db(self, db):
+        return db.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM projection_current c
+                WHERE c.kind IN ('Load', 'Alert', 'Action')
+                  AND NOT EXISTS (
+                      SELECT 1 FROM projection_context ctx
+                      WHERE ctx.kind = 'transformers' AND ctx.id = c.event->'payload'->>'transformer_id'
+                  )
+                UNION ALL
+                SELECT 1 FROM projection_current c
+                WHERE c.kind IN ('Telemetry', 'Command', 'Result')
+                  AND (
+                      NOT EXISTS (
+                          SELECT 1 FROM projection_context ctx
+                          WHERE ctx.kind = 'devices' AND ctx.id = c.event->'payload'->>'device_id'
+                      )
+                      OR (
+                          c.event->'payload' ? 'transformer_id'
+                          AND NOT EXISTS (
+                              SELECT 1 FROM projection_context ctx
+                              WHERE ctx.kind = 'transformers' AND ctx.id = c.event->'payload'->>'transformer_id'
+                          )
+                      )
+                  )
+            )
+        """).fetchone()[0]
+
     def device_view(self, db, device_id, now):
         """Build one device notification without scanning the complete fleet."""
         base = db.execute("SELECT value FROM projection_context WHERE kind='devices' AND id=%s", (device_id,)).fetchone()
@@ -261,7 +346,7 @@ class Store:
             return None
         reading = db.execute("SELECT event FROM projection_current WHERE kind='Telemetry' AND id=%s", (device_id,)).fetchone()
         e = reading[0] if reading else None
-        state = 'UNKNOWN' if not e else ('STALE' if (now-instant(e['event_time'])).total_seconds() > 15
+        state = 'UNKNOWN' if not e else ('STALE' if (now-instant(e['event_time'])).total_seconds() > FRESH_SECONDS
                 or e['payload']['quality'] == 'INVALID' else (
                     'PARTIAL' if e['payload']['quality'] == 'ESTIMATED' else 'FRESH'))
         results = [r[0]['payload'] for r in db.execute(
@@ -284,21 +369,16 @@ class Store:
                 self._emit(db, 'system.health', 'projection',
                            {'status': 'degraded', 'observed_at': stamp(now)}, now)
             return
-        views = self.views(db, now)
         if name in ('Load', 'Alert'):
-            for t in views['transformers']:
-                if t['transformer_id'] == p['transformer_id']:
-                    self._emit(db, 'transformer.updated', t['transformer_id'], t, now)
+            for t in self.transformer_views(db, now, transformer_id=p['transformer_id']):
+                self._emit(db, 'transformer.updated', t['transformer_id'], t, now)
         if name == 'Alert':
-            self._emit(db, 'alert.updated', p['alert_id'],
-                       next(a for a in views['alerts'] if a['alert_id'] == p['alert_id']), now)
+            alerts = self.alert_views(db, alert_id=p['alert_id'])
+            if alerts:
+                self._emit(db, 'alert.updated', p['alert_id'], alerts[0], now)
         elif name == 'Action':
             self._emit(db, 'action.updated', p['action_id'], p, now)
-        elif name in ('Telemetry', 'Result'):
-            for d in views['devices']:
-                if d['device']['device_id'] == p['device_id']:
-                    self._emit(db, 'device.updated', p['device_id'], d, now)
-        if self.incomplete(db, views):
+        if self.incomplete_db(db):
             self._emit(db, 'system.health', 'projection',
                        {'status': 'degraded', 'observed_at': stamp(now)}, now)
 
@@ -306,9 +386,7 @@ class Store:
         return [event for event, _ in self.events_with_context(cursor, now)]
 
     def events_with_context(self, cursor, now=None):
-        with self.transaction() as db:
-            now = now or utc()
-            self._prune(db, now)
+        def read(db, eval_now):
             current = self.cursor(db)
             rows = db.execute('SELECT sequence,event,context FROM projection_stream '
                               'LEFT JOIN projection_trace USING(sequence) ORDER BY sequence').fetchall()
@@ -323,14 +401,28 @@ class Store:
                     raise ValueError()
             except (ValueError, AttributeError):
                 reset = dict(cursor=current, event_type='snapshot.required', entity_id='projection',
-                             version=int(current.split(':')[1]), event_time=stamp(now),
-                             payload={'status': 'degraded', 'observed_at': stamp(now)})
+                             version=int(current.split(':')[1]), event_time=stamp(eval_now),
+                             payload={'status': 'degraded', 'observed_at': stamp(eval_now)})
                 return [(reset, {})]
             return [(event, context or {}) for _, event, context in pending]
 
+        with self.readonly(), self.transaction() as db:
+            eval_now = now or utc()
+            stale = db.execute(
+                'SELECT EXISTS(SELECT 1 FROM projection_stream WHERE created_at <= %s OR sequence <= '
+                '(SELECT sequence-1000 FROM projection_meta)) '
+                'OR EXISTS(SELECT 1 FROM projection_pages WHERE created_at <= %s)',
+                (eval_now - timedelta(minutes=5), eval_now - timedelta(minutes=5))).fetchone()[0]
+            if not stale:
+                return read(db, eval_now)
+        with self.transaction() as db:
+            eval_now = now or utc()
+            self._prune(db, eval_now)
+            return read(db, eval_now)
+
     def inventory(self):
         """Transformer and device IDs this projection manages. Everything else is out of scope."""
-        with self.transaction() as db:
+        with self.readonly(), self.transaction() as db:
             transformers = {r[0] for r in db.execute("SELECT id FROM projection_context WHERE kind='transformers'")}
             devices = {r[0] for r in db.execute("SELECT id FROM projection_context WHERE kind='devices'")}
         return transformers, devices

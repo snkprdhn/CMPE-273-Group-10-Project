@@ -155,3 +155,41 @@ def test_database_outage_safe_errors():
             assert response.status_code == 503
             validate('HttpError', response.json())
             assert 'disposable' not in response.text
+
+
+def test_actions_sorted_newest_first_and_freshness_tracks_loads(store, records, monkeypatch):
+    import projection.api as api
+    raw_now = utc()
+    end = raw_now.replace(second=(raw_now.second // 5) * 5, microsecond=0)
+    store.context(records)
+    load = deepcopy(next(r for r in records['events'] if r['topic'] == 'grid.transformer-load.v1'))
+    load['event']['event_id'] = str(uuid4())
+    load['event']['event_time'] = end.isoformat().replace('+00:00', 'Z')
+    load['event']['payload'].update(
+        window_id=str(uuid4()),
+        window_start=(end - timedelta(seconds=5)).isoformat().replace('+00:00', 'Z'),
+        window_end=end.isoformat().replace('+00:00', 'Z'),
+        revision=0,
+    )
+    older = deepcopy(next(r for r in records['events'] if r['topic'] == 'grid.action.v1'))
+    older['event']['event_id'] = str(uuid4())
+    older['event']['payload'].update(
+        action_id='zzzz-older',
+        transition_time=(end - timedelta(minutes=10)).isoformat().replace('+00:00', 'Z'),
+    )
+    newer = deepcopy(older)
+    newer['event']['event_id'] = str(uuid4())
+    newer['event']['payload'].update(
+        action_id='aaaa-newer',
+        transition_time=(end - timedelta(minutes=2)).isoformat().replace('+00:00', 'Z'),
+    )
+    feed(store, [load, older, newer], now=end)
+    with TestClient(create_app(store, IDENTITIES)) as c:
+        monkeypatch.setattr(api, 'utc', lambda: end + timedelta(seconds=5))
+        r = c.get('/api/v1/actions?limit=1', headers=HEADERS)
+        assert r.status_code == 200
+        body = r.json()
+        assert body['items'][0]['action_id'] == 'aaaa-newer'
+        assert body['freshness'] == 'FRESH'
+        monkeypatch.setattr(api, 'utc', lambda: end + timedelta(seconds=60))
+        assert c.get('/api/v1/actions?limit=1', headers=HEADERS).json()['freshness'] == 'STALE'

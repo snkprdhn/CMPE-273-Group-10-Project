@@ -103,3 +103,7 @@ notification insertion rolls back policy, audit and stream/cursor together.
 Cached pages expose their original `X-Snapshot-At`; frozen freshness is explicitly
 as of that time. These changes preserve all frozen v1 JSON shapes and dependency
 pins. Regression and publication evidence is in implementation status.
+
+## Worker topic split — 2026-11-27
+
+Keep control and load topics on the existing Kafka group. Assign raw telemetry to a dedicated group so its backlog cannot delay control-topic polling and commits. Both workers use the same source binding, journal and topic-partition SQL checkpoints. The load worker owns retention. The Deployment replaces the former all-topic Pod before starting the split to avoid overlapping topic ownership. Standalone consumers keep the all-topic default.

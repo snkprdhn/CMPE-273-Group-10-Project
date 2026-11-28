@@ -3,6 +3,7 @@ import asyncio
 import json
 import math
 from datetime import datetime, timedelta, timezone
+from time import monotonic
 from uuid import uuid4
 from pathlib import Path
 
@@ -44,7 +45,7 @@ def stamp(value):
 
 
 class Operations:
-    def __init__(self, base_url, token, token_provider=None):
+    def __init__(self, base_url, token, token_provider=None, sse_min_interval=0.0):
         self.http = httpx.AsyncClient(base_url=base_url, headers={'Authorization': f'Bearer {token}'},
                                      timeout=httpx.Timeout(5, read=25), trust_env=False)
         async def context(request):
@@ -72,6 +73,10 @@ class Operations:
         self.transformer = None
         self.health = {}
         self.retry_keys = {}
+        self.revision = 0
+        self.sse_min_interval = sse_min_interval
+        self._last_snapshot_at = 0.0
+        self._sse_pending = False
 
     @traced('http.client')
     async def get(self, path, params=None):
@@ -105,20 +110,25 @@ class Operations:
             minutes = self.range_minutes
             errors = {}
             paths = ['overview', 'transformers', 'alerts', 'actions', 'devices', 'scenarios']
-            for name in paths:
+            async def fetch_one(name):
                 try:
                     if name in ('overview', 'scenarios'):
                         response = await self.get('/' + name)
                         value = decode_json(response.content)
                         validate('Overview' if name == 'overview' else 'ScenarioCatalog', value)
-                        if name == 'overview':
-                            anchor = response.headers.get('X-Event-ID')
-                            observed = response.headers.get('X-Snapshot-At')
-                    else:
-                        value = await self.collection('/' + name)
-                    data[name] = value
+                        return name, value, response.headers if name == 'overview' else None, None
+                    return name, await self.collection('/' + name), None, None
                 except (httpx.HTTPError, ValueError, KeyError, ValidationError) as exc:
-                    errors[name] = error_text(exc)
+                    return name, None, None, error_text(exc)
+
+            for name, value, hdrs, err in await asyncio.gather(*(fetch_one(n) for n in paths)):
+                if err is not None:
+                    errors[name] = err
+                else:
+                    data[name] = value
+                    if hdrs is not None:
+                        anchor = hdrs.get('X-Event-ID')
+                        observed = hdrs.get('X-Snapshot-At')
             data.pop('grid_commands', None)
             target = self.transformer or next((t['transformer_id'] for t in data.get('overview', {}).get('highest_risk', [])), None)
             if target:
@@ -151,9 +161,14 @@ class Operations:
             else:
                 data.pop('loads', None)
                 data.pop('history_transformer', None)
+            changed = data != self.data or errors != self.errors
             self.data = data
             self.observed = observed
             self.errors = errors
+            self._last_snapshot_at = monotonic()
+            self._sse_pending = False
+            if changed:
+                self.revision += 1
             if reset:
                 self.cursor = anchor
                 self.versions.clear()
@@ -200,7 +215,10 @@ class Operations:
                                 if event['version'] > self.versions.get(key, -1):
                                     if event['event_type'] == 'system.health':
                                         self.health[event['entity_id']] = event['payload']
-                                    if not await self.snapshot():
+                                        self.revision += 1
+                                    if self.sse_min_interval > 0 and monotonic() - self._last_snapshot_at < self.sse_min_interval:
+                                        self._sse_pending = True
+                                    elif not await self.snapshot():
                                         raise ValueError('Snapshot refresh failed')
                                     self.versions[key] = event['version']
                                 self.cursor = event['cursor']
@@ -220,9 +238,13 @@ class Operations:
             delay = min(delay * 2, 10)
 
     async def refresh(self):
+        next_full = monotonic() + 10
         while not self.closed:
-            await asyncio.sleep(10)
-            await self.snapshot()
+            await asyncio.sleep(0.5)
+            now = monotonic()
+            if now >= next_full or (self._sse_pending and now - self._last_snapshot_at >= self.sse_min_interval):
+                await self.snapshot()
+                next_full = monotonic() + 10
 
     @traced('http.client')
     async def mutate(self, path, body=None):

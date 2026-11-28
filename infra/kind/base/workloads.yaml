@@ -131,6 +131,8 @@ metadata:
   labels: {grid-stage: apps, grid-app: projection}
 spec:
   replicas: 1
+  # Stop the former all-topics worker before the telemetry group takes over its SQL checkpoints.
+  strategy: {type: Recreate}
   selector:
     matchLabels: {grid-app: projection}
   template:
@@ -141,7 +143,8 @@ spec:
       terminationGracePeriodSeconds: 30
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
-        - name: projection
+        - &projection-worker
+          name: projection
           image: smart-grid-kind/api:v1
           imagePullPolicy: Never
           args: ["consume"]
@@ -149,13 +152,15 @@ spec:
             - configMapRef: {name: telemetry-runtime}
             - secretRef: {name: projection-runtime}
           env:
-            - {name: KAFKA_PREFIX, value: "integration-kind."}
-            - {name: KAFKA_BOOTSTRAP, value: "grid-kafka-bootstrap:9092"}
+            - &projection-prefix {name: KAFKA_PREFIX, value: "integration-kind."}
+            - &projection-bootstrap {name: KAFKA_BOOTSTRAP, value: "grid-kafka-bootstrap:9092"}
             - {name: PROJECTION_GROUP, value: "integration-kind.projection"}
-            - {name: WORKER_HEALTH_FILE, value: "/tmp/worker-live"}
+            - name: PROJECTION_TOPICS
+              value: "grid.transformer-load.v1,grid.alert.v1,grid.action.v1,grid.charger-command.v1,grid.command-result.v1"
+            - &projection-health {name: WORKER_HEALTH_FILE, value: "/tmp/worker-live"}
           resources:
-            requests: {cpu: 50m, memory: 128Mi}
-            limits: {cpu: 500m, memory: 256Mi}
+            requests: {cpu: 35m, memory: 80Mi}
+            limits: {cpu: 350m, memory: 192Mi}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}
@@ -177,8 +182,23 @@ spec:
               command: ["/opt/venv/bin/python", "-c", "import pathlib,time; assert time.time()-pathlib.Path('/tmp/worker-live').stat().st_mtime < 30"]
             periodSeconds: 10
             failureThreshold: 3
+        - <<: *projection-worker
+          name: projection-telemetry
+          env:
+            - *projection-prefix
+            - *projection-bootstrap
+            - {name: PROJECTION_GROUP, value: "integration-kind.projection-telemetry"}
+            - {name: PROJECTION_TOPICS, value: "grid.telemetry.v1"}
+            - {name: OTEL_SERVICE_NAME, value: "projection.telemetry"}
+            - *projection-health
+          resources:
+            requests: {cpu: 15m, memory: 48Mi}
+            limits: {cpu: 150m, memory: 128Mi}
+          volumeMounts:
+            - {name: telemetry-temp, mountPath: /tmp}
       volumes:
         - {name: temp, emptyDir: {sizeLimit: 64Mi}}
+        - {name: telemetry-temp, emptyDir: {sizeLimit: 64Mi}}
 ---
 apiVersion: apps/v1
 kind: Deployment

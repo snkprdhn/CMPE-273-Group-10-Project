@@ -85,6 +85,10 @@ Keycloak, multi-UI-replica failover or a production security claim. Existing
 backend acceptance remains separate. Evidence is recorded in implementation
 status; screenshots stay ignored under `.tools/dashboard-evidence`.
 
+## Control room amendment — 2026-11-27
+
+`/live` is a four-tab control room (Grid operations, Transformers, Devices, Pipeline health) with one poller in `dashboard/fleet_data.py`. The chaos dock reuses the server-side rate limit for fleet control calls. The read paths use Prometheus, `/actions`, `/transformers/{id}/loads` for the five managed transformers and a bounded `/devices` request while the Devices tab is open. Business numbers use confirmed reductions and freeze at the last successful actions poll during an API outage. Prometheus selectors exclude the projection's re-exported gauges (`exported_job!~"projection.*"`), so they read the live Flink values. The detail chart falls back to Prometheus history when the loads API has nothing recent. In the hosted live configuration, `/operator` keeps Alerts & actions available and hides the synthetic Flow Map and Scenarios entries.
+
 ## Prepublication review amendment — 2026-11-22
 
 Use strict finite JSON decoding and bounded parser/validator failure handling.

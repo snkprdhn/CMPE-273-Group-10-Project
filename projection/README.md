@@ -134,16 +134,25 @@ export KAFKA_PREFIX=''  # choose the intended recorded/live namespace before fir
 .tools/projection-venv/bin/python -m projection consume
 ```
 
-The source bootstrap/prefix is bound to the projection database. Do not switch
-sources or recreate source topics underneath retained checkpoints. Configure the
-same namespace/group for consumer replicas and the same database for all API
-replicas. Read-committed consumption disables automatic offset storage/commit.
+The source bootstrap/prefix is bound to the projection database. Keep the source
+and its topics intact while using retained checkpoints. Standalone consumers
+subscribe to all six topics by default. The kind Deployment runs two workers in
+the same Pod. `integration-kind.projection` handles loads, alerts, actions,
+commands and results. `integration-kind.projection-telemetry` handles raw
+telemetry with independent Kafka fetches and commits. Topic subsets are disjoint
+across groups that share the store. Replicas of a worker use its group and topic
+list. Read-committed consumption disables automatic offset storage/commit.
 Journal, projection, durable source position and SSE event commit before broker
 acknowledgement. Restart assignments use the SQL position, including after a
-crash between SQL and Kafka commits. Poison records stop visibly without offset
-commit; correct the source/restore a valid replay rather than skipping it.
-Kafka positions outside retention fail closed, including a new store whose
-source no longer begins at offset zero. Session timeout is six seconds locally.
+crash between SQL and Kafka commits. The worker logs invalid records and durably
+advances their positions, as it does for out-of-scope records. Database failures
+restart the worker from its SQL checkpoint. Kafka positions outside retention
+fail closed with the default settings. The hosted context-scoped workers log and
+resume from the oldest retained offset when retention has removed earlier records.
+The load worker runs retention pruning. The SQL checkpoints are keyed by topic
+and partition, so the new telemetry group resumes the existing position without
+resetting offsets. The Deployment uses Recreate to stop the previous worker
+before either new worker starts. Apply the same stop-before-start order on rollback.
 
 Rebuild owned views from the retained journal (stop the consumer for maintenance):
 
@@ -203,6 +212,7 @@ heartbeat, cross-replica replay/pages/mutations, rollback and safe outages.
 | `KAFKA_BOOTSTRAP` | String, `127.0.0.1:19092` | Local broker address, bound to the store on first consumer run; nonsecret |
 | `KAFKA_PREFIX` | String, empty | Existing local topic namespace, immutable for a store; nonsecret |
 | `PROJECTION_GROUP` | String, `projection.v1` | Kafka consumer group; use the same group for consumer replicas; nonsecret |
+| `PROJECTION_TOPICS` | Optional comma-separated canonical topic names, defaults to all six | Canonical unprefixed names, each appearing once; nonsecret |
 | `--port` | Integer, 18084 | Available TCP port 1–65535; CLI always binds loopback; nonsecret |
 | `--fixtures` | Path, `projection/fixtures.json` | Synthetic validated contract context/events; nonsecret |
 | `PROJECTION_TEST_DSN` | Optional PostgreSQL connection string | Test-owned schema privileges in projection store; secret; absence skips DB tests |

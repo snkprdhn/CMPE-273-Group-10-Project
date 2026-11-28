@@ -9,6 +9,7 @@ import pytest
 
 API = 'http://127.0.0.1:18185'
 UI = 'http://127.0.0.1:18186'
+BACKEND = 'http://127.0.0.1:18189'
 
 
 @pytest.fixture(scope='session')
@@ -19,11 +20,19 @@ def servers():
     try:
         for name, command, url in [
             ('fixture', [sys.executable, '-m', 'uvicorn', 'dashboard.fixture_api:create_fixture_app', '--factory', '--host', '127.0.0.1', '--port', '18185'], API+'/api/v1/health'),
+            ('backend', [sys.executable, '-m', 'uvicorn', 'tests.dashboard.fake_backend:create_app', '--factory', '--host', '127.0.0.1', '--port', '18189'], BACKEND+'/healthz'),
             ('ui', [sys.executable, '-m', 'dashboard', '--fixture', '--port', '18186', '--api-url', API+'/api/v1'], UI),
         ]:
+            try:
+                httpx.get(url, timeout=.3, trust_env=False)
+            except httpx.HTTPError:
+                pass
+            else:
+                pytest.fail(f'{url} already answers: stop the other {name} server before running the dashboard tests')
             log = open(f'.tools/dashboard-evidence/{name}.log', 'w+')
             logs.append(log)
-            proc = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env={**{k: v for k, v in os.environ.items() if k != 'PYTEST_CURRENT_TEST'}, 'COPILOT_URL':'http://127.0.0.1:18187'})
+            proc = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env={**{k: v for k, v in os.environ.items() if k != 'PYTEST_CURRENT_TEST'}, 'COPILOT_URL':'http://127.0.0.1:18187',
+                'PROMETHEUS_URL': BACKEND, 'FLEET_API_URL': BACKEND + '/api/v1', 'FLEET_CONTROL_URL': BACKEND, 'FLEET_CONTROL_TOKEN': 'test-token'})
             processes.append(proc)
             for _ in range(100):
                 if proc.poll() is not None:

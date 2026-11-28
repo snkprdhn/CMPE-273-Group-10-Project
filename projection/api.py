@@ -1,5 +1,6 @@
 """Standalone REST/SSE operations boundary with server-side authorization."""
 import asyncio
+from datetime import timedelta
 import json
 import re
 import secrets
@@ -19,6 +20,7 @@ from observability import HTTPMiddleware, boundary, sse_reset
 
 from projection.contracts import ApiError, BUNDLE, FORMATS, OPENAPI, TOPICS, instant, stamp, utc, validate
 from projection.operations import ContractMocks
+import projection.store as store_module
 from projection.store import freshness
 
 ROLES = ['Viewer', 'Operator', 'Administrator']
@@ -119,40 +121,52 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
     def snapshot(request, template, entity=None):
         authorize(request, 'Viewer')
         q = parameters(request, template, 'get')
-        with store.transaction() as db:
+        with store.readonly(), store.transaction() as db:
             now = utc()
-            store._prune(db, now)
             cursor = store.cursor(db)
             scope = json.dumps([template, entity, {k: v for k, v in q.items() if k != 'cursor'}], sort_keys=True)
             if q.get('cursor'):
-                row = db.execute('SELECT scope,response,cursor,created_at FROM projection_pages WHERE token=%s',
-                                 (q['cursor'],)).fetchone()
+                row = db.execute('SELECT scope,response,cursor,created_at FROM projection_pages '
+                                 'WHERE token=%s AND created_at > %s',
+                                 (q['cursor'], now - timedelta(minutes=5))).fetchone()
                 if not row or row[0] != scope:
                     raise ApiError(409, 'Page cursor expired or does not match query; reload snapshot')
                 return JSONResponse(row[1], headers={'X-Event-ID': row[2], 'X-Snapshot-At': stamp(row[3])})
-            views = store.views(db, now)
             if template == '/overview':
-                ts = views['transformers']
+                ts = store.transformer_views(db, now)
                 result = dict(transformer_count=len(ts), critical_count=sum(t['state'] == 'CRITICAL' for t in ts),
                               total_net_load_kw=sum(t['load']['net_load_kw'] for t in ts),
                               highest_risk=sorted(ts, key=lambda t: -(t['load']['utilization_pct'] or 0))[:20],
-                              freshness=freshness([t['freshness'] for t in ts] + (['PARTIAL'] if store.incomplete(db, views) else [])))
+                              freshness=freshness([t['freshness'] for t in ts] + (['PARTIAL'] if store.incomplete_db(db) else [])))
             elif template == '/scenarios':
                 runs = store._context(db, 'mock_scenario')
                 result = dict(scenarios=BUNDLE['$defs']['ScenarioStart']['properties']['scenario']['enum'],
                               active_run=next((r for r in runs if r['status'] == 'RUNNING'), None))
+            elif template == '/devices/{id}':
+                result = store.device_view(db, entity, now)
+                if result is None:
+                    raise ApiError(404, 'Entity not found')
+                return JSONResponse(result, headers={'X-Event-ID': cursor, 'X-Snapshot-At': stamp(now)})
             else:
                 collection = template.split('/')[1]
-                items = views['loads' if template.endswith('/loads') else collection]
+                transformers = None
                 if template.endswith('/loads'):
-                    if not any(t['transformer_id'] == entity for t in views['transformers']):
+                    if not store._context(db, 'transformers', entity_id=entity):
                         raise ApiError(404, 'Transformer not found')
-                    items = [p for p in items if p['transformer_id'] == entity and
-                             instant(q['start']) <= instant(p['window_start']) < instant(q['end'])]
+                    items = [p for p in store.load_views(db, transformer_id=entity)
+                             if instant(q['start']) <= instant(p['window_start']) < instant(q['end'])]
                     items.sort(key=lambda p: (instant(p['window_start']), p['window_id'], p['revision']))
-                elif entity:
-                    field = {'transformers': 'transformer_id', 'devices': 'device_id', 'actions': 'action_id'}[collection]
-                    result = next((i for i in items if (i['device'] if collection == 'devices' else i)[field] == entity), None)
+                elif collection == 'transformers':
+                    items = store.transformer_views(db, now, transformer_id=entity)
+                elif collection == 'devices':
+                    items = store.device_views(db, now)
+                elif collection == 'alerts':
+                    items = store.alert_views(db, alert_id=entity)
+                else:
+                    items = store.action_views(db)
+                if entity and not template.endswith('/loads'):
+                    field = {'transformers': 'transformer_id', 'actions': 'action_id'}[collection]
+                    result = next((i for i in items if i[field] == entity), None)
                     if result is None:
                         raise ApiError(404, 'Entity not found')
                     return JSONResponse(result, headers={'X-Event-ID': cursor, 'X-Snapshot-At': stamp(now)})
@@ -160,20 +174,34 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
                     if key in ('limit', 'cursor', 'start', 'end'):
                         continue
                     items = [i for i in items if (i['device'] if collection == 'devices' else i).get(key) == value]
+                if collection == 'actions':
+                    # Newest transitions first so page 1 (?limit=200) includes live/recent incidents even with 24h history.
+                    items.sort(key=lambda a: (instant(a['transition_time']), a['action_id']), reverse=True)
                 limit = q.get('limit', 50)
+                fresh_seconds = store_module.FRESH_SECONDS
                 def observed_freshness(item):
                     if 'freshness' in item:
                         return item['freshness']
                     observed = item.get('window_end') or item.get('transition_time') or item.get('resolved_at') or item.get('opened_at')
                     if not observed:
                         return 'UNKNOWN'
-                    if (now-instant(observed)).total_seconds() > 15 or item.get('completeness') == 'STALE':
+                    if (now-instant(observed)).total_seconds() > fresh_seconds or item.get('completeness') == 'STALE':
                         return 'STALE'
                     return 'PARTIAL' if item.get('completeness') == 'PARTIAL' else 'FRESH'
-                states = [observed_freshness(i) for i in items]
-                if collection in ('devices', 'transformers') and store.incomplete(db, views):
-                    states.append('PARTIAL')
-                f = freshness(states)
+                if collection == 'actions':
+                    transformers = store.transformer_views(db, now)
+                    if transformers and any(t['data_age_seconds'] <= fresh_seconds for t in transformers):
+                        # Action transitions are sparse (incidents only); judge projection lag from continuous transformer loads.
+                        f = 'STALE' if any(t['data_age_seconds'] > fresh_seconds for t in transformers) else 'FRESH'
+                    elif transformers and items:
+                        f = 'STALE'
+                    else:
+                        f = freshness([observed_freshness(i) for i in items])
+                else:
+                    states = [observed_freshness(i) for i in items]
+                    if collection in ('devices', 'transformers') and store.incomplete_db(db):
+                        states.append('PARTIAL')
+                    f = freshness(states)
                 # ponytail: materialize finite local lists for stable pages; SQL keysets at measured scale.
                 next_cursor = None
                 for start in reversed(range(0, len(items), limit)):
@@ -260,7 +288,7 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
 
     @app.get('/api/v1/ready')
     def ready():
-        with store.transaction() as db:
+        with store.readonly(), store.transaction() as db:
             store.cursor(db)
         return {'status': 'ok', 'observed_at': stamp(utc())}
 
@@ -305,7 +333,7 @@ def create_app(store, identities=None, mocks=None, oidc=None, *, live=False):
         validate('Id', entity)
         kinds = ('Action', 'Alert') if field == 'transformer_id' else ('Action', 'Command', 'Result')
         topics = [topic for topic, kind in TOPICS.items() if kind in kinds]
-        with store.transaction() as db:
+        with store.readonly(), store.transaction() as db:
             # Read only the owned journal; never another service's domain tables.
             rows = db.execute("SELECT event FROM projection_events WHERE topic=ANY(%s) AND event->'payload'->>%s=%s "
                               "ORDER BY (event->>'event_time')::timestamptz LIMIT 201",

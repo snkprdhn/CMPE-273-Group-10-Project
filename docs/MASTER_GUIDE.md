@@ -8,7 +8,7 @@ Smart Grid / EV Fleet Energy Balancing Platform. This is the one document to rea
 |---|---|
 | Live site | <https://smart-grid-ev-review-9e9.denmarkeast.cloudapp.azure.com/> (no login) |
 | Control room | `/` and `/live` |
-| Full operator console | `/operator` (Overview, Flow Map, Transformers, Alerts & actions, Devices, Scenarios, System health, Settings) |
+| Operator console | `/operator` (Overview, Transformers, Alerts & actions, Devices, System health, Settings). The hosted UI update hides the fixture-oriented Flow Map and Scenarios navigation. |
 | Grafana (read only) | `/grafana/d/grid-control-room`, `grid-pipeline`, `grid-kafka`, `grid-platform`, `grid-storage` |
 | Health | `/readyz`, `/healthz` |
 | Review window ends | Tue 2026-12-01 12:32:55 PM PST. The demo is Mon 2026-11-30. |
@@ -17,7 +17,7 @@ Smart Grid / EV Fleet Energy Balancing Platform. This is the one document to rea
 
 **Thirty-second pitch.** A neighborhood transformer overloads when many EVs charge at once. The platform ingests readings from 1,000 simulated devices on 25 transformers, aggregates them per transformer in event time with PyFlink, and decides when to act. Action writes a throttle plan and its outbox rows in one PostgreSQL transaction. Debezium publishes the commands. A fenced simulated gateway applies them exactly once, the measured EV demand drops, and charging is restored when the load is safe. Everything is observable, replayable and runs on Kubernetes.
 
-**What to show, in order** (full script in [section 10](#10-demo-script-10-minutes)): the control room KPI strip and heat map; an overload on a hero transformer going through plan, throttle, confirmed reduction and restore; the fault buttons (out of order, duplicates, very late) moving the correctness counters without changing results; a TaskManager kill with recovery in about 30 s; the Grafana pipeline, Kafka and storage dashboards; the limits slide.
+**What to show, in order** (full script in [section 10](#10-demo-script-10-minutes)): the control room KPI strip and closed-loop topology; an overload on a hero transformer going through plan, throttle, confirmed reduction and restore; the fault buttons (out of order, duplicates, very late) moving the correctness counters without changing results; a TaskManager kill with recovery in about 30 s; the Grafana pipeline, Kafka and storage dashboards; the limits slide.
 
 **Do not on demo day:** roll out images, restart Action, PostgreSQL or Kafka, or change the fleet size. If the fleet looks idle, restart only `deployment/fleet`. After the freeze (Sun 2026-11-29 18:00) only a rollback to a recorded digest is allowed.
 
@@ -131,12 +131,12 @@ Physical names carry a prefix (`integration-kind.` on kind and AKS). Three parti
 
 | Topic | Key | Producer | Consumers |
 |---|---|---|---|
-| `grid.telemetry.v1` | `transformer_id` | Fleet | Flink |
+| `grid.telemetry.v1` | `transformer_id` | Fleet | Flink, projection telemetry worker |
 | `grid.transformer-load.v1` | `transformer_id` | Flink | Action, projection |
 | `grid.alert.v1`, `grid.action.v1` | `transformer_id` | Debezium from the Action outbox | Projection |
-| `grid.charger-command.v1` | `device_id` | Debezium from the Action outbox | Fleet gateway |
+| `grid.charger-command.v1` | `device_id` | Debezium from the Action outbox | Fleet gateway, projection control worker |
 | `grid.command-result.v1` | `device_id` | Gateway | Action, projection |
-| `grid.telemetry.dlq.v1`, `grid.telemetry.late.v1` | original key | Flink | Audit, projection |
+| `grid.telemetry.dlq.v1`, `grid.telemetry.late.v1` | original key | Flink | Audit |
 
 Retention on AKS is a rolling three hours with per-partition size caps and small 8 MiB segments that roll every ten minutes (Kafka deletes only closed segments), so old records are deleted before a volume fills. The projection keeps a 30-minute window of device readings and prunes the rest. Field definitions are in [event contracts](contracts/EVENT_CONTRACTS.md).
 
@@ -220,7 +220,20 @@ Aggregation writes no PostgreSQL data. Flink publishes to Kafka and the projecti
 | Out-of-order burst (60 s) | Window corrections per minute 58 to 1,082, results converge |
 | Storage after one hour | PostgreSQL 14%, Kafka 5% of 8 GiB, checkpoints 5%, WAL 128 MB, replication slot lag 4 MB |
 
-**Control room** (`/live`): KPI strip (fleet demand, fleet utilization, EV charging, solar generation, transformers at risk, automatic actions, events per second, output freshness), a flow strip from devices to actions, fleet load and capacity chart, 5 x 5 transformer heat map, most loaded transformers, live action feed, pipeline throughput, consumer lag, Flink busy time and backpressure, correctness counters (duplicates dropped, late, corrections, DLQ), retention and storage gauges, and the fault and incident panel.
+**Control room** (`/live`, dark theme, one shared poller, one 3 s refresh). A five-tile header (active load kW, throttled EVs x/70, peak avoided kW with an illustrative $ figure, energy shifted kWh, output freshness) and a bottom chaos dock stay visible on all four tabs.
+
+| Tab | What it shows |
+|---|---|
+| Grid operations | The closed loop as one chart: Grid + Solar, the five managed transformers plus the three most loaded others (click one), their charger groups, and the control saga node. Cyan lines are telemetry from the chargers. While an action is in flight, amber lines carry commands from the saga back to the chargers and green lines carry acknowledgments. Under it, a seven-step saga stepper for the selected transformer (overload, plan + outbox, dispatched (CDC), acks x/y, reduction confirmed, recovery monitoring, restored, or a red "safe hold"). Then the managed-versus-without-throttling chart, the decision log and fleet load. |
+| Transformers (25) | Sortable, searchable, paginated table of all 25 transformers (band, utilization, net / EV / meter / solar kW, capacity, managed, saga status, throttled, coverage). A row opens that transformer's demand breakdown, its managed-versus-shadow chart and only its decisions. Monitor-only transformers use Prometheus history. |
+| Devices (1,000) | Per-transformer inventory of all devices (good, estimated, missing, late, EV / meter / solar kW) and the table of the 70 managed EV chargers (priority, departure, rate now / max, last command, state, freshness) with transformer, priority, state and search filters. **Spared** applies after reduction is confirmed or recovery monitoring begins, when an online, charging, controllable charger has no command for that action. The charger list is fetched every 10 s only while this tab is open. |
+| Pipeline health | Flow strip devices, Kafka, Flink, Action, outbox / CDC, fenced gateway, chargers, with a dashed return rail ("acks + lower measured kW re-enter as telemetry · loop about 20 s"), the correctness table, retention and storage, throughput, lag, Flink busy and backpressure, and Grafana deep links. |
+
+Numbers shown there are measured, not promised: results appear about 12 s after an event (5 s windows plus watermark), a throttle shows a confirmed reduction 10 to 15 s after an overload starts, a TaskManager kill recovers in about 33 s, and the fleet sends about 200 events/s. The "peak avoided" and "energy shifted" tiles count only confirmed reductions. The dollar figure uses an illustrative $25 per kW-month demand charge.
+
+The latest hosted audit observed an estimated eight- to nine-minute delay in the projection-backed Decision Log and other action panels. Treat the timings above as system measurements. Verify action freshness before presenting the controls as a live closed loop on AKS. See [implementation status](implementation/IMPLEMENTATION_STATUS.md).
+
+**Demo acts and the buttons.** Act 1, the grid at work: open `/live`, read the tiles and the topology. Act 2, the 6 PM EV rush: the dock button targets the least loaded managed transformer that has no incident (change it in the dropdown), then follow the saga stepper, the amber and green return lines, the decision log and the load falling by the confirmed kW. Act 3, bad data: Delayed packets, Out of order and Duplicates, then the correctness table on Pipeline health. Act 4, failure: delete the TaskManager from a terminal (there is no UI button, it needs cluster rights) and watch freshness and the Flink panels recover.
 
 **Grafana** (anonymous Viewer, provisioned from `observability/demo_dashboards.py`): `grid-control-room`, `grid-pipeline`, `grid-kafka`, `grid-platform`, `grid-storage`.
 
@@ -247,7 +260,7 @@ Aggregation writes no PostgreSQL data. Flink publishes to Kafka and the projecti
 **Live drills** (from the control room, or `tools.demo_check` to verify afterwards):
 
 1. Out of order, Duplicates or Very late for 30 s. Counters on the left move within seconds. Load totals do not change.
-2. Trigger overload on `tx-001` to `tx-005` for 90 s. Watch the feed.
+2. 6 PM EV rush (a 90 s overload on `tx-001` to `tx-005`). Watch the saga stepper and the decision log.
 3. Kill the TaskManager (keep a terminal ready):
    `kubectl -n platform delete pod -l component=taskmanager,grid-app=aggregation`.
    Expect the job `RUNNING` again in about 30 s with no change in Action, projection or fleet.
@@ -310,10 +323,10 @@ Missing data is not zero, correlation is not causation, a timeout is not a faile
 
 | Min | Say | Do |
 |---|---|---|
-| 0-1 | The problem and the value. 1,000 devices, 25 transformers, live. | Open `/`. Point at the KPI strip, freshness badge and heat map. |
+| 0-1 | The problem and the value. 1,000 devices, 25 transformers, live. | Open `/`. Point at the KPI strip, freshness badge and closed-loop topology. |
 | 1-2.5 | Ingest and partitioning. Three partitions keyed by transformer, lag near zero. | Scroll to pipeline throughput and consumer lag. Open Grafana `grid-pipeline` in a second tab. |
 | 2.5-5 | The hard parts of streaming: out-of-order, duplicates, late data. Results do not change. | Click Out of order, then Duplicates. Show the correctness counters move and the load chart stay put. |
-| 5-7.5 | The control loop. Atomic plan and outbox, Debezium, fenced gateway, measured reduction, restore. | Pick an incident on `tx-003`, Trigger overload. Follow the live action feed from plan to throttle to confirmed reduction to restore. Open `/operator`, Alerts & actions, the completed action and Investigate for the cited mock explanation. |
+| 5-7.5 | The control loop. Atomic plan and outbox, Debezium, fenced gateway, measured reduction, restore. | Once action freshness is verified, click 6 PM EV rush in the dock. Follow the saga stepper and the Decision Log. For Q&A, open the completed action under `/operator` → Alerts & actions to inspect the trigger window, policy version and leader epoch. |
 | 7.5-8.5 | Fault tolerance. | Delete the TaskManager. Show the job back to `RUNNING` in about 30 s with Action unchanged. |
 | 8.5-9.5 | Observability and rolling retention. | Grafana `grid-platform` and `grid-storage`: volumes, oldest retained data, the three-hour window. |
 | 9.5-10 | Limits and next steps. | Section 11. |
